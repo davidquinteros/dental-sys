@@ -1,0 +1,137 @@
+<div class="page">
+  <div class="page-header">
+    <div class="breadcrumb">
+      <a routerLink="/treatments" class="breadcrumb-link">Atenciones</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span>Nuevo Plan de Tratamiento</span>
+    </div>
+    <h1 class="page-title">Crear Plan de Tratamiento</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
+    <div class="form-card">
+      <div class="form-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        </svg>
+        Paciente y Médico
+      </div>
+      <div class="form-body">
+        <!-- Patient search -->
+        <div class="form-group">
+          <label>Paciente <span class="req">*</span></label>
+          <div class="search-select">
+            <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone:true}"
+              (input)="onSearch()" placeholder="Buscar paciente..." [disabled]="!!selectedPatient()"/>
+            @if (selectedPatient()) {
+              <div class="selected-item">
+                <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
+                <button type="button" (click)="clearPatient()">✕</button>
+              </div>
+            }
+            @if (patientResults().length > 0 && !selectedPatient()) {
+              <div class="dropdown">
+                @for (p of patientResults(); track p.id) {
+                  <div class="dropdown-item" (click)="selectPatient(p)">
+                    <span class="drop-name">{{ p.full_name }}</span>
+                    <span class="drop-meta">{{ p.document_number }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Médico Responsable <span class="req">*</span></label>
+          <select formControlName="doctor_id" [class.error]="hasError('doctor_id')">
+            <option value="">Seleccionar médico...</option>
+            @for (d of doctors(); track d.id) {
+              <option [value]="d.id">{{ d.full_name }}{{ d.specialty ? ' — ' + d.specialty : '' }}</option>
+            }
+          </select>
+          @if (hasError('doctor_id')) { <span class="field-error">Requerido</span> }
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+        Datos del Plan
+      </div>
+      <div class="form-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre del Plan <span class="req">*</span></label>
+            <input formControlName="name" type="text" placeholder="Ej: Endodoncia pieza 24, Ortodoncia completa"
+              [class.error]="hasError('name')"/>
+            @if (hasError('name')) { <span class="field-error">Requerido</span> }
+          </div>
+          <div class="form-group">
+            <label>Tipo de Tratamiento <span class="req">*</span></label>
+            <select formControlName="treatment_type" [class.error]="hasError('treatment_type')">
+              <option value="">Seleccionar...</option>
+              <option value="endodontics">Endodoncia</option>
+              <option value="orthodontics">Ortodoncia</option>
+              <option value="implant">Implante</option>
+              <option value="periodontics">Periodoncia</option>
+              <option value="prosthetics">Prótesis</option>
+              <option value="surgery">Cirugía</option>
+              <option value="whitening">Blanqueamiento</option>
+              <option value="other">Otro</option>
+            </select>
+            @if (hasError('treatment_type')) { <span class="field-error">Requerido</span> }
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Número de Sesiones Planificadas</label>
+            <input formControlName="total_sessions" type="number" min="1" placeholder="Ej: 4"/>
+          </div>
+          <div class="form-group">
+            <label>Pieza Dental</label>
+            <input formControlName="tooth_number" type="text" placeholder="Ej: 24 (Notación FDI)"/>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Fecha de Inicio</label>
+            <input formControlName="start_date" type="date"/>
+          </div>
+          <div class="form-group">
+            <label>Fecha Estimada de Fin</label>
+            <input formControlName="estimated_end_date" type="date"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Descripción del Plan</label>
+          <textarea formControlName="description" rows="2"
+            placeholder="Descripción general del plan de tratamiento..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Notas</label>
+          <textarea formControlName="notes" rows="2"
+            placeholder="Observaciones, condiciones especiales, acuerdos con el paciente..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    @if (errorMsg()) { <div class="alert-error">{{ errorMsg() }}</div> }
+
+    <div class="form-actions">
+      <a routerLink="/treatments" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving() || !selectedPatient()">
+        @if (saving()) { <span class="spinner-sm"></span> }
+        Crear Plan de Tratamiento
+      </button>
+    </div>
+  </form>
+</div>

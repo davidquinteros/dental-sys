@@ -1,0 +1,291 @@
+"""Central Swagger/OpenAPI configuration for the Dental Clinic API.
+
+This module defines the flasgger configuration (UI/route setup) and the
+base OpenAPI template (info, security, tags and shared schema definitions)
+used across all blueprints. Individual endpoints document their parameters
+and responses via YAML docstrings that reference the schemas defined here.
+"""
+
+SWAGGER_CONFIG = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": "apispec",
+            "route": "/apispec.json",
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/api/docs/",
+}
+
+SWAGGER_TEMPLATE = {
+    "swagger": "2.0",
+    "info": {
+        "title": "Dental Clinic API",
+        "description": (
+            "API REST para la gestión integral de una clínica dental: "
+            "usuarios y médicos, pacientes, citas, atenciones, planes de "
+            "tratamiento y facturación.\n\n"
+            "### Autenticación\n"
+            "La mayoría de los endpoints requieren un token JWT. Inicia sesión "
+            "con `POST /api/auth/login` para obtener un `access_token`, luego "
+            "presiona el botón **Authorize** e ingresa `Bearer <access_token>`."
+        ),
+        "version": "1.0.0",
+        "contact": {"name": "Dental Clinic MVP"},
+    },
+    "basePath": "/",
+    "schemes": ["http", "https"],
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": (
+                "Token JWT con el prefijo 'Bearer '. "
+                "Ejemplo: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'"
+            ),
+        }
+    },
+    "tags": [
+        {"name": "Auth", "description": "Autenticación y gestión de sesión"},
+        {"name": "Usuarios", "description": "Gestión de usuarios del sistema (médicos, recepción, asistentes, administradores)"},
+        {"name": "Pacientes", "description": "Gestión de pacientes y su historial clínico"},
+        {"name": "Citas", "description": "Agenda y gestión de citas"},
+        {"name": "Atenciones", "description": "Atenciones clínicas y planes de tratamiento multi-sesión"},
+        {"name": "Facturación", "description": "Facturas, pagos y planes de pago"},
+        {"name": "Dashboard", "description": "Estadísticas y resumen general del sistema"},
+        {"name": "Sistema", "description": "Endpoints de infraestructura"},
+    ],
+    "definitions": {
+        "Error": {
+            "type": "object",
+            "properties": {
+                "error": {"type": "string", "example": "Mensaje de error"},
+                "message": {"type": "string", "example": "Detalle adicional"},
+            },
+        },
+        "User": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer", "example": 1},
+                "email": {"type": "string", "example": "dr.garcia@clinica.com"},
+                "first_name": {"type": "string", "example": "Carlos"},
+                "last_name": {"type": "string", "example": "García"},
+                "full_name": {"type": "string", "example": "Carlos García"},
+                "role": {
+                    "type": "string",
+                    "enum": ["admin", "doctor", "receptionist", "assistant"],
+                    "example": "doctor",
+                },
+                "phone": {"type": "string", "nullable": True, "example": "591-70012345"},
+                "specialty": {"type": "string", "nullable": True, "example": "Ortodoncia"},
+                "license_number": {"type": "string", "nullable": True, "example": "OD-2018-045"},
+                "is_active": {"type": "boolean", "example": True},
+                "created_at": {"type": "string", "format": "date-time"},
+            },
+        },
+        "Patient": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer", "example": 1},
+                "first_name": {"type": "string", "example": "Juan"},
+                "last_name": {"type": "string", "example": "Pérez"},
+                "full_name": {"type": "string", "example": "Juan Pérez"},
+                "document_number": {"type": "string", "example": "1234567"},
+                "document_type": {"type": "string", "example": "CI"},
+                "date_of_birth": {"type": "string", "format": "date", "nullable": True},
+                "age": {"type": "integer", "nullable": True, "example": 35},
+                "gender": {"type": "string", "nullable": True, "example": "M"},
+                "phone": {"type": "string", "nullable": True, "example": "591-70011111"},
+                "phone_emergency": {"type": "string", "nullable": True},
+                "email": {"type": "string", "nullable": True, "example": "juan.perez@example.com"},
+                "address": {"type": "string", "nullable": True},
+                "city": {"type": "string", "nullable": True, "example": "La Paz"},
+                "blood_type": {
+                    "type": "string",
+                    "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "unknown"],
+                    "example": "O+",
+                },
+                "allergies": {"type": "string", "nullable": True, "example": "Penicilina"},
+                "medical_notes": {"type": "string", "nullable": True},
+                "is_active": {"type": "boolean", "example": True},
+                "created_at": {"type": "string", "format": "date-time"},
+                "total_appointments": {"type": "integer", "description": "Solo presente si include_history=true"},
+                "total_treatments": {"type": "integer", "description": "Solo presente si include_history=true"},
+                "active_treatment_plans": {"type": "integer", "description": "Solo presente si include_history=true"},
+            },
+        },
+        "Appointment": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer", "example": 1},
+                "patient_id": {"type": "integer", "example": 3},
+                "patient_name": {"type": "string", "example": "Juan Pérez"},
+                "doctor_id": {"type": "integer", "example": 2},
+                "doctor_name": {"type": "string", "example": "Carlos García"},
+                "created_by_id": {"type": "integer", "example": 4},
+                "scheduled_at": {"type": "string", "format": "date-time"},
+                "duration_minutes": {"type": "integer", "example": 30},
+                "appointment_type": {
+                    "type": "string",
+                    "enum": [
+                        "consultation", "cleaning", "extraction", "filling",
+                        "endodontics", "orthodontics", "implant", "whitening",
+                        "crown", "followup", "other",
+                    ],
+                    "example": "consultation",
+                },
+                "status": {
+                    "type": "string",
+                    "enum": ["scheduled", "confirmed", "in_progress", "completed", "cancelled", "no_show"],
+                    "example": "scheduled",
+                },
+                "treatment_plan_id": {"type": "integer", "nullable": True},
+                "session_number": {"type": "integer", "nullable": True},
+                "reason": {"type": "string", "nullable": True, "example": "Dolor en muela"},
+                "notes": {"type": "string", "nullable": True},
+                "cancellation_reason": {"type": "string", "nullable": True},
+                "created_at": {"type": "string", "format": "date-time"},
+                "completed_at": {"type": "string", "format": "date-time", "nullable": True},
+                "has_treatment": {"type": "boolean"},
+                "has_invoice": {"type": "boolean"},
+            },
+        },
+        "Treatment": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer", "example": 1},
+                "patient_id": {"type": "integer"},
+                "doctor_id": {"type": "integer"},
+                "doctor_name": {"type": "string"},
+                "appointment_id": {"type": "integer", "nullable": True},
+                "treatment_plan_id": {"type": "integer", "nullable": True},
+                "diagnosis": {"type": "string", "nullable": True},
+                "procedure": {"type": "string", "example": "Extracción dental pieza 38"},
+                "tooth_number": {"type": "string", "nullable": True, "example": "38"},
+                "tooth_surface": {"type": "string", "nullable": True, "example": "O"},
+                "description": {"type": "string", "nullable": True},
+                "clinical_notes": {"type": "string", "nullable": True},
+                "prescriptions": {"type": "string", "nullable": True},
+                "next_steps": {"type": "string", "nullable": True},
+                "attachments": {"type": "array", "items": {"type": "string"}, "nullable": True},
+                "performed_at": {"type": "string", "format": "date-time"},
+                "created_at": {"type": "string", "format": "date-time"},
+            },
+        },
+        "TreatmentPlan": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer", "example": 1},
+                "patient_id": {"type": "integer"},
+                "patient_name": {"type": "string"},
+                "doctor_id": {"type": "integer"},
+                "doctor_name": {"type": "string"},
+                "name": {"type": "string", "example": "Ortodoncia completa - Brackets metálicos"},
+                "description": {"type": "string", "nullable": True},
+                "treatment_type": {"type": "string", "example": "orthodontics"},
+                "status": {
+                    "type": "string",
+                    "enum": ["active", "completed", "cancelled", "on_hold"],
+                    "example": "active",
+                },
+                "total_sessions": {"type": "integer", "nullable": True, "example": 12},
+                "completed_sessions": {"type": "integer", "example": 4},
+                "progress_percentage": {"type": "number", "format": "float", "example": 33.3},
+                "tooth_number": {"type": "string", "nullable": True},
+                "start_date": {"type": "string", "format": "date", "nullable": True},
+                "estimated_end_date": {"type": "string", "format": "date", "nullable": True},
+                "actual_end_date": {"type": "string", "format": "date", "nullable": True},
+                "notes": {"type": "string", "nullable": True},
+                "has_payment_plan": {"type": "boolean"},
+                "created_at": {"type": "string", "format": "date-time"},
+                "sessions": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/Treatment"},
+                    "description": "Solo presente si include_sessions=true",
+                },
+            },
+        },
+        "InvoiceItem": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer"},
+                "description": {"type": "string", "example": "Consulta general"},
+                "quantity": {"type": "integer", "example": 1},
+                "unit_price": {"type": "number", "format": "float", "example": 150.0},
+                "total": {"type": "number", "format": "float", "example": 150.0},
+            },
+        },
+        "Invoice": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer", "example": 1},
+                "invoice_number": {"type": "string", "example": "INV-2026-0001"},
+                "patient_id": {"type": "integer"},
+                "patient_name": {"type": "string"},
+                "appointment_id": {"type": "integer", "nullable": True},
+                "subtotal": {"type": "number", "format": "float", "example": 150.0},
+                "discount": {"type": "number", "format": "float", "example": 0.0},
+                "total": {"type": "number", "format": "float", "example": 150.0},
+                "amount_paid": {"type": "number", "format": "float", "example": 150.0},
+                "balance": {"type": "number", "format": "float", "example": 0.0},
+                "status": {
+                    "type": "string",
+                    "enum": ["pending", "partial", "paid", "cancelled", "overdue"],
+                    "example": "paid",
+                },
+                "notes": {"type": "string", "nullable": True},
+                "due_date": {"type": "string", "format": "date", "nullable": True},
+                "items": {"type": "array", "items": {"$ref": "#/definitions/InvoiceItem"}},
+                "created_at": {"type": "string", "format": "date-time"},
+            },
+        },
+        "Payment": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer"},
+                "invoice_id": {"type": "integer"},
+                "amount": {"type": "number", "format": "float", "example": 150.0},
+                "method": {
+                    "type": "string",
+                    "enum": ["cash", "card", "transfer", "other"],
+                    "example": "cash",
+                },
+                "reference": {"type": "string", "nullable": True},
+                "notes": {"type": "string", "nullable": True},
+                "payment_date": {"type": "string", "format": "date-time"},
+                "received_by": {"type": "string", "nullable": True, "example": "Lucía Fernández"},
+            },
+        },
+        "PaymentPlan": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer"},
+                "patient_id": {"type": "integer"},
+                "patient_name": {"type": "string"},
+                "treatment_plan_id": {"type": "integer"},
+                "name": {"type": "string", "example": "Plan de pago - Ortodoncia"},
+                "total_amount": {"type": "number", "format": "float", "example": 4500.0},
+                "down_payment": {"type": "number", "format": "float", "example": 900.0},
+                "installments": {"type": "integer", "example": 12},
+                "installment_amount": {"type": "number", "format": "float", "example": 300.0},
+                "paid_installments": {"type": "integer", "example": 4},
+                "total_paid": {"type": "number", "format": "float", "example": 2100.0},
+                "balance": {"type": "number", "format": "float", "example": 2400.0},
+                "progress_percentage": {"type": "number", "format": "float", "example": 46.7},
+                "status": {
+                    "type": "string",
+                    "enum": ["active", "completed", "cancelled", "defaulted"],
+                    "example": "active",
+                },
+                "start_date": {"type": "string", "format": "date", "nullable": True},
+                "notes": {"type": "string", "nullable": True},
+                "created_at": {"type": "string", "format": "date-time"},
+            },
+        },
+    },
+}

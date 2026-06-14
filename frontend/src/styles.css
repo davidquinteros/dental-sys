@@ -1,0 +1,48 @@
+/* ─── Global Styles — DentalSys ────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  color: #2d3748;
+  background: #f0f4f8;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 { font-weight: 600; line-height: 1.3; }
+a { color: inherit; text-decoration: none; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+
+:focus-visible { outline: 2px solid #4299e1; outline-offset: 2px; }
+::selection { background: #bee3f8; color: #1a365d; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page { animation: fadeIn 0.2s ease-out; }
+
+/* ─── Responsive helpers ────────────────────────────────────────────────────
+   .table-wrapper: wrap any <table> in this div to allow horizontal scrolling
+   on tablet/mobile without breaking the column layout. */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-wrapper > table { min-width: 640px; }
+
+@media (max-width: 768px) {
+  html, body { font-size: 15px; }
+}

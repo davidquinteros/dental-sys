@@ -1,0 +1,119 @@
+<div class="page">
+  @if (loading()) {
+    <div class="loading-center"><div class="spinner-lg"></div></div>
+  } @else if (invoice()) {
+    <div class="breadcrumb">
+      <a routerLink="/billing" class="breadcrumb-link">Cobros</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span>{{ invoice()!.invoice_number }}</span>
+    </div>
+
+    <div class="header-row">
+      <div>
+        <h1 class="page-title">{{ invoice()!.invoice_number }}</h1>
+        <p class="sub">Paciente: {{ invoice()!.patient_name }} · {{ formatDate(invoice()!.created_at) }}</p>
+      </div>
+      <span class="status-badge big" [class]="'inv-' + invoice()!.status">{{ invStatusLabel(invoice()!.status) }}</span>
+    </div>
+
+    <div class="detail-grid">
+      <!-- Items table -->
+      <div class="main-col">
+        <div class="card">
+          <div class="card-header"><h3>Ítems</h3></div>
+          <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr><th>Descripción</th><th class="r">Cant.</th><th class="r">P. Unit.</th><th class="r">Total</th></tr>
+            </thead>
+            <tbody>
+              @for (item of invoice()!.items; track item.id) {
+                <tr>
+                  <td>{{ item.description }}</td>
+                  <td class="r">{{ item.quantity }}</td>
+                  <td class="r">Bs {{ formatMoney(item.unit_price) }}</td>
+                  <td class="r"><strong>Bs {{ formatMoney(item.total) }}</strong></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          </div>
+          <div class="totals">
+            <div class="t-row"><span>Subtotal</span><span>Bs {{ formatMoney(invoice()!.subtotal) }}</span></div>
+            @if (invoice()!.discount > 0) {
+              <div class="t-row discount"><span>Descuento</span><span>-Bs {{ formatMoney(invoice()!.discount) }}</span></div>
+            }
+            <div class="t-row grand"><span>Total</span><span>Bs {{ formatMoney(invoice()!.total) }}</span></div>
+            <div class="t-row paid"><span>Pagado</span><span class="green">Bs {{ formatMoney(invoice()!.amount_paid) }}</span></div>
+            <div class="t-row balance" [class.has-balance]="invoice()!.balance > 0">
+              <span>Saldo Pendiente</span><span [class.red]="invoice()!.balance > 0">Bs {{ formatMoney(invoice()!.balance) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment panel -->
+      <div class="side-col">
+        @if (invoice()!.balance > 0 && invoice()!.status !== 'cancelled') {
+          <div class="payment-panel">
+            <h4>Registrar Pago</h4>
+            <div class="pay-form">
+              <div class="form-group">
+                <label>Monto</label>
+                <input type="number" [(ngModel)]="payAmount" [max]="invoice()!.balance" step="0.01"
+                  placeholder="Bs 0.00"/>
+                <button class="max-btn" type="button" (click)="payAmount = invoice()!.balance">
+                  Saldo completo
+                </button>
+              </div>
+              <div class="form-group">
+                <label>Método de Pago</label>
+                <select [(ngModel)]="payMethod">
+                  <option value="cash">Efectivo</option>
+                  <option value="card">Tarjeta</option>
+                  <option value="transfer">Transferencia</option>
+                  <option value="other">Otro</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Referencia</label>
+                <input type="text" [(ngModel)]="payReference" placeholder="N° transacción (opcional)"/>
+              </div>
+              <button class="pay-btn" (click)="registerPayment()" [disabled]="paying() || !payAmount || payAmount <= 0">
+                @if (paying()) { <span class="spinner-sm"></span> }
+                Registrar Pago
+              </button>
+              @if (payError()) { <p class="pay-error">{{ payError() }}</p> }
+            </div>
+          </div>
+        }
+
+        @if (invoice()!.status === 'paid') {
+          <div class="paid-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span>Factura pagada completamente</span>
+          </div>
+        }
+
+        <div class="meta-card">
+          <h4>Información</h4>
+          <div class="m-row"><span class="ml">Paciente</span><span>{{ invoice()!.patient_name }}</span></div>
+          @if (invoice()!.appointment_id) {
+            <div class="m-row"><span class="ml">Cita</span>
+              <a [routerLink]="['/appointments', invoice()!.appointment_id]" class="link">#{{ invoice()!.appointment_id }}</a>
+            </div>
+          }
+          @if (invoice()!.due_date) {
+            <div class="m-row"><span class="ml">Vencimiento</span><span>{{ formatDate(invoice()!.due_date!) }}</span></div>
+          }
+          @if (invoice()!.notes) {
+            <div class="m-row col"><span class="ml">Notas</span><span class="note-txt">{{ invoice()!.notes }}</span></div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

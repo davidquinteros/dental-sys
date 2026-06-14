@@ -1,0 +1,143 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Pacientes</h1>
+      <p class="page-subtitle">Gestión de pacientes registrados</p>
+    </div>
+    <a routerLink="/patients/new" class="btn btn-primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nuevo Paciente
+    </a>
+  </div>
+
+  <!-- Search bar -->
+  <div class="search-bar">
+    <div class="search-input-wrapper">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="onSearch($event)"
+        placeholder="Buscar por nombre, C.I., teléfono o email..." class="search-input"/>
+      @if (searchTerm) {
+        <button class="clear-search" (click)="clearSearch()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      }
+    </div>
+    <div class="search-meta">
+      @if (!loading()) { <span>{{ total() }} pacientes encontrados</span> }
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card">
+    @if (loading()) {
+      <div class="loading-state">
+        <div class="spinner-lg"></div>
+        <p>Cargando pacientes...</p>
+      </div>
+    } @else if (patients().length === 0) {
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+        </svg>
+        <h3>No se encontraron pacientes</h3>
+        <p>{{ searchTerm ? 'Intente con otros términos de búsqueda' : 'Registre el primer paciente' }}</p>
+        @if (!searchTerm) {
+          <a routerLink="/patients/new" class="btn btn-primary">Nuevo Paciente</a>
+        }
+      </div>
+    } @else {
+      <div class="table-wrapper">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Paciente</th>
+            <th>C.I.</th>
+            <th>Edad</th>
+            <th>Teléfono</th>
+            <th>Ciudad</th>
+            <th>Alergia</th>
+            <th>Registro</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (patient of patients(); track patient.id) {
+            <tr>
+              <td>
+                <div class="patient-cell">
+                  <div class="patient-avatar">{{ initials(patient) }}</div>
+                  <div class="patient-info">
+                    <span class="patient-name">{{ patient.full_name }}</span>
+                    <span class="patient-email">{{ patient.email || '—' }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>{{ patient.document_number }}</td>
+              <td>{{ patient.age ? patient.age + ' años' : '—' }}</td>
+              <td>{{ patient.phone || '—' }}</td>
+              <td>{{ patient.city || '—' }}</td>
+              <td>
+                @if (patient.allergies) {
+                  <span class="allergy-badge" [title]="patient.allergies">⚠️ Sí</span>
+                } @else {
+                  <span class="text-muted">No</span>
+                }
+              </td>
+              <td class="text-muted">{{ formatDate(patient.created_at) }}</td>
+              <td>
+                <div class="row-actions">
+                  <a [routerLink]="['/patients', patient.id]" class="action-btn" title="Ver detalle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </a>
+                  <a [routerLink]="['/patients', patient.id, 'edit']" class="action-btn" title="Editar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </a>
+                  <a [routerLink]="['/appointments']" [queryParams]="{ patient_id: patient.id }" class="action-btn" title="Ver citas">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      </div>
+
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+        <div class="pagination">
+          <button class="page-btn" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          @for (p of pageNumbers(); track p) {
+            <button class="page-btn" [class.active]="p === currentPage()" (click)="goToPage(p)">{{ p }}</button>
+          }
+          <button class="page-btn" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+      }
+    }
+  </div>
+</div>

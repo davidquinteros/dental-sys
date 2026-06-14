@@ -1,0 +1,117 @@
+<div class="page">
+  <div class="page-header">
+    <div class="breadcrumb">
+      <a routerLink="/billing" class="breadcrumb-link">Cobros</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span>Nueva Factura</span>
+    </div>
+    <h1 class="page-title">Crear Factura</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
+    <!-- Patient -->
+    <div class="form-card">
+      <div class="form-card-header">Paciente</div>
+      <div class="form-body">
+        <div class="form-group">
+          <label>Paciente <span class="req">*</span></label>
+          <div class="search-select">
+            <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone:true}"
+              (input)="onSearch()" placeholder="Buscar paciente..." [disabled]="!!selectedPatient()"/>
+            @if (selectedPatient()) {
+              <div class="selected-item">
+                <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
+                <button type="button" (click)="clearPatient()">✕</button>
+              </div>
+            }
+            @if (patientResults().length > 0 && !selectedPatient()) {
+              <div class="dropdown">
+                @for (p of patientResults(); track p.id) {
+                  <div class="dropdown-item" (click)="selectPatient(p)">
+                    <span class="dn">{{ p.full_name }}</span>
+                    <span class="dm">{{ p.document_number }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cita Asociada (ID, opcional)</label>
+            <input formControlName="appointment_id" type="number" placeholder="ID de la cita"/>
+          </div>
+          <div class="form-group">
+            <label>Fecha de Vencimiento</label>
+            <input formControlName="due_date" type="date"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Items -->
+    <div class="form-card">
+      <div class="form-card-header">
+        <span>Ítems de la Factura</span>
+        <button type="button" class="add-item-btn" (click)="addItem()">+ Agregar ítem</button>
+      </div>
+      <div class="form-body">
+        <div class="items-header">
+          <span class="ih desc">Descripción</span>
+          <span class="ih qty">Cantidad</span>
+          <span class="ih price">Precio Unit.</span>
+          <span class="ih total">Total</span>
+          <span class="ih del"></span>
+        </div>
+        <div formArrayName="items" class="items-list">
+          @for (item of itemsArray.controls; track $index; let i = $index) {
+            <div [formGroupName]="i" class="item-row">
+              <input formControlName="description" type="text" placeholder="Descripción del servicio/producto" class="item-desc"/>
+              <input formControlName="quantity" type="number" min="1" placeholder="1" class="item-qty"
+                (input)="recalcItem(i)"/>
+              <input formControlName="unit_price" type="number" min="0" step="0.01" placeholder="0.00" class="item-price"
+                (input)="recalcItem(i)"/>
+              <span class="item-total">Bs {{ formatMoney(itemTotal(i)) }}</span>
+              <button type="button" class="del-btn" (click)="removeItem(i)" [disabled]="itemsArray.length === 1">✕</button>
+            </div>
+          }
+        </div>
+
+        <!-- Totals -->
+        <div class="totals-section">
+          <div class="total-row">
+            <span>Subtotal</span>
+            <span>Bs {{ formatMoney(subtotal()) }}</span>
+          </div>
+          <div class="total-row discount-row">
+            <span>Descuento</span>
+            <div class="discount-input">
+              <span>Bs</span>
+              <input formControlName="discount" type="number" min="0" step="0.01"
+                placeholder="0.00" (input)="0"/>
+            </div>
+          </div>
+          <div class="total-row grand-total">
+            <span>Total</span>
+            <span class="grand-val">Bs {{ formatMoney(grandTotal()) }}</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Notas</label>
+          <textarea formControlName="notes" rows="2" placeholder="Notas adicionales en la factura..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    @if (errorMsg()) { <div class="alert-error">{{ errorMsg() }}</div> }
+
+    <div class="form-actions">
+      <a routerLink="/billing" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving() || !selectedPatient()">
+        @if (saving()) { <span class="spinner-sm"></span> }
+        Crear Factura
+      </button>
+    </div>
+  </form>
+</div>

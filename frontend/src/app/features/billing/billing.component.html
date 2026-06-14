@@ -1,0 +1,189 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Cobros y Facturación</h1>
+      <p class="page-subtitle">Gestión de facturas y planes de pago</p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/billing/payment-plans/new" class="btn btn-secondary">Nuevo Plan de Pago</a>
+      <a routerLink="/billing/invoices/new" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nueva Factura
+      </a>
+    </div>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="summary-grid">
+    <div class="sum-card green">
+      <div class="sum-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div>
+        <span class="sum-label">Total Cobrado</span>
+        <span class="sum-val">Bs {{ formatMoney(summary()?.total_collected) }}</span>
+      </div>
+    </div>
+    <div class="sum-card blue">
+      <div class="sum-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+          <line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
+      </div>
+      <div>
+        <span class="sum-label">Total Facturado</span>
+        <span class="sum-val">Bs {{ formatMoney(summary()?.total_invoiced) }}</span>
+      </div>
+    </div>
+    <div class="sum-card red">
+      <div class="sum-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <div>
+        <span class="sum-label">Saldo Pendiente</span>
+        <span class="sum-val">Bs {{ formatMoney(summary()?.pending_balance) }}</span>
+      </div>
+    </div>
+    <div class="sum-card purple">
+      <div class="sum-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23"/>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+      <div>
+        <span class="sum-label">Planes Activos</span>
+        <span class="sum-val">{{ activePlans() }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab" [class.active]="view() === 'invoices'" (click)="view.set('invoices')">
+      Facturas <span class="tab-badge">{{ invoices().length }}</span>
+    </button>
+    <button class="tab" [class.active]="view() === 'plans'" (click)="view.set('plans')">
+      Planes de Pago <span class="tab-badge">{{ paymentPlans().length }}</span>
+    </button>
+  </div>
+
+  @if (view() === 'invoices') {
+    <!-- Status filter -->
+    <div class="filter-row">
+      @for (f of statusFilters; track f.value) {
+        <button class="filter-chip" [class.active]="statusFilter() === f.value"
+          (click)="statusFilter.set(f.value); loadInvoices()">
+          {{ f.label }}
+        </button>
+      }
+    </div>
+
+    <div class="card">
+      @if (loadingInvoices()) {
+        <div class="loading-state"><div class="spinner-lg"></div></div>
+      } @else if (filteredInvoices().length === 0) {
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+          <h3>Sin facturas</h3>
+          <a routerLink="/billing/invoices/new" class="btn btn-primary">Crear Factura</a>
+        </div>
+      } @else {
+        <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>N° Factura</th><th>Paciente</th><th>Total</th>
+              <th>Pagado</th><th>Saldo</th><th>Estado</th><th>Fecha</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (inv of filteredInvoices(); track inv.id) {
+              <tr>
+                <td><strong class="inv-num">{{ inv.invoice_number }}</strong></td>
+                <td>{{ inv.patient_name }}</td>
+                <td class="money">Bs {{ formatMoney(inv.total) }}</td>
+                <td class="money green-text">Bs {{ formatMoney(inv.amount_paid) }}</td>
+                <td class="money" [class.red-text]="inv.balance > 0">Bs {{ formatMoney(inv.balance) }}</td>
+                <td><span class="status-badge" [class]="'inv-' + inv.status">{{ invStatusLabel(inv.status) }}</span></td>
+                <td class="text-muted">{{ formatDate(inv.created_at) }}</td>
+                <td>
+                  <a [routerLink]="['/billing/invoices', inv.id]" class="action-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        </div>
+      }
+    </div>
+  }
+
+  @if (view() === 'plans') {
+    <div class="plans-grid">
+      @if (loadingPlans()) {
+        <div class="loading-state card"><div class="spinner-lg"></div></div>
+      } @else if (paymentPlans().length === 0) {
+        <div class="empty-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          <h3>Sin planes de pago</h3>
+          <a routerLink="/billing/payment-plans/new" class="btn btn-primary">Crear Plan</a>
+        </div>
+      } @else {
+        @for (plan of paymentPlans(); track plan.id) {
+          <div class="plan-card">
+            <div class="plan-top">
+              <div>
+                <span class="plan-name">{{ plan.name }}</span>
+                <span class="plan-patient">{{ plan.patient_name }}</span>
+              </div>
+              <span class="plan-status" [class]="'pstatus-' + plan.status">{{ planStatusLabel(plan.status) }}</span>
+            </div>
+            <div class="amounts-row">
+              <div class="amount-item">
+                <span class="a-label">Total</span>
+                <span class="a-val">Bs {{ formatMoney(plan.total_amount) }}</span>
+              </div>
+              <div class="amount-item">
+                <span class="a-label">Pagado</span>
+                <span class="a-val green-text">Bs {{ formatMoney(plan.total_paid) }}</span>
+              </div>
+              <div class="amount-item">
+                <span class="a-label">Saldo</span>
+                <span class="a-val" [class.red-text]="plan.balance > 0">Bs {{ formatMoney(plan.balance) }}</span>
+              </div>
+            </div>
+            <div class="progress-row">
+              <div class="progress-bar"><div class="progress-fill" [style.width]="plan.progress_percentage + '%'"></div></div>
+              <span class="prog-txt">{{ plan.paid_installments }}/{{ plan.installments }} cuotas · {{ plan.progress_percentage }}%</span>
+            </div>
+            @if (plan.status === 'active') {
+              <button class="register-btn" (click)="registerInstallment(plan)">
+                Registrar Cuota (Bs {{ formatMoney(plan.installment_amount) }})
+              </button>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</div>

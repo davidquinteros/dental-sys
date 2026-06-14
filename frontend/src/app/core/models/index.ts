@@ -1,0 +1,225 @@
+// ─── User Models ──────────────────────────────────────────────────────────────
+export type UserRole = 'admin' | 'doctor' | 'receptionist' | 'assistant';
+
+export interface User {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  role: UserRole;
+  phone?: string;
+  specialty?: string;
+  license_number?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+  user: User;
+}
+
+// ─── Patient Models ────────────────────────────────────────────────────────────
+export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | 'unknown';
+
+export interface Patient {
+  id: number;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  document_number: string;
+  document_type: string;
+  date_of_birth?: string;
+  age?: number;
+  gender?: string;
+  phone?: string;
+  phone_emergency?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  blood_type?: BloodType;
+  allergies?: string;
+  medical_notes?: string;
+  is_active: boolean;
+  created_at: string;
+  total_appointments?: number;
+  total_treatments?: number;
+  active_treatment_plans?: number;
+}
+
+// ─── Appointment Models ────────────────────────────────────────────────────────
+export type AppointmentStatus =
+  | 'scheduled' | 'confirmed' | 'in_progress'
+  | 'completed' | 'cancelled' | 'no_show';
+
+export type AppointmentType =
+  | 'consultation' | 'cleaning' | 'extraction' | 'filling'
+  | 'endodontics' | 'orthodontics' | 'implant' | 'whitening'
+  | 'crown' | 'followup' | 'other';
+
+export interface Appointment {
+  id: number;
+  patient_id: number;
+  patient_name: string;
+  doctor_id: number;
+  doctor_name: string;
+  created_by_id: number;
+  scheduled_at: string;
+  duration_minutes: number;
+  appointment_type: AppointmentType;
+  status: AppointmentStatus;
+  treatment_plan_id?: number;
+  session_number?: number;
+  reason?: string;
+  notes?: string;
+  cancellation_reason?: string;
+  created_at: string;
+  completed_at?: string;
+  has_treatment: boolean;
+  has_invoice: boolean;
+}
+
+// ─── Treatment Models ──────────────────────────────────────────────────────────
+export type TreatmentPlanStatus = 'active' | 'completed' | 'cancelled' | 'on_hold';
+
+export interface Treatment {
+  id: number;
+  patient_id: number;
+  doctor_id: number;
+  doctor_name: string;
+  appointment_id?: number;
+  treatment_plan_id?: number;
+  diagnosis?: string;
+  procedure: string;
+  tooth_number?: string;
+  tooth_surface?: string;
+  description?: string;
+  clinical_notes?: string;
+  prescriptions?: string;
+  next_steps?: string;
+  performed_at: string;
+  created_at: string;
+}
+
+export interface TreatmentPlan {
+  id: number;
+  patient_id: number;
+  patient_name: string;
+  doctor_id: number;
+  doctor_name: string;
+  name: string;
+  description?: string;
+  treatment_type: string;
+  status: TreatmentPlanStatus;
+  total_sessions?: number;
+  completed_sessions: number;
+  progress_percentage: number;
+  tooth_number?: string;
+  start_date?: string;
+  estimated_end_date?: string;
+  actual_end_date?: string;
+  notes?: string;
+  has_payment_plan: boolean;
+  created_at: string;
+  sessions?: Treatment[];
+}
+
+// ─── Billing Models ────────────────────────────────────────────────────────────
+export type InvoiceStatus = 'pending' | 'partial' | 'paid' | 'cancelled' | 'overdue';
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'other';
+
+export interface InvoiceItem {
+  id?: number;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+export interface Invoice {
+  id: number;
+  invoice_number: string;
+  patient_id: number;
+  patient_name: string;
+  appointment_id?: number;
+  subtotal: number;
+  discount: number;
+  total: number;
+  amount_paid: number;
+  balance: number;
+  status: InvoiceStatus;
+  notes?: string;
+  due_date?: string;
+  items: InvoiceItem[];
+  created_at: string;
+}
+
+export interface Payment {
+  id: number;
+  invoice_id: number;
+  amount: number;
+  method: PaymentMethod;
+  reference?: string;
+  notes?: string;
+  payment_date: string;
+  received_by: string;
+}
+
+export interface PaymentPlan {
+  id: number;
+  patient_id: number;
+  patient_name: string;
+  treatment_plan_id: number;
+  name: string;
+  total_amount: number;
+  down_payment: number;
+  installments: number;
+  installment_amount: number;
+  paid_installments: number;
+  total_paid: number;
+  balance: number;
+  progress_percentage: number;
+  status: string;
+  start_date?: string;
+  notes?: string;
+  created_at: string;
+}
+
+// ─── Dashboard ─────────────────────────────────────────────────────────────────
+export interface DashboardData {
+  today: {
+    total: number;
+    pending: number;
+    appointments: Appointment[];
+  };
+  week: { total: number };
+  upcoming_7_days: number;
+  active_treatment_plans: number;
+  monthly_revenue?: number;
+  monthly_pending_balance?: number;
+  total_patients?: number;
+  new_patients_this_month?: number;
+  calendar_appointments: Appointment[];
+  appointment_status_breakdown: Record<AppointmentStatus, number>;
+}
+
+// ─── API Response wrappers ─────────────────────────────────────────────────────
+export interface PaginatedResponse<T> {
+  items?: T[];
+  total: number;
+  pages?: number;
+  current_page?: number;
+  per_page?: number;
+}
+
+export interface ApiError {
+  error: string;
+  message?: string;
+}

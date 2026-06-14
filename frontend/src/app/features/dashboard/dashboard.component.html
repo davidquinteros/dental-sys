@@ -1,0 +1,209 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle">{{ greeting() }}, {{ auth.currentUser()?.first_name }}</p>
+    </div>
+    <a routerLink="/appointments/new" class="btn btn-primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nueva Cita
+    </a>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-grid">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="skeleton-card"></div>
+      }
+    </div>
+  } @else if (data()) {
+    <!-- Stats cards -->
+    <div class="stats-grid">
+      <div class="stat-card stat-blue">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ data()!.today.total }}</span>
+          <span class="stat-label">Citas Hoy</span>
+          <span class="stat-sub">{{ data()!.today.pending }} pendientes</span>
+        </div>
+      </div>
+
+      <div class="stat-card stat-teal">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ data()!.week.total }}</span>
+          <span class="stat-label">Citas esta Semana</span>
+          <span class="stat-sub">{{ data()!.upcoming_7_days }} próximos 7 días</span>
+        </div>
+      </div>
+
+      <div class="stat-card stat-purple">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ data()!.active_treatment_plans }}</span>
+          <span class="stat-label">Planes Activos</span>
+          <span class="stat-sub">tratamientos en curso</span>
+        </div>
+      </div>
+
+      @if (auth.canManageBilling()) {
+        <div class="stat-card stat-green">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">Bs {{ formatMoney(data()!.monthly_revenue) }}</span>
+            <span class="stat-label">Ingresos del Mes</span>
+            <span class="stat-sub warn">Bs {{ formatMoney(data()!.monthly_pending_balance) }} por cobrar</span>
+          </div>
+        </div>
+      } @else {
+        <div class="stat-card stat-green">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ data()!.total_patients ?? '—' }}</span>
+            <span class="stat-label">Pacientes Activos</span>
+            <span class="stat-sub">{{ data()!.new_patients_this_month ?? 0 }} nuevos este mes</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Main content area -->
+    <div class="content-grid">
+      <!-- Today's appointments -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Citas de Hoy
+          </h3>
+          <a routerLink="/appointments" class="link-btn">Ver todas</a>
+        </div>
+        <div class="card-body">
+          @if (data()!.today.appointments.length === 0) {
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <p>Sin citas programadas para hoy</p>
+            </div>
+          } @else {
+            <div class="appointment-list">
+              @for (appt of data()!.today.appointments; track appt.id) {
+                <div class="appt-item">
+                  <div class="appt-time">
+                    <span class="time">{{ formatTime(appt.scheduled_at) }}</span>
+                    <span class="duration">{{ appt.duration_minutes }}min</span>
+                  </div>
+                  <div class="appt-info">
+                    <span class="patient-name">{{ appt.patient_name }}</span>
+                    <span class="appt-type">{{ appointmentTypeLabel(appt.appointment_type) }}</span>
+                  </div>
+                  <div class="appt-right">
+                    <span class="status-badge" [class]="'status-' + appt.status">
+                      {{ statusLabel(appt.status) }}
+                    </span>
+                    <span class="doctor-tag">Dr. {{ appt.doctor_name.split(' ')[1] }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div class="right-column">
+        <!-- Status breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+              Resumen de Citas
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="status-list">
+              @for (item of statusBreakdown(); track item.key) {
+                <div class="status-row">
+                  <div class="status-dot-label">
+                    <span class="dot" [class]="'dot-' + item.key"></span>
+                    <span class="status-text">{{ item.label }}</span>
+                  </div>
+                  <span class="status-count">{{ item.count }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Upcoming 7 days mini calendar -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              Próximas Citas
+            </h3>
+            <a routerLink="/appointments" class="link-btn">Ver agenda</a>
+          </div>
+          <div class="card-body">
+            @if (upcomingAppointments().length === 0) {
+              <div class="empty-state small">
+                <p>Sin próximas citas en los siguientes 7 días</p>
+              </div>
+            } @else {
+              <div class="upcoming-list">
+                @for (appt of upcomingAppointments(); track appt.id) {
+                  <div class="upcoming-item">
+                    <div class="upcoming-date-badge">
+                      <span class="day">{{ formatDay(appt.scheduled_at) }}</span>
+                      <span class="month">{{ formatMonth(appt.scheduled_at) }}</span>
+                    </div>
+                    <div class="upcoming-info">
+                      <span class="patient-name">{{ appt.patient_name }}</span>
+                      <span class="upcoming-meta">{{ formatTime(appt.scheduled_at) }} · Dr. {{ appt.doctor_name.split(' ')[0] }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

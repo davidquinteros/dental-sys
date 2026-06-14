@@ -1,0 +1,154 @@
+<div class="page">
+  <div class="page-header">
+    <div class="breadcrumb">
+      <a routerLink="/patients" class="breadcrumb-link">Pacientes</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+      <span>{{ isEdit() ? 'Editar Paciente' : 'Nuevo Paciente' }}</span>
+    </div>
+    <h1 class="page-title">{{ isEdit() ? 'Editar Paciente' : 'Registrar Nuevo Paciente' }}</h1>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-center"><div class="spinner-lg"></div></div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
+      <!-- Personal info card -->
+      <div class="form-card">
+        <div class="form-card-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          Datos Personales
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre <span class="req">*</span></label>
+            <input formControlName="first_name" type="text" placeholder="Nombre(s)"
+              [class.error]="hasError('first_name')"/>
+            @if (hasError('first_name')) { <span class="field-error">Requerido</span> }
+          </div>
+          <div class="form-group">
+            <label>Apellido <span class="req">*</span></label>
+            <input formControlName="last_name" type="text" placeholder="Apellido(s)"
+              [class.error]="hasError('last_name')"/>
+            @if (hasError('last_name')) { <span class="field-error">Requerido</span> }
+          </div>
+          <div class="form-group">
+            <label>Tipo de Documento</label>
+            <select formControlName="document_type">
+              <option value="CI">Cédula de Identidad</option>
+              <option value="Passport">Pasaporte</option>
+              <option value="RUN">RUN / RUT</option>
+              <option value="DNI">DNI</option>
+              <option value="Other">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Número de Documento <span class="req">*</span></label>
+            <input formControlName="document_number" type="text" placeholder="Ej: 1234567"
+              [class.error]="hasError('document_number')"/>
+            @if (hasError('document_number')) { <span class="field-error">Requerido</span> }
+          </div>
+          <div class="form-group">
+            <label>Fecha de Nacimiento</label>
+            <input formControlName="date_of_birth" type="date"/>
+          </div>
+          <div class="form-group">
+            <label>Género</label>
+            <select formControlName="gender">
+              <option value="">Seleccionar...</option>
+              <option value="M">Masculino</option>
+              <option value="F">Femenino</option>
+              <option value="Other">Otro</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact card -->
+      <div class="form-card">
+        <div class="form-card-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+          Datos de Contacto
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input formControlName="phone" type="tel" placeholder="Ej: 591-70012345"/>
+          </div>
+          <div class="form-group">
+            <label>Teléfono de Emergencia</label>
+            <input formControlName="phone_emergency" type="tel" placeholder="Contacto de emergencia"/>
+          </div>
+          <div class="form-group">
+            <label>Correo Electrónico</label>
+            <input formControlName="email" type="email" placeholder="correo@ejemplo.com"
+              [class.error]="hasError('email')"/>
+            @if (hasError('email')) { <span class="field-error">Correo inválido</span> }
+          </div>
+          <div class="form-group">
+            <label>Ciudad</label>
+            <input formControlName="city" type="text" placeholder="Ej: Santa Cruz de la Sierra"/>
+          </div>
+          <div class="form-group col-span-2">
+            <label>Dirección</label>
+            <input formControlName="address" type="text" placeholder="Dirección completa"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Medical info card -->
+      <div class="form-card">
+        <div class="form-card-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+          Información Médica
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Tipo de Sangre</label>
+            <select formControlName="blood_type">
+              <option value="unknown">Desconocido</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
+          </div>
+          <div class="form-group col-span-2">
+            <label>Alergias</label>
+            <textarea formControlName="allergies" rows="2"
+              placeholder="Ej: Penicilina, Ibuprofeno, látex..."></textarea>
+          </div>
+          <div class="form-group col-span-3">
+            <label>Notas Médicas Generales</label>
+            <textarea formControlName="medical_notes" rows="3"
+              placeholder="Condiciones médicas relevantes, medicamentos actuales, observaciones..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      @if (errorMsg()) {
+        <div class="alert-error">{{ errorMsg() }}</div>
+      }
+
+      <div class="form-actions">
+        <a routerLink="/patients" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary" [disabled]="saving()">
+          @if (saving()) { <span class="spinner-sm"></span> }
+          {{ isEdit() ? 'Actualizar Paciente' : 'Registrar Paciente' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>

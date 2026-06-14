@@ -1,0 +1,139 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Usuarios del Sistema</h1>
+      <p class="page-subtitle">Gestión de usuarios y permisos</p>
+    </div>
+    <button class="btn btn-primary" (click)="openModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nuevo Usuario
+    </button>
+  </div>
+
+  <!-- Role filter tabs -->
+  <div class="role-tabs">
+    @for (tab of roleTabs; track tab.value) {
+      <button class="role-tab" [class.active]="roleFilter() === tab.value"
+        (click)="roleFilter.set(tab.value); filterUsers()">
+        {{ tab.label }}
+        <span class="role-count">{{ countByRole(tab.value) }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Users grid -->
+  <div class="users-grid">
+    @if (loading()) {
+      <div class="loading-state"><div class="spinner-lg"></div><p>Cargando...</p></div>
+    } @else if (filteredUsers().length === 0) {
+      <div class="empty-state">
+        <p>Sin usuarios en esta categoría</p>
+        <button class="btn btn-primary" (click)="openModal()">Agregar Usuario</button>
+      </div>
+    } @else {
+      @for (user of filteredUsers(); track user.id) {
+        <div class="user-card" [class.inactive]="!user.is_active">
+          <div class="user-avatar-lg">{{ initials(user) }}</div>
+          <div class="user-name">{{ user.full_name }}</div>
+          <span class="role-badge" [class]="'role-' + user.role">{{ roleLabel(user.role) }}</span>
+          @if (user.specialty) { <div class="specialty">{{ user.specialty }}</div> }
+          <div class="user-contact">
+            <span>{{ user.email }}</span>
+            @if (user.phone) { <span>{{ user.phone }}</span> }
+          </div>
+          @if (!user.is_active) { <div class="inactive-badge">Inactivo</div> }
+          <div class="user-actions">
+            <button class="ua-btn" (click)="editUser(user)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Editar
+            </button>
+            <button class="ua-btn danger" (click)="toggleActive(user)">
+              {{ user.is_active ? 'Desactivar' : 'Activar' }}
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  <!-- Modal -->
+  @if (showModal()) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ editingUser() ? 'Editar Usuario' : 'Nuevo Usuario' }}</h3>
+          <button class="close-btn" (click)="closeModal()">✕</button>
+        </div>
+        <form [formGroup]="userForm" (ngSubmit)="saveUser()" class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre <span class="req">*</span></label>
+              <input formControlName="first_name" type="text" placeholder="Nombre(s)"
+                [class.error]="hasErr('first_name')"/>
+            </div>
+            <div class="form-group">
+              <label>Apellido <span class="req">*</span></label>
+              <input formControlName="last_name" type="text" placeholder="Apellidos"
+                [class.error]="hasErr('last_name')"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Correo Electrónico <span class="req">*</span></label>
+            <input formControlName="email" type="email" placeholder="correo@clinica.com"
+              [class.error]="hasErr('email')" [readonly]="!!editingUser()"/>
+          </div>
+          @if (!editingUser()) {
+            <div class="form-group">
+              <label>Contraseña <span class="req">*</span></label>
+              <input formControlName="password" type="password" placeholder="Mínimo 8 caracteres"
+                [class.error]="hasErr('password')"/>
+            </div>
+          }
+          <div class="form-row">
+            <div class="form-group">
+              <label>Rol <span class="req">*</span></label>
+              <select formControlName="role" [class.error]="hasErr('role')">
+                <option value="">Seleccionar rol...</option>
+                <option value="admin">Administrador</option>
+                <option value="doctor">Médico</option>
+                <option value="receptionist">Recepcionista</option>
+                <option value="assistant">Asistente</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input formControlName="phone" type="tel" placeholder="591-7XXXXXXX"/>
+            </div>
+          </div>
+          @if (userForm.get('role')?.value === 'doctor') {
+            <div class="form-row">
+              <div class="form-group">
+                <label>Especialidad</label>
+                <input formControlName="specialty" type="text" placeholder="Ej: Endodoncia, Ortodoncia"/>
+              </div>
+              <div class="form-group">
+                <label>N° de Licencia</label>
+                <input formControlName="license_number" type="text" placeholder="OD-XXXX-XXX"/>
+              </div>
+            </div>
+          }
+
+          @if (modalError()) { <div class="alert-error">{{ modalError() }}</div> }
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="modalSaving()">
+              @if (modalSaving()) { <span class="spinner-sm"></span> }
+              {{ editingUser() ? 'Actualizar' : 'Crear Usuario' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

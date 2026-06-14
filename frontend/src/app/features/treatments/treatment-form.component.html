@@ -1,0 +1,148 @@
+<div class="page">
+  <div class="page-header">
+    <div class="breadcrumb">
+      <a routerLink="/treatments" class="breadcrumb-link">Atenciones</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span>Nueva Atención</span>
+    </div>
+    <h1 class="page-title">Registrar Atención Clínica</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
+
+    <!-- Patient search -->
+    <div class="form-card">
+      <div class="form-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+        </svg>
+        Datos del Paciente
+      </div>
+      <div class="form-body">
+        <div class="form-group">
+          <label>Paciente <span class="req">*</span></label>
+          <div class="search-select">
+            <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone:true}"
+              (input)="onSearch()" placeholder="Buscar paciente..."
+              [disabled]="!!selectedPatient()" class="search-input"/>
+            @if (selectedPatient()) {
+              <div class="selected-item">
+                <div class="selected-info">
+                  <span class="sel-name">{{ selectedPatient()!.full_name }}</span>
+                  <span class="sel-meta">{{ selectedPatient()!.document_number }}
+                    @if (selectedPatient()!.allergies) { · ⚠️ Alergia: {{ selectedPatient()!.allergies }} }
+                  </span>
+                </div>
+                <button type="button" class="clear-btn" (click)="clearPatient()">✕</button>
+              </div>
+            }
+            @if (patientResults().length > 0 && !selectedPatient()) {
+              <div class="dropdown">
+                @for (p of patientResults(); track p.id) {
+                  <div class="dropdown-item" (click)="selectPatient(p)">
+                    <span class="drop-name">{{ p.full_name }}</span>
+                    <span class="drop-meta">{{ p.document_number }}{{ p.allergies ? ' · ⚠️ ' + p.allergies : '' }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clinical data -->
+    <div class="form-card">
+      <div class="form-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        Datos Clínicos
+      </div>
+      <div class="form-body">
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>Procedimiento <span class="req">*</span></label>
+            <input formControlName="procedure" type="text" placeholder="Ej: Extracción dental, Empaste..."
+              [class.error]="hasError('procedure')"/>
+            @if (hasError('procedure')) { <span class="field-error">Requerido</span> }
+          </div>
+          <div class="form-group">
+            <label>Número de Pieza Dental</label>
+            <input formControlName="tooth_number" type="text" placeholder="Ej: 24, 36 (Notación FDI)"/>
+          </div>
+          <div class="form-group">
+            <label>Superficie</label>
+            <select formControlName="tooth_surface">
+              <option value="">—</option>
+              <option value="M">Mesial (M)</option>
+              <option value="D">Distal (D)</option>
+              <option value="O">Oclusal (O)</option>
+              <option value="V">Vestibular (V)</option>
+              <option value="L">Lingual (L)</option>
+              <option value="MO">Mesio-Oclusal (MO)</option>
+              <option value="DO">Disto-Oclusal (DO)</option>
+              <option value="MOD">MOD</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Diagnóstico</label>
+          <textarea formControlName="diagnosis" rows="2"
+            placeholder="Diagnóstico clínico del paciente..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Descripción del Procedimiento</label>
+          <textarea formControlName="description" rows="3"
+            placeholder="Descripción detallada del procedimiento realizado..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Notas Clínicas</label>
+            <textarea formControlName="clinical_notes" rows="3"
+              placeholder="Observaciones clínicas adicionales, complicaciones, hallazgos..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Prescripciones / Medicamentos</label>
+            <textarea formControlName="prescriptions" rows="3"
+              placeholder="Medicamentos recetados, dosis, indicaciones..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Próximos Pasos / Indicaciones al Paciente</label>
+          <textarea formControlName="next_steps" rows="2"
+            placeholder="Indicaciones post-tratamiento, cuidados, próxima cita..."></textarea>
+        </div>
+
+        <!-- Optional links -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cita Asociada (ID)</label>
+            <input formControlName="appointment_id" type="number" placeholder="ID de la cita (opcional)"/>
+          </div>
+          <div class="form-group">
+            <label>Plan de Tratamiento (ID)</label>
+            <input formControlName="treatment_plan_id" type="number" placeholder="ID del plan (opcional)"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    @if (errorMsg()) {
+      <div class="alert-error">{{ errorMsg() }}</div>
+    }
+
+    <div class="form-actions">
+      <a routerLink="/treatments" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving() || !selectedPatient()">
+        @if (saving()) { <span class="spinner-sm"></span> }
+        Registrar Atención
+      </button>
+    </div>
+  </form>
+</div>

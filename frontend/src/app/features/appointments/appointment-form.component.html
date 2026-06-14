@@ -1,0 +1,148 @@
+<div class="page">
+  <div class="page-header">
+    <div class="breadcrumb">
+      <a routerLink="/appointments" class="breadcrumb-link">Citas</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span>{{ isEdit() ? 'Editar Cita' : 'Nueva Cita' }}</span>
+    </div>
+    <h1 class="page-title">{{ isEdit() ? 'Editar Cita' : 'Registrar Nueva Cita' }}</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
+    <div class="form-main">
+      <div class="form-card">
+        <div class="form-card-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+          </svg>
+          Datos de la Cita
+        </div>
+        <div class="form-body">
+          <!-- Patient search -->
+          <div class="form-group">
+            <label>Paciente <span class="req">*</span></label>
+            <div class="search-select">
+              <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone: true}"
+                (input)="onPatientSearch()" placeholder="Buscar paciente por nombre o C.I..."
+                [disabled]="!!selectedPatient()"/>
+              @if (selectedPatient()) {
+                <div class="selected-patient">
+                  <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
+                  <button type="button" (click)="clearPatient()">✕</button>
+                </div>
+              }
+              @if (patientResults().length > 0 && !selectedPatient()) {
+                <div class="dropdown">
+                  @for (p of patientResults(); track p.id) {
+                    <div class="dropdown-item" (click)="selectPatient(p)">
+                      <span class="drop-name">{{ p.full_name }}</span>
+                      <span class="drop-meta">{{ p.document_number }} · {{ p.phone }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Doctor -->
+          <div class="form-group">
+            <label>Médico <span class="req">*</span></label>
+            <select formControlName="doctor_id" (change)="onDoctorChange()" [class.error]="hasError('doctor_id')">
+              <option value="">Seleccionar médico...</option>
+              @for (doc of doctors(); track doc.id) {
+                <option [value]="doc.id">{{ doc.full_name }}{{ doc.specialty ? ' — ' + doc.specialty : '' }}</option>
+              }
+            </select>
+            @if (hasError('doctor_id')) { <span class="field-error">Seleccione un médico</span> }
+          </div>
+
+          <!-- Date/Time -->
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha y Hora <span class="req">*</span></label>
+              <input type="datetime-local" formControlName="scheduled_at"
+                (change)="onDateChange()" [class.error]="hasError('scheduled_at')"/>
+              @if (hasError('scheduled_at')) { <span class="field-error">Requerido</span> }
+            </div>
+            <div class="form-group">
+              <label>Duración</label>
+              <select formControlName="duration_minutes">
+                <option value="15">15 minutos</option>
+                <option value="30">30 minutos</option>
+                <option value="45">45 minutos</option>
+                <option value="60">1 hora</option>
+                <option value="90">1.5 horas</option>
+                <option value="120">2 horas</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Availability indicator -->
+          @if (availabilityChecked()) {
+            <div class="availability-msg" [class.ok]="isAvailable()" [class.busy]="!isAvailable()">
+              @if (isAvailable()) {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                El médico está disponible en ese horario
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                El médico tiene un conflicto de horario en ese momento
+              }
+            </div>
+          }
+
+          <!-- Type -->
+          <div class="form-group">
+            <label>Tipo de Cita <span class="req">*</span></label>
+            <select formControlName="appointment_type" [class.error]="hasError('appointment_type')">
+              <option value="">Seleccionar tipo...</option>
+              <option value="consultation">Consulta General</option>
+              <option value="cleaning">Limpieza Dental</option>
+              <option value="extraction">Extracción</option>
+              <option value="filling">Empaste / Obturación</option>
+              <option value="endodontics">Endodoncia</option>
+              <option value="orthodontics">Ortodoncia</option>
+              <option value="implant">Implante</option>
+              <option value="whitening">Blanqueamiento</option>
+              <option value="crown">Corona</option>
+              <option value="followup">Seguimiento de Tratamiento</option>
+              <option value="other">Otro</option>
+            </select>
+            @if (hasError('appointment_type')) { <span class="field-error">Seleccione un tipo</span> }
+          </div>
+
+          <!-- Reason -->
+          <div class="form-group">
+            <label>Motivo de Consulta</label>
+            <textarea formControlName="reason" rows="3"
+              placeholder="Describa brevemente el motivo de la visita..."></textarea>
+          </div>
+
+          <!-- Notes (internal) -->
+          <div class="form-group">
+            <label>Notas Internas</label>
+            <textarea formControlName="notes" rows="2"
+              placeholder="Notas internas del consultorio (no visibles al paciente)..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    @if (errorMsg()) {
+      <div class="alert-error">{{ errorMsg() }}</div>
+    }
+
+    <div class="form-actions">
+      <a routerLink="/appointments" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving() || !selectedPatient()">
+        @if (saving()) { <span class="spinner-sm"></span> }
+        {{ isEdit() ? 'Actualizar Cita' : 'Registrar Cita' }}
+      </button>
+    </div>
+  </form>
+</div>

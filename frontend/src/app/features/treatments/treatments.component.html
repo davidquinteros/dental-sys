@@ -1,0 +1,146 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Atenciones y Tratamientos</h1>
+      <p class="page-subtitle">Historial clínico y planes de tratamiento</p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/treatments/new" class="btn btn-secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nueva Atención
+      </a>
+      <a routerLink="/treatments/plans/new" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nuevo Plan
+      </a>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab" [class.active]="view() === 'treatments'" (click)="view.set('treatments')">
+      Atenciones <span class="tab-badge">{{ treatments().length }}</span>
+    </button>
+    <button class="tab" [class.active]="view() === 'plans'" (click)="view.set('plans')">
+      Planes de Tratamiento <span class="tab-badge">{{ plans().length }}</span>
+    </button>
+  </div>
+
+  @if (view() === 'treatments') {
+    <!-- Treatments list -->
+    <div class="card">
+      @if (loadingTreatments()) {
+        <div class="loading-state"><div class="spinner-lg"></div></div>
+      } @else if (treatments().length === 0) {
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+          <h3>Sin atenciones registradas</h3>
+          <a routerLink="/treatments/new" class="btn btn-primary">Registrar Atención</a>
+        </div>
+      } @else {
+        <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Fecha</th><th>Paciente</th><th>Procedimiento</th>
+              <th>Pieza</th><th>Médico</th><th>Plan</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of treatments(); track t.id) {
+              <tr>
+                <td>{{ formatDate(t.performed_at) }}</td>
+                <td><a [routerLink]="['/patients', t.patient_id]" class="link">Paciente #{{ t.patient_id }}</a></td>
+                <td><strong>{{ t.procedure }}</strong>
+                  @if (t.description) { <div class="sub-text">{{ t.description }}</div> }
+                </td>
+                <td>{{ t.tooth_number ? '🦷 #' + t.tooth_number : '—' }}</td>
+                <td class="text-sm">{{ t.doctor_name }}</td>
+                <td>
+                  @if (t.treatment_plan_id) {
+                    <a [routerLink]="['/treatments/plans', t.treatment_plan_id]" class="pill purple">Plan #{{ t.treatment_plan_id }}</a>
+                  } @else { <span class="text-muted">—</span> }
+                </td>
+                <td>
+                  <a [routerLink]="['/treatments', t.id]" class="action-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        </div>
+      }
+    </div>
+  }
+
+  @if (view() === 'plans') {
+    <!-- Treatment plans -->
+    @if (loadingPlans()) {
+      <div class="loading-state"><div class="spinner-lg"></div></div>
+    } @else if (plans().length === 0) {
+      <div class="empty-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        </svg>
+        <h3>Sin planes de tratamiento</h3>
+        <a routerLink="/treatments/plans/new" class="btn btn-primary">Crear Plan</a>
+      </div>
+    } @else {
+      <div class="plans-grid">
+        @for (plan of plans(); track plan.id) {
+          <div class="plan-card">
+            <div class="plan-top">
+              <div class="plan-info">
+                <span class="plan-name">{{ plan.name }}</span>
+                <span class="plan-patient">Paciente #{{ plan.patient_id }}</span>
+              </div>
+              <span class="status-pill" [class]="'status-' + plan.status">{{ planStatusLabel(plan.status) }}</span>
+            </div>
+
+            <div class="plan-type-row">
+              <span class="type-tag">{{ plan.treatment_type }}</span>
+              @if (plan.tooth_number) { <span class="tooth-tag">🦷 Pieza {{ plan.tooth_number }}</span> }
+              <span class="doctor-tag">Dr. {{ plan.doctor_name }}</span>
+            </div>
+
+            <div class="progress-section">
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width]="plan.progress_percentage + '%'"></div>
+              </div>
+              <div class="progress-meta">
+                <span>{{ plan.completed_sessions }} / {{ plan.total_sessions || '?' }} sesiones</span>
+                <span class="progress-pct">{{ plan.progress_percentage }}%</span>
+              </div>
+            </div>
+
+            @if (plan.has_payment_plan) {
+              <div class="payment-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                Plan de pago activo
+              </div>
+            }
+
+            <div class="plan-footer">
+              @if (plan.start_date) { <span class="date-text">Inicio: {{ formatDate(plan.start_date) }}</span> }
+              <a [routerLink]="['/treatments/plans', plan.id]" class="btn-ghost">Ver detalle →</a>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

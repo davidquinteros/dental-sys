@@ -1,0 +1,188 @@
+<div class="page">
+  @if (loading()) {
+    <div class="loading-center"><div class="spinner-lg"></div></div>
+  } @else if (patient()) {
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a routerLink="/patients" class="breadcrumb-link">Pacientes</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        <span>{{ patient()!.full_name }}</span>
+      </div>
+      <div class="header-row">
+        <div class="patient-hero">
+          <div class="hero-avatar">{{ initials(patient()!) }}</div>
+          <div>
+            <h1 class="hero-name">{{ patient()!.full_name }}</h1>
+            <div class="hero-meta">
+              <span>{{ patient()!.document_type }}: {{ patient()!.document_number }}</span>
+              @if (patient()!.age) { <span>· {{ patient()!.age }} años</span> }
+              @if (patient()!.city) { <span>· {{ patient()!.city }}</span> }
+            </div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <a [routerLink]="['/patients', patient()!.id, 'edit']" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Editar
+          </a>
+          <a routerLink="/appointments/new" [queryParams]="{ patient_id: patient()!.id }" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Nueva Cita
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info cards row -->
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-icon contact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+        <div class="info-content">
+          <span class="info-label">Contacto</span>
+          <span class="info-value">{{ patient()!.phone || '—' }}</span>
+          @if (patient()!.email) { <span class="info-sub">{{ patient()!.email }}</span> }
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-icon blood"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 0 1 8 8c0 5.5-8 14-8 14S4 15.5 4 10a8 8 0 0 1 8-8z"/></svg></div>
+        <div class="info-content">
+          <span class="info-label">Tipo de Sangre</span>
+          <span class="info-value">{{ patient()!.blood_type && patient()!.blood_type !== 'unknown' ? patient()!.blood_type : '—' }}</span>
+        </div>
+      </div>
+      <div class="info-card" [class.allergy]="patient()!.allergies">
+        <div class="info-icon warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <div class="info-content">
+          <span class="info-label">Alergias</span>
+          <span class="info-value">{{ patient()!.allergies || 'Ninguna registrada' }}</span>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-icon stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div class="info-content">
+          <span class="info-label">Estadísticas</span>
+          <div class="stat-pills">
+            <span class="pill blue">{{ appointments().length }} citas</span>
+            <span class="pill purple">{{ treatments().length }} atenciones</span>
+            <span class="pill green">{{ activePlans() }} planes activos</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-wrapper">
+      <div class="tabs">
+        @for (tab of tabs; track tab.key) {
+          <button class="tab" [class.active]="activeTab() === tab.key" (click)="activeTab.set(tab.key)">
+            {{ tab.label }}
+            @if (tab.count !== undefined) { <span class="tab-badge">{{ tab.count }}</span> }
+          </button>
+        }
+      </div>
+
+      <div class="tab-content">
+        <!-- Appointments tab -->
+        @if (activeTab() === 'appointments') {
+          @if (appointments().length === 0) {
+            <div class="empty-tab">Sin citas registradas</div>
+          } @else {
+            <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Fecha</th><th>Médico</th><th>Tipo</th><th>Estado</th><th>Notas</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of appointments(); track a.id) {
+                  <tr>
+                    <td>{{ formatDateTime(a.scheduled_at) }}</td>
+                    <td>{{ a.doctor_name }}</td>
+                    <td>{{ typeLabel(a.appointment_type) }}</td>
+                    <td><span class="status-badge" [class]="'status-' + a.status">{{ statusLabel(a.status) }}</span></td>
+                    <td class="notes-cell">{{ a.reason || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            </div>
+          }
+        }
+
+        <!-- Treatments tab -->
+        @if (activeTab() === 'treatments') {
+          @if (treatments().length === 0) {
+            <div class="empty-tab">Sin atenciones registradas</div>
+          } @else {
+            <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr><th>Fecha</th><th>Procedimiento</th><th>Pieza</th><th>Médico</th><th>Notas</th></tr>
+              </thead>
+              <tbody>
+                @for (t of treatments(); track t.id) {
+                  <tr>
+                    <td>{{ formatDate(t.performed_at) }}</td>
+                    <td><strong>{{ t.procedure }}</strong></td>
+                    <td>{{ t.tooth_number || '—' }}</td>
+                    <td>{{ t.doctor_name }}</td>
+                    <td class="notes-cell">{{ t.description || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            </div>
+          }
+        }
+
+        <!-- Plans tab -->
+        @if (activeTab() === 'plans') {
+          @if (plans().length === 0) {
+            <div class="empty-tab">Sin planes de tratamiento registrados</div>
+          } @else {
+            <div class="plans-grid">
+              @for (plan of plans(); track plan.id) {
+                <div class="plan-card">
+                  <div class="plan-header">
+                    <div>
+                      <span class="plan-name">{{ plan.name }}</span>
+                      <span class="plan-type">{{ plan.treatment_type }}</span>
+                    </div>
+                    <span class="status-badge" [class]="'status-plan-' + plan.status">{{ planStatusLabel(plan.status) }}</span>
+                  </div>
+                  <div class="plan-progress">
+                    <div class="progress-bar">
+                      <div class="progress-fill" [style.width]="plan.progress_percentage + '%'"></div>
+                    </div>
+                    <span class="progress-text">{{ plan.completed_sessions }}/{{ plan.total_sessions || '?' }} sesiones · {{ plan.progress_percentage }}%</span>
+                  </div>
+                  @if (plan.notes) { <p class="plan-notes">{{ plan.notes }}</p> }
+                </div>
+              }
+            </div>
+          }
+        }
+
+        <!-- Notes tab -->
+        @if (activeTab() === 'notes') {
+          <div class="notes-section">
+            @if (patient()!.medical_notes) {
+              <div class="note-block">
+                <h4>Notas Médicas Generales</h4>
+                <p>{{ patient()!.medical_notes }}</p>
+              </div>
+            } @else {
+              <div class="empty-tab">Sin notas médicas registradas</div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

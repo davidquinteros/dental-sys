@@ -1,0 +1,120 @@
+<div class="page">
+  @if (loading()) {
+    <div class="loading-center"><div class="spinner-lg"></div></div>
+  } @else if (plan()) {
+    <div class="breadcrumb">
+      <a routerLink="/treatments" class="breadcrumb-link">Tratamientos</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span>{{ plan()!.name }}</span>
+    </div>
+
+    <div class="header-row">
+      <div>
+        <h1 class="page-title">{{ plan()!.name }}</h1>
+        <div class="sub-row">
+          <span class="type-badge">{{ plan()!.treatment_type }}</span>
+          <span class="status-pill" [class]="'status-' + plan()!.status">{{ statusLabel(plan()!.status) }}</span>
+          @if (plan()!.tooth_number) { <span class="tooth">🦷 Pieza {{ plan()!.tooth_number }}</span> }
+        </div>
+      </div>
+      <div class="actions">
+        <a [routerLink]="['/treatments/new']"
+          [queryParams]="{ patient_id: plan()!.patient_id, plan_id: plan()!.id }"
+          class="btn btn-secondary">+ Registrar Sesión</a>
+        <a [routerLink]="['/appointments/new']"
+          [queryParams]="{ patient_id: plan()!.patient_id, treatment_plan_id: plan()!.id }"
+          class="btn btn-primary">+ Agendar Cita</a>
+      </div>
+    </div>
+
+    <!-- Progress card -->
+    <div class="progress-card">
+      <div class="progress-header">
+        <span class="prog-label">Progreso del Tratamiento</span>
+        <span class="prog-pct">{{ plan()!.progress_percentage }}%</span>
+      </div>
+      <div class="progress-bar-lg">
+        <div class="progress-fill-lg" [style.width]="plan()!.progress_percentage + '%'"></div>
+      </div>
+      <div class="progress-stats">
+        <span>{{ plan()!.completed_sessions }} sesiones completadas</span>
+        <span>{{ plan()!.total_sessions || '?' }} sesiones planificadas</span>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <!-- Sessions history -->
+      <div class="sessions-card">
+        <div class="card-header">
+          <h3>Historial de Sesiones</h3>
+          <a [routerLink]="['/treatments/new']"
+            [queryParams]="{ patient_id: plan()!.patient_id, plan_id: plan()!.id }"
+            class="link-btn">+ Agregar</a>
+        </div>
+        @if (!plan()!.sessions || plan()!.sessions!.length === 0) {
+          <div class="empty-sessions">Sin sesiones registradas aún</div>
+        } @else {
+          <div class="sessions-list">
+            @for (session of plan()!.sessions!; track session.id; let i = $index) {
+              <div class="session-item">
+                <div class="session-num">{{ i + 1 }}</div>
+                <div class="session-info">
+                  <span class="session-proc">{{ session.procedure }}</span>
+                  <span class="session-date">{{ formatDate(session.performed_at) }} · {{ session.doctor_name }}</span>
+                  @if (session.clinical_notes) { <span class="session-notes">{{ session.clinical_notes }}</span> }
+                </div>
+                <a [routerLink]="['/treatments', session.id]" class="session-link">Ver →</a>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Plan info -->
+      <div class="info-side">
+        <div class="meta-card">
+          <h4>Información del Plan</h4>
+          <div class="meta-row"><span class="ml">Paciente</span>
+            <a [routerLink]="['/patients', plan()!.patient_id]" class="mv link">{{ plan()!.patient_name }}</a>
+          </div>
+          <div class="meta-row"><span class="ml">Médico</span><span class="mv">{{ plan()!.doctor_name }}</span></div>
+          @if (plan()!.start_date) {
+            <div class="meta-row"><span class="ml">Inicio</span><span class="mv">{{ formatDate(plan()!.start_date!) }}</span></div>
+          }
+          @if (plan()!.estimated_end_date) {
+            <div class="meta-row"><span class="ml">Fin estimado</span><span class="mv">{{ formatDate(plan()!.estimated_end_date!) }}</span></div>
+          }
+          @if (plan()!.description) {
+            <div class="meta-row col"><span class="ml">Descripción</span><span class="mv text">{{ plan()!.description }}</span></div>
+          }
+          @if (plan()!.notes) {
+            <div class="meta-row col"><span class="ml">Notas</span><span class="mv text">{{ plan()!.notes }}</span></div>
+          }
+        </div>
+
+        @if (plan()!.has_payment_plan) {
+          <div class="payment-alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <div>
+              <span class="pa-title">Plan de Pago Activo</span>
+              <a routerLink="/billing" class="pa-link">Ver en cobros →</a>
+            </div>
+          </div>
+        } @else {
+          <a [routerLink]="['/billing/payment-plans/new']"
+            [queryParams]="{ patient_id: plan()!.patient_id, plan_id: plan()!.id }"
+            class="create-payment-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            Crear Plan de Pago
+          </a>
+        }
+      </div>
+    </div>
+  }
+</div>
