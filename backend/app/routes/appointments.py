@@ -11,15 +11,23 @@ appointments_bp = Blueprint("appointments", __name__)
 def check_doctor_availability(doctor_id: int, scheduled_at: datetime, duration: int, exclude_id: int = None) -> bool:
     """Check if a doctor is available at a given time slot"""
     end_time = scheduled_at + timedelta(minutes=duration)
+    day_start = datetime.combine(scheduled_at.date(), datetime.min.time())
+    day_end = datetime.combine(scheduled_at.date(), datetime.max.time())
+
     query = Appointment.query.filter(
         Appointment.doctor_id == doctor_id,
         Appointment.status.not_in([AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW]),
-        Appointment.scheduled_at < end_time,
-        (Appointment.scheduled_at + timedelta(minutes=30)) > scheduled_at,
+        Appointment.scheduled_at >= day_start,
+        Appointment.scheduled_at <= day_end,
     )
     if exclude_id:
         query = query.filter(Appointment.id != exclude_id)
-    return query.first() is None
+
+    for existing in query.all():
+        existing_end = existing.scheduled_at + timedelta(minutes=existing.duration_minutes)
+        if scheduled_at < existing_end and existing.scheduled_at < end_time:
+            return False
+    return True
 
 
 @appointments_bp.route("/", methods=["GET"])
@@ -64,6 +72,12 @@ def list_appointments():
         type: string
         format: date-time
         description: ISO 8601 (ej. 2026-06-30T23:59:59)
+      - in: query
+        name: all
+        type: boolean
+        description: >
+          Si es true, un médico ve las citas de todos los médicos (para
+          coordinar la agenda del consultorio) en lugar de solo las suyas.
     responses:
       200:
         description: Lista paginada de citas
@@ -97,11 +111,13 @@ def list_appointments():
     status = request.args.get("status")
     date_from = request.args.get("date_from")
     date_to = request.args.get("date_to")
+    show_all = request.args.get("all", "").lower() in ("true", "1")
 
     query = Appointment.query
 
-    # Doctors only see their own appointments unless admin/receptionist
-    if current.role == UserRole.DOCTOR:
+    # Doctors only see their own appointments unless admin/receptionist,
+    # or unless they explicitly request the shared clinic agenda (all=true)
+    if current.role == UserRole.DOCTOR and not show_all:
         query = query.filter_by(doctor_id=current.id)
     elif current.role == UserRole.ASSISTANT:
         query = query.filter_by(doctor_id=doctor_id) if doctor_id else query

@@ -4,11 +4,12 @@ import { RouterLink } from '@angular/router';
 import { DashboardService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardData, Appointment } from '../../core/models';
+import { CalendarComponent } from '../calendar/calendar.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CalendarComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })

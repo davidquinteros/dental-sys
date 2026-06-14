@@ -1,0 +1,65 @@
+<div class="calendar-card">
+  <div class="calendar-header">
+    <div class="nav-controls">
+      <button class="btn-icon" (click)="previous()" aria-label="Anterior">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="btn-today" (click)="goToday()">Hoy</button>
+      <button class="btn-icon" (click)="next()" aria-label="Siguiente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <span class="range-label">{{ rangeLabel() }}</span>
+    </div>
+    <div class="view-switch">
+      <button [class.active]="view() === CalendarView.Month" (click)="setView(CalendarView.Month)">Mes</button>
+      <button [class.active]="view() === CalendarView.Week" (click)="setView(CalendarView.Week)">Semana</button>
+      <button [class.active]="view() === CalendarView.Day" (click)="setView(CalendarView.Day)">Día</button>
+    </div>
+  </div>
+
+  @if (doctors().length > 0) {
+    <div class="doctor-legend">
+      @for (doc of doctors(); track doc.id) {
+        <button
+          class="doctor-chip"
+          [class.inactive]="!selectedDoctorIds().has(doc.id)"
+          [style.--chip-color]="doctorColorMap().get(doc.id)?.primary"
+          (click)="toggleDoctor(doc.id)">
+          <span class="chip-dot"></span>
+          Dr. {{ doc.first_name }} {{ doc.last_name }}
+        </button>
+      }
+    </div>
+  }
+
+  <div class="calendar-body" [class.scrollable]="view() !== CalendarView.Month">
+    @switch (view()) {
+      @case (CalendarView.Month) {
+        <mwl-calendar-month-view
+          [viewDate]="viewDate()"
+          [events]="filteredEvents()"
+          [weekStartsOn]="1"
+          (eventClicked)="onEventClicked($event)"
+          (dayClicked)="onDayClicked($event)">
+        </mwl-calendar-month-view>
+      }
+      @case (CalendarView.Week) {
+        <mwl-calendar-week-view
+          [viewDate]="viewDate()"
+          [events]="filteredEvents()"
+          [weekStartsOn]="1"
+          (eventClicked)="onEventClicked($event)"
+          (hourSegmentClicked)="onHourSegmentClicked($event)">
+        </mwl-calendar-week-view>
+      }
+      @case (CalendarView.Day) {
+        <mwl-calendar-day-view
+          [viewDate]="viewDate()"
+          [events]="filteredEvents()"
+          (eventClicked)="onEventClicked($event)"
+          (hourSegmentClicked)="onHourSegmentClicked($event)">
+        </mwl-calendar-day-view>
+      }
+    }
+  </div>
+</div>

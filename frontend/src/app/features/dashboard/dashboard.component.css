@@ -35,6 +35,12 @@
 
 .content-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; }
 
+.calendar-section { margin-top: 24px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.section-title { display: flex; align-items: center; gap: 8px; font-size: 15px;
+  font-weight: 600; color: #2d3748; margin: 0; }
+.section-title svg { width: 17px; height: 17px; color: #718096; }
+
 .card { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); overflow: hidden; }
 .card-header { display: flex; justify-content: space-between; align-items: center;
   padding: 18px 20px 14px; border-bottom: 1px solid #f0f4f8; }

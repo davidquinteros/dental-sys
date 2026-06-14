@@ -58,6 +58,12 @@ export class AppointmentFormComponent implements OnInit {
       });
     }
 
+    // Pre-fill date/time from query (e.g. clicked from the calendar)
+    const date = this.route.snapshot.queryParamMap.get('date');
+    if (date) {
+      this.form.patchValue({ scheduled_at: date.substring(0, 16) });
+    }
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
       this.isEdit.set(true);

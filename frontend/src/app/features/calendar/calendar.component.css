@@ -1,0 +1,129 @@
+.calendar-card {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+  padding: 18px 20px;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #4a5568;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-icon svg { width: 16px; height: 16px; }
+.btn-icon:hover { background: #f7fafc; }
+
+.btn-today {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #2d3748;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-today:hover { background: #f7fafc; }
+
+.range-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2d3748;
+  text-transform: capitalize;
+  margin-left: 4px;
+}
+
+.view-switch {
+  display: flex;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+.view-switch button {
+  padding: 7px 16px;
+  border: none;
+  background: white;
+  color: #4a5568;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.view-switch button + button { border-left: 1px solid #e2e8f0; }
+.view-switch button:hover { background: #f7fafc; }
+.view-switch button.active { background: #2b6cb0; color: white; }
+
+.doctor-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.doctor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #2d3748;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.doctor-chip .chip-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--chip-color, #a0aec0);
+  flex-shrink: 0;
+}
+.doctor-chip.inactive {
+  color: #a0aec0;
+  border-color: #edf2f7;
+}
+.doctor-chip.inactive .chip-dot { opacity: 0.3; }
+
+.calendar-body {
+  border-radius: 10px;
+  overflow: hidden;
+}
+.calendar-body.scrollable {
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+/* Dim cancelled / no-show appointments rendered by angular-calendar */
+:host ::ng-deep .appt-inactive {
+  opacity: 0.45;
+}
+:host ::ng-deep .appt-inactive .cal-event-title {
+  text-decoration: line-through;
+}

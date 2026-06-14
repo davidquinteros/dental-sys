@@ -37,6 +37,11 @@ export const routes: Routes = [
           import('./features/appointments/appointments.routes').then(m => m.APPOINTMENTS_ROUTES),
       },
       {
+        path: 'calendar',
+        loadComponent: () =>
+          import('./features/calendar/calendar.component').then(m => m.CalendarComponent),
+      },
+      {
         path: 'treatments',
         loadChildren: () =>
           import('./features/treatments/treatments.routes').then(m => m.TREATMENTS_ROUTES),
