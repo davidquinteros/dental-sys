@@ -39,6 +39,9 @@ class Patient(db.Model):
     allergies = db.Column(db.Text, nullable=True)
     medical_notes = db.Column(db.Text, nullable=True)  # General medical notes
 
+    # Odontogram — JSON map of tooth number → {status, notes}
+    odontogram = db.Column(db.JSON, nullable=True, default=dict)
+
     # Status
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -80,6 +83,7 @@ class Patient(db.Model):
             "blood_type": self.blood_type.value if self.blood_type else None,
             "allergies": self.allergies,
             "medical_notes": self.medical_notes,
+            "odontogram": self.odontogram or {},
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

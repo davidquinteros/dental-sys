@@ -120,6 +120,20 @@
   overflow-y: auto;
 }
 
+/* Embedded / compact mode (used inside the appointment form) */
+.calendar-card.embedded {
+  padding: 10px 12px;
+  box-shadow: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+.calendar-card.embedded .calendar-header { margin-bottom: 8px; gap: 6px; }
+.calendar-card.embedded .range-label { font-size: 12px; }
+.calendar-card.embedded .btn-today { padding: 4px 10px; font-size: 12px; }
+.calendar-card.embedded .btn-icon { width: 26px; height: 26px; }
+.calendar-card.embedded .calendar-body.scrollable { max-height: 320px; }
+.calendar-card.embedded .view-switch button { padding: 4px 9px; font-size: 11px; }
+
 /* Dim cancelled / no-show appointments rendered by angular-calendar */
 :host ::ng-deep .appt-inactive {
   opacity: 0.45;

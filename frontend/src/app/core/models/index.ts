@@ -1,5 +1,5 @@
 // ─── User Models ──────────────────────────────────────────────────────────────
-export type UserRole = 'admin' | 'doctor' | 'receptionist' | 'assistant';
+export type UserRole = 'admin' | 'doctor' | 'receptionist' | 'assistant' | 'guest';
 
 export interface User {
   id: number;
@@ -64,12 +64,23 @@ export type AppointmentType =
   | 'endodontics' | 'orthodontics' | 'implant' | 'whitening'
   | 'crown' | 'followup' | 'other';
 
+// ─── Consultorio Models ────────────────────────────────────────────────────────
+export interface Consultorio {
+  id: number;
+  name: string;
+  description?: string;
+  color: string;
+  is_active: boolean;
+}
+
 export interface Appointment {
   id: number;
   patient_id: number;
   patient_name: string;
   doctor_id: number;
   doctor_name: string;
+  consultorio_id?: number;
+  consultorio_name?: string;
   created_by_id: number;
   scheduled_at: string;
   duration_minutes: number;
@@ -208,6 +219,40 @@ export interface DashboardData {
   new_patients_this_month?: number;
   calendar_appointments: Appointment[];
   appointment_status_breakdown: Record<AppointmentStatus, number>;
+}
+
+// ─── Permissions ───────────────────────────────────────────────────────────────
+export interface AppPage {
+  id: number;
+  key: string;
+  label: string;
+  route: string;
+  icon?: string;
+  description?: string;
+  is_system: boolean;
+  sort_order: number;
+}
+
+export interface PagePermissions {
+  can_view: boolean;
+  can_create: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+}
+
+/** Full matrix: { role: { page_key: PagePermissions } } */
+export type PermissionMatrix = Record<string, Record<string, PagePermissions>>;
+
+export interface PermissionMatrixResponse {
+  pages: AppPage[];
+  roles: string[];
+  matrix: PermissionMatrix;
+}
+
+export interface MyPermissionsResponse {
+  role: UserRole;
+  viewable_pages: string[];
+  pages: AppPage[];
 }
 
 // ─── API Response wrappers ─────────────────────────────────────────────────────

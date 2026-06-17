@@ -401,6 +401,27 @@ def delete_patient(patient_id):
     return jsonify({"message": "Paciente desactivado"}), 200
 
 
+@patients_bp.route("/<int:patient_id>/odontogram", methods=["GET"])
+@clinical_access_required
+def get_odontogram(patient_id):
+    """Obtener odontograma del paciente"""
+    patient = Patient.query.get_or_404(patient_id, description="Paciente no encontrado")
+    return jsonify(patient.odontogram or {}), 200
+
+
+@patients_bp.route("/<int:patient_id>/odontogram", methods=["PUT"])
+@clinical_access_required
+def save_odontogram(patient_id):
+    """Guardar odontograma del paciente"""
+    patient = Patient.query.get_or_404(patient_id, description="Paciente no encontrado")
+    data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify({"error": "Formato inválido"}), 400
+    patient.odontogram = data
+    db.session.commit()
+    return jsonify(patient.odontogram), 200
+
+
 @patients_bp.route("/<int:patient_id>/history", methods=["GET"])
 @clinical_access_required
 def patient_history(patient_id):

@@ -80,6 +80,7 @@
             <th>Fecha y Hora</th>
             <th>Paciente</th>
             <th>Médico</th>
+            <th>Consultorio</th>
             <th>Tipo</th>
             <th>Duración</th>
             <th>Estado</th>
@@ -102,6 +103,13 @@
                 </a>
               </td>
               <td class="text-sm">{{ appt.doctor_name }}</td>
+              <td>
+                @if (appt.consultorio_name) {
+                  <span class="consultorio-pill" [style.--c]="appt.consultorio_id">{{ appt.consultorio_name }}</span>
+                } @else {
+                  <span class="text-muted">—</span>
+                }
+              </td>
               <td class="text-sm">{{ typeLabel(appt.appointment_type) }}</td>
               <td class="text-sm text-muted">{{ appt.duration_minutes }}min</td>
               <td>

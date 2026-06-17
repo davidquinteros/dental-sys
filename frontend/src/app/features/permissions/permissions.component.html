@@ -1,0 +1,170 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Roles y Permisos</h1>
+      <p class="page-subtitle">Configura qué páginas puede acceder cada rol</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" (click)="showPageForm.set(!showPageForm())">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nueva página
+      </button>
+      <button class="btn btn-primary" (click)="save()" [disabled]="saving()">
+        @if (saving()) { Guardando… } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+          </svg>
+          Guardar cambios
+        }
+      </button>
+    </div>
+  </div>
+
+  @if (successMsg()) {
+    <div class="alert alert-success">{{ successMsg() }}</div>
+  }
+  @if (errorMsg()) {
+    <div class="alert alert-error">{{ errorMsg() }}</div>
+  }
+
+  <!-- New page form -->
+  @if (showPageForm()) {
+    <div class="card new-page-card">
+      <h3 class="card-title-sm">Nueva página personalizada</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Clave única <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="newPage.key" placeholder="ej: reportes" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Etiqueta <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="newPage.label" placeholder="ej: Reportes" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Ruta <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="newPage.route" placeholder="ej: /reportes" class="form-control" />
+        </div>
+        <div class="form-group form-group-wide">
+          <label>Descripción</label>
+          <input type="text" [(ngModel)]="newPage.description" placeholder="Descripción breve" class="form-control" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" (click)="showPageForm.set(false)">Cancelar</button>
+        <button class="btn btn-primary" (click)="submitNewPage()" [disabled]="addingPage()">
+          {{ addingPage() ? 'Creando…' : 'Crear página' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando permisos…</p>
+    </div>
+  } @else {
+    <div class="matrix-card">
+      <div class="matrix-wrapper">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th class="col-page">Página</th>
+              @for (role of roles(); track role) {
+                <th class="col-role" [class.col-admin]="role === 'admin'">
+                  <div class="role-header">
+                    <span class="role-badge" [class]="'role-' + role">
+                      {{ roleLabels[role] || role }}
+                    </span>
+                  </div>
+                </th>
+              }
+              <th class="col-actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (page of pages(); track page.id) {
+              <tr [class.row-system]="page.is_system">
+                <td class="cell-page">
+                  @if (editingPageId() === page.id) {
+                    <div class="edit-inline">
+                      <input type="text" [(ngModel)]="editPage.label" class="form-control sm" placeholder="Etiqueta" />
+                      <input type="text" [(ngModel)]="editPage.route" class="form-control sm" placeholder="Ruta" />
+                    </div>
+                  } @else {
+                    <div class="page-info">
+                      <span class="page-icon" [innerHTML]="page.icon"></span>
+                      <div>
+                        <span class="page-label">{{ page.label }}</span>
+                        <span class="page-route">{{ page.route }}</span>
+                        @if (page.is_system) {
+                          <span class="badge-system">sistema</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </td>
+                @for (role of roles(); track role) {
+                  <td class="cell-toggle" [class.cell-admin]="role === 'admin'">
+                    @if (role === 'admin') {
+                      <span class="toggle-locked" title="El administrador siempre tiene acceso completo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </span>
+                    } @else {
+                      <button
+                        class="toggle-btn"
+                        [class.active]="getFlag(role, page.key).can_view"
+                        (click)="toggleView(role, page.key)"
+                        [title]="getFlag(role, page.key).can_view ? 'Quitar acceso' : 'Dar acceso'">
+                        @if (getFlag(role, page.key).can_view) {
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                        } @else {
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        }
+                      </button>
+                    }
+                  </td>
+                }
+                <td class="cell-actions">
+                  @if (editingPageId() === page.id) {
+                    <button class="btn-sm btn-save" (click)="saveEdit(page)" title="Guardar">✓</button>
+                    <button class="btn-sm btn-cancel" (click)="cancelEdit()" title="Cancelar">✕</button>
+                  } @else {
+                    <button class="btn-sm btn-edit" (click)="startEdit(page)" title="Editar página">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                    @if (!page.is_system) {
+                      <button class="btn-sm btn-delete" (click)="deletePage(page)" title="Eliminar página">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                          <path d="M10 11v6"/><path d="M14 11v6"/>
+                          <path d="M9 6V4h6v2"/>
+                        </svg>
+                      </button>
+                    }
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="matrix-hint">
+        Los cambios se aplican cuando haces clic en <strong>Guardar cambios</strong>.
+        El rol <strong>Administrador</strong> siempre tiene acceso completo a todas las páginas.
+      </p>
+    </div>
+  }
+</div>

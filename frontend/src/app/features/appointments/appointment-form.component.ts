@@ -2,14 +2,15 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
-import { AppointmentService, PatientService, UserService } from '../../core/services/api.service';
+import { AppointmentService, PatientService, UserService, ConsultorioService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Patient, User } from '../../core/models';
+import { Patient, User, Consultorio } from '../../core/models';
+import { CalendarComponent } from '../calendar/calendar.component';
 
 @Component({
   selector: 'app-appointment-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, CalendarComponent],
   templateUrl: './appointment-form.component.html',
   styleUrl: './appointment-form.component.css',
 })
@@ -19,10 +20,13 @@ export class AppointmentFormComponent implements OnInit {
   saving = signal(false);
   errorMsg = signal('');
   doctors = signal<User[]>([]);
+  consultorios = signal<Consultorio[]>([]);
   patientResults = signal<Patient[]>([]);
   selectedPatient = signal<Patient | null>(null);
   availabilityChecked = signal(false);
   isAvailable = signal(true);
+  consultorioAvailabilityChecked = signal(false);
+  isConsultorioAvailable = signal(true);
   patientSearch = '';
   private searchTimeout: any;
   private availabilityTimeout: any;
@@ -35,10 +39,12 @@ export class AppointmentFormComponent implements OnInit {
     private apptService: AppointmentService,
     private patientService: PatientService,
     private userService: UserService,
+    private consultorioService: ConsultorioService,
     public auth: AuthService,
   ) {
     this.form = this.fb.group({
       doctor_id: ['', Validators.required],
+      consultorio_id: ['', Validators.required],
       scheduled_at: ['', Validators.required],
       duration_minutes: [30],
       appointment_type: ['', Validators.required],
@@ -49,6 +55,7 @@ export class AppointmentFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.userService.getDoctors().subscribe(res => this.doctors.set(res.doctors));
+    this.consultorioService.getAll().subscribe(res => this.consultorios.set(res.consultorios));
 
     // Pre-fill patient from query
     const patientId = this.route.snapshot.queryParamMap.get('patient_id');
@@ -73,6 +80,7 @@ export class AppointmentFormComponent implements OnInit {
           const a = res.appointment;
           this.form.patchValue({
             doctor_id: a.doctor_id,
+            consultorio_id: a.consultorio_id ?? '',
             scheduled_at: a.scheduled_at.substring(0, 16),
             duration_minutes: a.duration_minutes,
             appointment_type: a.appointment_type,
@@ -113,6 +121,7 @@ export class AppointmentFormComponent implements OnInit {
 
   onDoctorChange(): void { this.checkAvailability(); }
   onDateChange(): void { this.checkAvailability(); }
+  onConsultorioChange(): void { this.checkConsultorioAvailability(); }
 
   checkAvailability(): void {
     const doctorId = this.form.get('doctor_id')?.value;
@@ -135,7 +144,45 @@ export class AppointmentFormComponent implements OnInit {
           this.availabilityChecked.set(true);
         },
       });
+      // Also re-check consultorio if already selected
+      this.checkConsultorioAvailability();
     }, 500);
+  }
+
+  checkConsultorioAvailability(): void {
+    const consultorioId = this.form.get('consultorio_id')?.value;
+    const date = this.form.get('scheduled_at')?.value;
+    if (!consultorioId || !date) { this.consultorioAvailabilityChecked.set(false); return; }
+    const duration = this.form.get('duration_minutes')?.value || 30;
+    const selectedTime = new Date(date).getTime();
+    const end = selectedTime + duration * 60000;
+
+    // Fetch booked slots for the selected day
+    this.apptService.getAll({
+      date_from: date.substring(0, 10) + 'T00:00:00',
+      date_to: date.substring(0, 10) + 'T23:59:59',
+      all: true,
+      per_page: 200,
+    }).subscribe({
+      next: res => {
+        const conflict = res.appointments.some((a: any) => {
+          if (a.consultorio_id !== +consultorioId) return false;
+          if (this.apptId && a.id === this.apptId) return false;
+          if (a.status === 'cancelled' || a.status === 'no_show') return false;
+          const aStart = new Date(a.scheduled_at).getTime();
+          const aEnd = aStart + a.duration_minutes * 60000;
+          return !(end <= aStart || selectedTime >= aEnd);
+        });
+        this.isConsultorioAvailable.set(!conflict);
+        this.consultorioAvailabilityChecked.set(true);
+      },
+    });
+  }
+
+  /** Called when user clicks a time slot in the embedded calendar */
+  onCalendarDateSelected(isoDate: string): void {
+    this.form.patchValue({ scheduled_at: isoDate.substring(0, 16) });
+    this.checkAvailability();
   }
 
   hasError(field: string): boolean {

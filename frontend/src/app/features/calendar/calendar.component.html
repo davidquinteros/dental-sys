@@ -1,4 +1,4 @@
-<div class="calendar-card">
+<div class="calendar-card" [class.embedded]="embedded">
   <div class="calendar-header">
     <div class="nav-controls">
       <button class="btn-icon" (click)="previous()" aria-label="Anterior">
@@ -17,7 +17,7 @@
     </div>
   </div>
 
-  @if (doctors().length > 0) {
+  @if (doctors().length > 0 && !embedded) {
     <div class="doctor-legend">
       @for (doc of doctors(); track doc.id) {
         <button

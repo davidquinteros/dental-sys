@@ -87,6 +87,11 @@
       </div>
 
       <div class="tab-content">
+        <!-- Odontogram tab -->
+        @if (activeTab() === 'odontogram') {
+          <app-odontogram [patientId]="patient()!.id"></app-odontogram>
+        }
+
         <!-- Appointments tab -->
         @if (activeTab() === 'appointments') {
           @if (appointments().length === 0) {

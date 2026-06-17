@@ -1,9 +1,10 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, throwError } from 'rxjs';
+import { Observable, tap, catchError, throwError, switchMap } from 'rxjs';
 import { LoginRequest, LoginResponse, User, UserRole } from '../models';
 import { environment } from '../../../environments/environment';
+import { PermissionService } from './permission.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -16,7 +17,11 @@ export class AuthService {
   currentUser = signal<User | null>(this.loadStoredUser());
   isLoggedIn = computed(() => this.currentUser() !== null);
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private permissionService: PermissionService,
+  ) {}
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.API}/login`, credentials).pipe(
@@ -26,6 +31,17 @@ export class AuthService {
         localStorage.setItem(this.USER_KEY, JSON.stringify(response.user));
         this.currentUser.set(response.user);
       }),
+      switchMap(response =>
+        this.permissionService.load().pipe(
+          tap(() => {}),
+          // return the original login response after permissions load
+          catchError(() => [response]),
+        ).pipe(
+          tap(() => {}),
+          // map back to LoginResponse so callers get the expected type
+          switchMap(() => [response]),
+        )
+      ),
       catchError(err => {
         const message = err.error?.error || 'Error al iniciar sesión';
         return throwError(() => new Error(message));
@@ -33,11 +49,19 @@ export class AuthService {
     );
   }
 
+  /** Load permissions for already-authenticated users (app refresh). */
+  loadPermissions(): void {
+    if (this.isLoggedIn()) {
+      this.permissionService.load().subscribe({ error: () => {} });
+    }
+  }
+
   logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.REFRESH_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.currentUser.set(null);
+    this.permissionService.clear();
     this.router.navigate(['/auth/login']);
   }
 

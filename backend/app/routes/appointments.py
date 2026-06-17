@@ -8,6 +8,30 @@ from datetime import datetime, timedelta
 appointments_bp = Blueprint("appointments", __name__)
 
 
+def check_consultorio_availability(consultorio_id: int, scheduled_at: datetime, duration: int, exclude_id: int = None) -> bool:
+    """Check if a consultorio (room) is free at the given time slot"""
+    if not consultorio_id:
+        return True
+    end_time = scheduled_at + timedelta(minutes=duration)
+    day_start = datetime.combine(scheduled_at.date(), datetime.min.time())
+    day_end = datetime.combine(scheduled_at.date(), datetime.max.time())
+
+    query = Appointment.query.filter(
+        Appointment.consultorio_id == consultorio_id,
+        Appointment.status.not_in([AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW]),
+        Appointment.scheduled_at >= day_start,
+        Appointment.scheduled_at <= day_end,
+    )
+    if exclude_id:
+        query = query.filter(Appointment.id != exclude_id)
+
+    for existing in query.all():
+        existing_end = existing.scheduled_at + timedelta(minutes=existing.duration_minutes)
+        if scheduled_at < existing_end and existing.scheduled_at < end_time:
+            return False
+    return True
+
+
 def check_doctor_availability(doctor_id: int, scheduled_at: datetime, duration: int, exclude_id: int = None) -> bool:
     """Check if a doctor is available at a given time slot"""
     end_time = scheduled_at + timedelta(minutes=duration)
@@ -291,7 +315,7 @@ def create_appointment():
     except ValueError:
         return jsonify({"error": "Tipo de cita inválido"}), 400
 
-    duration = data.get("duration_minutes", 30)
+    duration = int(data.get("duration_minutes", 30))
     doctor = User.query.filter_by(id=data["doctor_id"], role=UserRole.DOCTOR, is_active=True).first()
     if not doctor:
         return jsonify({"error": "Médico no encontrado o inactivo"}), 404
@@ -299,9 +323,14 @@ def create_appointment():
     if not check_doctor_availability(data["doctor_id"], scheduled_at, duration):
         return jsonify({"error": "El médico no está disponible en ese horario"}), 409
 
+    consultorio_id = data.get("consultorio_id") or None
+    if consultorio_id and not check_consultorio_availability(consultorio_id, scheduled_at, duration):
+        return jsonify({"error": "El consultorio ya está ocupado en ese horario"}), 409
+
     appointment = Appointment(
         patient_id=data["patient_id"],
         doctor_id=data["doctor_id"],
+        consultorio_id=consultorio_id,
         created_by_id=current.id,
         scheduled_at=scheduled_at,
         duration_minutes=duration,
@@ -399,12 +428,18 @@ def update_appointment(appt_id):
     if "scheduled_at" in data:
         try:
             new_time = datetime.fromisoformat(data["scheduled_at"])
-            duration = data.get("duration_minutes", appt.duration_minutes)
+            duration = int(data.get("duration_minutes", appt.duration_minutes))
             if not check_doctor_availability(appt.doctor_id, new_time, duration, exclude_id=appt_id):
                 return jsonify({"error": "El médico no está disponible en ese horario"}), 409
+            new_consultorio = data.get("consultorio_id", appt.consultorio_id)
+            if new_consultorio and not check_consultorio_availability(new_consultorio, new_time, duration, exclude_id=appt_id):
+                return jsonify({"error": "El consultorio ya está ocupado en ese horario"}), 409
             appt.scheduled_at = new_time
         except ValueError:
             return jsonify({"error": "Formato de fecha inválido"}), 400
+
+    if "consultorio_id" in data:
+        appt.consultorio_id = data["consultorio_id"] or None
 
     for field in ["duration_minutes", "reason", "notes", "session_number"]:
         if field in data:

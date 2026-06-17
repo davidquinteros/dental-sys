@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { PatientService } from '../../core/services/api.service';
 import { Patient, Appointment, Treatment, TreatmentPlan } from '../../core/models';
+import { OdontogramComponent } from './odontogram.component';
 
 @Component({
   selector: 'app-patient-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, OdontogramComponent],
   templateUrl: './patient-detail.component.html',
   styleUrl: './patient-detail.component.css',
 })
@@ -17,10 +18,11 @@ export class PatientDetailComponent implements OnInit {
   treatments = signal<Treatment[]>([]);
   plans = signal<TreatmentPlan[]>([]);
   loading = signal(true);
-  activeTab = signal('appointments');
+  activeTab = signal('odontogram');
 
   get tabs() {
     return [
+      { key: 'odontogram', label: 'Odontograma' },
       { key: 'appointments', label: 'Citas', count: this.appointments().length },
       { key: 'treatments', label: 'Atenciones', count: this.treatments().length },
       { key: 'plans', label: 'Planes de Tratamiento', count: this.plans().length },

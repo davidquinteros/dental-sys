@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import {
@@ -48,6 +48,11 @@ function toLocalIso(date: Date): string {
   styleUrl: './calendar.component.css',
 })
 export class CalendarComponent implements OnInit {
+  /** When true: hides doctor legend, disables navigation to new-appointment page,
+   *  and emits dateSelected instead of routing on slot click. */
+  @Input() embedded = false;
+  @Output() dateSelected = new EventEmitter<string>();
+
   CalendarView = CalendarView;
   view = signal<CalendarView>(CalendarView.Week);
   viewDate = signal(new Date());
@@ -90,6 +95,7 @@ export class CalendarComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    if (this.embedded) this.view.set(CalendarView.Day);
     this.userService.getDoctors().subscribe(res => {
       this.doctors.set(res.doctors);
       this.selectedDoctorIds.set(new Set(res.doctors.map(d => d.id)));
@@ -167,7 +173,7 @@ export class CalendarComponent implements OnInit {
             id: a.id,
             start: eventStart,
             end: eventEnd,
-            title: `${a.patient_name} · Dr. ${a.doctor_name}`,
+            title: `${a.patient_name} · Dr. ${a.doctor_name}${a.consultorio_name ? ' · ' + a.consultorio_name : ''}`,
             color: colorMap.get(a.doctor_id) ?? DOCTOR_COLORS[0],
             cssClass: inactive ? 'appt-inactive' : undefined,
             meta: a,
@@ -181,16 +187,26 @@ export class CalendarComponent implements OnInit {
   }
 
   onEventClicked({ event }: { event: CalendarEvent<Appointment> }): void {
-    this.router.navigate(['/appointments', event.meta!.id, 'edit']);
+    if (!this.embedded) {
+      this.router.navigate(['/appointments', event.meta!.id, 'edit']);
+    }
   }
 
   onHourSegmentClicked({ date }: { date: Date }): void {
-    this.router.navigate(['/appointments/new'], { queryParams: { date: toLocalIso(date) } });
+    if (this.embedded) {
+      this.dateSelected.emit(toLocalIso(date));
+    } else {
+      this.router.navigate(['/appointments/new'], { queryParams: { date: toLocalIso(date) } });
+    }
   }
 
   onDayClicked({ day }: { day: { date: Date } }): void {
     const d = new Date(day.date);
     d.setHours(9, 0, 0, 0);
-    this.router.navigate(['/appointments/new'], { queryParams: { date: toLocalIso(d) } });
+    if (this.embedded) {
+      this.dateSelected.emit(toLocalIso(d));
+    } else {
+      this.router.navigate(['/appointments/new'], { queryParams: { date: toLocalIso(d) } });
+    }
   }
 }

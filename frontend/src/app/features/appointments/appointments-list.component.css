@@ -67,6 +67,8 @@
 .status-no_show { background: #fefcbf; color: #744210; }
 
 .pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+.consultorio-pill { display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; background: #ebf8ff; color: #2b6cb0; }
 .pill.green { background: #f0fff4; color: #276749; }
 .pill.blue { background: #ebf8ff; color: #2b6cb0; }
 .pill.clickable { cursor: pointer; text-decoration: none; }

@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   Patient, Appointment, Treatment, TreatmentPlan,
-  Invoice, Payment, PaymentPlan, DashboardData, User
+  Invoice, Payment, PaymentPlan, DashboardData, User, Consultorio
 } from '../models';
 
 const API = environment.apiUrl;
@@ -43,6 +43,14 @@ export class PatientService {
 
   delete(id: number): Observable<any> {
     return this.http.delete(`${API}/patients/${id}`);
+  }
+
+  getOdontogram(id: number): Observable<Record<string, any>> {
+    return this.http.get<Record<string, any>>(`${API}/patients/${id}/odontogram`);
+  }
+
+  saveOdontogram(id: number, data: Record<string, any>): Observable<Record<string, any>> {
+    return this.http.put<Record<string, any>>(`${API}/patients/${id}/odontogram`, data);
   }
 }
 
@@ -216,5 +224,27 @@ export class UserService {
 
   delete(id: number): Observable<any> {
     return this.http.delete(`${API}/users/${id}`);
+  }
+}
+
+// ─── Consultorios ──────────────────────────────────────────────────────────────
+@Injectable({ providedIn: 'root' })
+export class ConsultorioService {
+  constructor(private http: HttpClient) {}
+
+  getAll(): Observable<{ consultorios: Consultorio[] }> {
+    return this.http.get<{ consultorios: Consultorio[] }>(`${API}/consultorios/`);
+  }
+
+  create(data: Partial<Consultorio>): Observable<{ consultorio: Consultorio; message: string }> {
+    return this.http.post<{ consultorio: Consultorio; message: string }>(`${API}/consultorios/`, data);
+  }
+
+  update(id: number, data: Partial<Consultorio>): Observable<{ consultorio: Consultorio }> {
+    return this.http.put<{ consultorio: Consultorio }>(`${API}/consultorios/${id}`, data);
+  }
+
+  delete(id: number): Observable<any> {
+    return this.http.delete(`${API}/consultorios/${id}`);
   }
 }

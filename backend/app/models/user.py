@@ -8,6 +8,7 @@ class UserRole(str, enum.Enum):
     DOCTOR = "doctor"
     RECEPTIONIST = "receptionist"
     ASSISTANT = "assistant"
+    GUEST = "guest"
 
 
 class User(db.Model):

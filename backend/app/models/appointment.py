@@ -40,6 +40,9 @@ class Appointment(db.Model):
     appointment_type = db.Column(db.Enum(AppointmentType), nullable=False, default=AppointmentType.CONSULTATION)
     status = db.Column(db.Enum(AppointmentStatus), nullable=False, default=AppointmentStatus.SCHEDULED, index=True)
 
+    # Consultorio (room) where the appointment takes place
+    consultorio_id = db.Column(db.Integer, db.ForeignKey("consultorios.id"), nullable=True, index=True)
+
     # Treatment plan link (for multi-session treatments)
     treatment_plan_id = db.Column(db.Integer, db.ForeignKey("treatment_plans.id"), nullable=True)
     session_number = db.Column(db.Integer, nullable=True)  # Which session in the plan
@@ -58,6 +61,7 @@ class Appointment(db.Model):
     patient = db.relationship("Patient", back_populates="appointments")
     doctor = db.relationship("User", foreign_keys=[doctor_id], back_populates="appointments_as_doctor")
     created_by = db.relationship("User", foreign_keys=[created_by_id], back_populates="appointments_created")
+    consultorio = db.relationship("Consultorio", back_populates="appointments")
     treatment_plan = db.relationship("TreatmentPlan", back_populates="appointments")
     treatment = db.relationship("Treatment", back_populates="appointment", uselist=False)
     invoice = db.relationship("Invoice", back_populates="appointment", uselist=False)
@@ -69,6 +73,8 @@ class Appointment(db.Model):
             "patient_name": self.patient.full_name if self.patient else None,
             "doctor_id": self.doctor_id,
             "doctor_name": self.doctor.full_name if self.doctor else None,
+            "consultorio_id": self.consultorio_id,
+            "consultorio_name": self.consultorio.name if self.consultorio else None,
             "created_by_id": self.created_by_id,
             "scheduled_at": self.scheduled_at.isoformat() if self.scheduled_at else None,
             "duration_minutes": self.duration_minutes,
