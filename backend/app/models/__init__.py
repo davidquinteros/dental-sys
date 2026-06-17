@@ -2,6 +2,7 @@ from app.models.user import User, UserRole
 from app.models.patient import Patient, BloodType
 from app.models.consultorio import Consultorio
 from app.models.appointment import Appointment, AppointmentStatus, AppointmentType
+from app.models.appointment_type import AppointmentTypeCatalog
 from app.models.treatment import Treatment, TreatmentPlan, TreatmentPlanStatus
 from app.models.billing import Invoice, InvoiceItem, Payment, PaymentPlan, InvoiceStatus, PaymentMethod, PaymentPlanStatus
 from app.models.permission import Page, RolePermission
@@ -15,4 +16,5 @@ __all__ = [
     "Invoice", "InvoiceItem", "Payment", "PaymentPlan",
     "InvoiceStatus", "PaymentMethod", "PaymentPlanStatus",
     "Page", "RolePermission",
+    "AppointmentTypeCatalog",
 ]

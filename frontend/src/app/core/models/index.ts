@@ -64,6 +64,16 @@ export type AppointmentType =
   | 'endodontics' | 'orthodontics' | 'implant' | 'whitening'
   | 'crown' | 'followup' | 'other';
 
+// ─── Appointment Type Catalog ──────────────────────────────────────────────────
+export interface AppointmentTypeItem {
+  id: number;
+  key: string;
+  label: string;
+  color: string;
+  is_active: boolean;
+  sort_order: number;
+}
+
 // ─── Consultorio Models ────────────────────────────────────────────────────────
 export interface Consultorio {
   id: number;
@@ -143,7 +153,7 @@ export interface TreatmentPlan {
 }
 
 // ─── Billing Models ────────────────────────────────────────────────────────────
-export type InvoiceStatus = 'pending' | 'partial' | 'paid' | 'cancelled' | 'overdue';
+export type InvoiceStatus = 'pending' | 'paid' | 'cancelled' | 'overdue';
 export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'other';
 
 export interface InvoiceItem {

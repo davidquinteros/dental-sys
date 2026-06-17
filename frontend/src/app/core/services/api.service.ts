@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   Patient, Appointment, Treatment, TreatmentPlan,
-  Invoice, Payment, PaymentPlan, DashboardData, User, Consultorio
+  Invoice, Payment, PaymentPlan, DashboardData, User, Consultorio, AppointmentTypeItem
 } from '../models';
 
 const API = environment.apiUrl;
@@ -224,6 +224,32 @@ export class UserService {
 
   delete(id: number): Observable<any> {
     return this.http.delete(`${API}/users/${id}`);
+  }
+}
+
+// ─── Appointment Types ─────────────────────────────────────────────────────────
+@Injectable({ providedIn: 'root' })
+export class AppointmentTypeService {
+  constructor(private http: HttpClient) {}
+
+  getAll(): Observable<{ appointment_types: AppointmentTypeItem[] }> {
+    return this.http.get<{ appointment_types: AppointmentTypeItem[] }>(`${API}/appointment-types/`);
+  }
+
+  getAdmin(): Observable<{ appointment_types: AppointmentTypeItem[] }> {
+    return this.http.get<{ appointment_types: AppointmentTypeItem[] }>(`${API}/appointment-types/all`);
+  }
+
+  create(data: Partial<AppointmentTypeItem>): Observable<{ appointment_type: AppointmentTypeItem }> {
+    return this.http.post<{ appointment_type: AppointmentTypeItem }>(`${API}/appointment-types/`, data);
+  }
+
+  update(id: number, data: Partial<AppointmentTypeItem>): Observable<{ appointment_type: AppointmentTypeItem }> {
+    return this.http.put<{ appointment_type: AppointmentTypeItem }>(`${API}/appointment-types/${id}`, data);
+  }
+
+  delete(id: number): Observable<any> {
+    return this.http.delete(`${API}/appointment-types/${id}`);
   }
 }
 

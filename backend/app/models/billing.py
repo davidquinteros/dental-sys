@@ -5,7 +5,7 @@ import enum
 
 class InvoiceStatus(str, enum.Enum):
     PENDING = "pending"
-    PARTIAL = "partial"      # Partially paid
+    PARTIAL = "partial"      # Legacy: kept for DB compatibility, no longer generated
     PAID = "paid"
     CANCELLED = "cancelled"
     OVERDUE = "overdue"
@@ -62,8 +62,6 @@ class Invoice(db.Model):
         self.balance = max(0, float(self.total) - float(self.amount_paid))
         if float(self.balance) == 0:
             self.status = InvoiceStatus.PAID
-        elif float(self.amount_paid) > 0:
-            self.status = InvoiceStatus.PARTIAL
         else:
             self.status = InvoiceStatus.PENDING
 

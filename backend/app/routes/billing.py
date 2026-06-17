@@ -428,6 +428,9 @@ def add_payment(invoice_id):
     if amount > float(invoice.balance):
         return jsonify({"error": f"El monto excede el saldo pendiente ({invoice.balance})"}), 400
 
+    if amount < float(invoice.balance):
+        return jsonify({"error": "Solo se aceptan pagos totales. Use un plan de pago para pagos en cuotas."}), 400
+
     try:
         method = PaymentMethod(data.get("method", "cash"))
     except ValueError:
@@ -772,7 +775,7 @@ def billing_summary():
     total_invoiced = db.session.query(func.sum(Invoice.total)).scalar() or 0
     total_collected = db.session.query(func.sum(Invoice.amount_paid)).scalar() or 0
     pending = db.session.query(func.sum(Invoice.balance)).filter(
-        Invoice.status.in_([InvoiceStatus.PENDING, InvoiceStatus.PARTIAL])
+        Invoice.status == InvoiceStatus.PENDING
     ).scalar() or 0
 
     return jsonify({

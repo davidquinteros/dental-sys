@@ -17,7 +17,6 @@ export class InvoiceDetailComponent implements OnInit {
   loading = signal(true);
   paying = signal(false);
   payError = signal('');
-  payAmount = 0;
   payMethod = 'cash';
   payReference = '';
 
@@ -32,17 +31,17 @@ export class InvoiceDetailComponent implements OnInit {
   }
 
   registerPayment(): void {
-    if (!this.payAmount || this.payAmount <= 0) return;
+    const inv = this.invoice();
+    if (!inv || inv.balance <= 0) return;
     this.paying.set(true);
     this.payError.set('');
-    this.billingService.addPayment(this.invoice()!.id, {
-      amount: this.payAmount,
+    this.billingService.addPayment(inv.id, {
+      amount: inv.balance,
       method: this.payMethod,
       reference: this.payReference || undefined,
     }).subscribe({
       next: res => {
         this.invoice.set(res.invoice);
-        this.payAmount = 0;
         this.payReference = '';
         this.paying.set(false);
       },
@@ -60,7 +59,7 @@ export class InvoiceDetailComponent implements OnInit {
     return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
   }
   invStatusLabel(s: string): string {
-    const m: Record<string, string> = { pending: 'Pendiente', partial: 'Parcial', paid: 'Pagada', cancelled: 'Cancelada', overdue: 'Vencida' };
+    const m: Record<string, string> = { pending: 'Pendiente', paid: 'Pagada', cancelled: 'Cancelada', overdue: 'Vencida' };
     return m[s] ?? s;
   }
 }

@@ -12,7 +12,6 @@
 .status-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
 .status-badge.big { font-size: 13px; padding: 5px 14px; }
 .inv-pending { background: #fffbeb; color: #b7791f; }
-.inv-partial { background: #ebf8ff; color: #2b6cb0; }
 .inv-paid { background: #f0fff4; color: #276749; }
 .inv-cancelled { background: #f7fafc; color: #a0aec0; }
 .inv-overdue { background: #fff5f5; color: #c53030; }
@@ -50,8 +49,10 @@ label { font-size: 12px; font-weight: 600; color: #718096; text-transform: upper
 input, select { padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
   font-size: 14px; color: #2d3748; outline: none; background: white; font-family: inherit; }
 input:focus, select:focus { border-color: #4299e1; }
-.max-btn { font-size: 11px; color: #4299e1; background: none; border: none; cursor: pointer;
-  text-align: left; padding: 2px 0; font-weight: 600; }
+.pay-amount-display { display: flex; justify-content: space-between; align-items: center;
+  background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 10px; padding: 12px 14px; }
+.pay-amount-label { font-size: 12px; font-weight: 600; color: #276749; text-transform: uppercase; }
+.pay-amount-val { font-size: 18px; font-weight: 700; color: #276749; font-variant-numeric: tabular-nums; }
 .pay-btn { padding: 11px; background: #276749; color: white; border: none; border-radius: 10px;
   font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;
   display: flex; align-items: center; justify-content: center; gap: 8px; }

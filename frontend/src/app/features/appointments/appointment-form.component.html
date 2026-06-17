@@ -22,29 +22,41 @@
         </div>
         <div class="form-body">
 
-          <!-- Patient search -->
+          <!-- Patient search + quick create -->
           <div class="form-group">
             <label>Paciente <span class="req">*</span></label>
-            <div class="search-select">
-              <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone: true}"
-                (input)="onPatientSearch()" placeholder="Buscar paciente por nombre o C.I..."
-                [disabled]="!!selectedPatient()"/>
-              @if (selectedPatient()) {
-                <div class="selected-patient">
-                  <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
-                  <button type="button" (click)="clearPatient()">✕</button>
-                </div>
-              }
-              @if (patientResults().length > 0 && !selectedPatient()) {
-                <div class="dropdown">
-                  @for (p of patientResults(); track p.id) {
-                    <div class="dropdown-item" (click)="selectPatient(p)">
-                      <span class="drop-name">{{ p.full_name }}</span>
-                      <span class="drop-meta">{{ p.document_number }} · {{ p.phone }}</span>
-                    </div>
-                  }
-                </div>
-              }
+            <div class="patient-row">
+              <div class="search-select">
+                <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone: true}"
+                  (input)="onPatientSearch()" placeholder="Buscar paciente por nombre o C.I..."
+                  [disabled]="!!selectedPatient()"/>
+                @if (selectedPatient()) {
+                  <div class="selected-patient">
+                    <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
+                    <button type="button" (click)="clearPatient()">✕</button>
+                  </div>
+                }
+                @if (patientResults().length > 0 && !selectedPatient()) {
+                  <div class="dropdown">
+                    @for (p of patientResults(); track p.id) {
+                      <div class="dropdown-item" (click)="selectPatient(p)">
+                        <span class="drop-name">{{ p.full_name }}</span>
+                        <span class="drop-meta">{{ p.document_number }} · {{ p.phone }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+              <button type="button" class="btn-add-patient" (click)="openPatientModal()"
+                title="Crear nuevo paciente rápidamente">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="16" y1="11" x2="22" y2="11"/>
+                </svg>
+                Nuevo
+              </button>
             </div>
           </div>
 
@@ -65,9 +77,7 @@
               <select formControlName="consultorio_id" (change)="onConsultorioChange()" [class.error]="hasError('consultorio_id')">
                 <option value="">Seleccionar consultorio...</option>
                 @for (c of consultorios(); track c.id) {
-                  <option [value]="c.id">
-                    {{ c.name }}{{ c.description ? ' — ' + c.description : '' }}
-                  </option>
+                  <option [value]="c.id">{{ c.name }}{{ c.description ? ' — ' + c.description : '' }}</option>
                 }
               </select>
               @if (hasError('consultorio_id')) { <span class="field-error">Seleccione un consultorio</span> }
@@ -123,22 +133,16 @@
             </div>
           }
 
-          <!-- Type -->
+          <!-- Type (dynamic) -->
           <div class="form-group">
             <label>Tipo de Cita <span class="req">*</span></label>
             <select formControlName="appointment_type" [class.error]="hasError('appointment_type')">
               <option value="">Seleccionar tipo...</option>
-              <option value="consultation">Consulta General</option>
-              <option value="cleaning">Limpieza Dental</option>
-              <option value="extraction">Extracción</option>
-              <option value="filling">Empaste / Obturación</option>
-              <option value="endodontics">Endodoncia</option>
-              <option value="orthodontics">Ortodoncia</option>
-              <option value="implant">Implante</option>
-              <option value="whitening">Blanqueamiento</option>
-              <option value="crown">Corona</option>
-              <option value="followup">Seguimiento de Tratamiento</option>
-              <option value="other">Otro</option>
+              @for (t of appointmentTypes(); track t.id) {
+                <option [value]="t.key">
+                  {{ t.label }}
+                </option>
+              }
             </select>
             @if (hasError('appointment_type')) { <span class="field-error">Seleccione un tipo</span> }
           </div>
@@ -190,3 +194,77 @@
 
   </form>
 </div>
+
+<!-- ── Quick patient creation modal ──────────────────────────────────────────── -->
+@if (showPatientModal()) {
+  <div class="modal-backdrop" (click)="showPatientModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Nuevo Paciente Rápido</h3>
+        <button type="button" class="modal-close" (click)="showPatientModal.set(false)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-hint">Ingresa los datos básicos. Podrás completar el perfil luego desde Pacientes.</p>
+
+        @if (patientModalError()) {
+          <div class="modal-error">{{ patientModalError() }}</div>
+        }
+
+        <div class="modal-form-row">
+          <div class="form-group">
+            <label>Nombre <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="newPatient.first_name" class="form-control"
+              placeholder="Nombre(s)"/>
+          </div>
+          <div class="form-group">
+            <label>Apellido <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="newPatient.last_name" class="form-control"
+              placeholder="Apellido(s)"/>
+          </div>
+        </div>
+
+        <div class="modal-form-row">
+          <div class="form-group">
+            <label>C.I. / Documento <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="newPatient.document_number" class="form-control"
+              placeholder="Nro. de documento"/>
+          </div>
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="text" [(ngModel)]="newPatient.phone" class="form-control"
+              placeholder="591-7XXXXXXX"/>
+          </div>
+        </div>
+
+        <div class="modal-form-row">
+          <div class="form-group">
+            <label>Género</label>
+            <select [(ngModel)]="newPatient.gender" class="form-control">
+              <option value="M">Masculino</option>
+              <option value="F">Femenino</option>
+              <option value="O">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Fecha de Nacimiento</label>
+            <input type="date" [(ngModel)]="newPatient.date_of_birth" class="form-control"/>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="showPatientModal.set(false)">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" (click)="saveQuickPatient()"
+          [disabled]="patientModalSaving()">
+          @if (patientModalSaving()) { <span class="spinner-sm white"></span> }
+          Crear y Seleccionar
+        </button>
+      </div>
+    </div>
+  </div>
+}

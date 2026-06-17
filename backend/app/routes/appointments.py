@@ -310,9 +310,9 @@ def create_appointment():
     if scheduled_at < datetime.utcnow():
         return jsonify({"error": "No se puede agendar en el pasado"}), 400
 
-    try:
-        appt_type = AppointmentType(data["appointment_type"])
-    except ValueError:
+    from app.models.appointment_type import AppointmentTypeCatalog
+    appt_type_key = (data.get("appointment_type") or "").strip()
+    if not appt_type_key or not AppointmentTypeCatalog.query.filter_by(key=appt_type_key, is_active=True).first():
         return jsonify({"error": "Tipo de cita inválido"}), 400
 
     duration = int(data.get("duration_minutes", 30))
@@ -334,7 +334,7 @@ def create_appointment():
         created_by_id=current.id,
         scheduled_at=scheduled_at,
         duration_minutes=duration,
-        appointment_type=appt_type,
+        appointment_type=appt_type_key,
         treatment_plan_id=data.get("treatment_plan_id"),
         session_number=data.get("session_number"),
         reason=data.get("reason"),

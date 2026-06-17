@@ -48,6 +48,7 @@
           [viewDate]="viewDate()"
           [events]="filteredEvents()"
           [weekStartsOn]="1"
+          [dayStartHour]="6"
           (eventClicked)="onEventClicked($event)"
           (hourSegmentClicked)="onHourSegmentClicked($event)">
         </mwl-calendar-week-view>
@@ -56,6 +57,7 @@
         <mwl-calendar-day-view
           [viewDate]="viewDate()"
           [events]="filteredEvents()"
+          [dayStartHour]="6"
           (eventClicked)="onEventClicked($event)"
           (hourSegmentClicked)="onHourSegmentClicked($event)">
         </mwl-calendar-day-view>

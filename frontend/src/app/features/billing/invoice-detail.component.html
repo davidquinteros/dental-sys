@@ -58,13 +58,9 @@
           <div class="payment-panel">
             <h4>Registrar Pago</h4>
             <div class="pay-form">
-              <div class="form-group">
-                <label>Monto</label>
-                <input type="number" [(ngModel)]="payAmount" [max]="invoice()!.balance" step="0.01"
-                  placeholder="Bs 0.00"/>
-                <button class="max-btn" type="button" (click)="payAmount = invoice()!.balance">
-                  Saldo completo
-                </button>
+              <div class="pay-amount-display">
+                <span class="pay-amount-label">Monto total a pagar</span>
+                <span class="pay-amount-val">Bs {{ formatMoney(invoice()!.balance) }}</span>
               </div>
               <div class="form-group">
                 <label>Método de Pago</label>
@@ -79,9 +75,9 @@
                 <label>Referencia</label>
                 <input type="text" [(ngModel)]="payReference" placeholder="N° transacción (opcional)"/>
               </div>
-              <button class="pay-btn" (click)="registerPayment()" [disabled]="paying() || !payAmount || payAmount <= 0">
+              <button class="pay-btn" (click)="registerPayment()" [disabled]="paying()">
                 @if (paying()) { <span class="spinner-sm"></span> }
-                Registrar Pago
+                Registrar Pago Completo
               </button>
               @if (payError()) { <p class="pay-error">{{ payError() }}</p> }
             </div>

@@ -24,7 +24,6 @@ export class BillingComponent implements OnInit {
   statusFilters = [
     { value: '', label: 'Todas' },
     { value: 'pending', label: 'Pendientes' },
-    { value: 'partial', label: 'Parciales' },
     { value: 'paid', label: 'Pagadas' },
     { value: 'overdue', label: 'Vencidas' },
   ];
@@ -77,7 +76,7 @@ export class BillingComponent implements OnInit {
   }
 
   invStatusLabel(s: string): string {
-    const m: Record<string, string> = { pending: 'Pendiente', partial: 'Parcial', paid: 'Pagada', cancelled: 'Cancelada', overdue: 'Vencida' };
+    const m: Record<string, string> = { pending: 'Pendiente', paid: 'Pagada', cancelled: 'Cancelada', overdue: 'Vencida' };
     return m[s] ?? s;
   }
 

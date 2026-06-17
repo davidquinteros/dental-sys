@@ -37,7 +37,7 @@ class Appointment(db.Model):
     # Scheduling
     scheduled_at = db.Column(db.DateTime, nullable=False, index=True)
     duration_minutes = db.Column(db.Integer, default=30, nullable=False)
-    appointment_type = db.Column(db.Enum(AppointmentType), nullable=False, default=AppointmentType.CONSULTATION)
+    appointment_type = db.Column(db.String(100), nullable=False, default="consultation")
     status = db.Column(db.Enum(AppointmentStatus), nullable=False, default=AppointmentStatus.SCHEDULED, index=True)
 
     # Consultorio (room) where the appointment takes place
@@ -78,7 +78,7 @@ class Appointment(db.Model):
             "created_by_id": self.created_by_id,
             "scheduled_at": self.scheduled_at.isoformat() if self.scheduled_at else None,
             "duration_minutes": self.duration_minutes,
-            "appointment_type": self.appointment_type.value,
+            "appointment_type": self.appointment_type,
             "status": self.status.value,
             "treatment_plan_id": self.treatment_plan_id,
             "session_number": self.session_number,

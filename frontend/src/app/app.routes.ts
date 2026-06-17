@@ -62,6 +62,13 @@ export const routes: Routes = [
         data: { pageKey: 'treatments' },
       },
       {
+        path: 'appointment-types',
+        loadComponent: () =>
+          import('./features/appointment-types/appointment-types.component').then(m => m.AppointmentTypesComponent),
+        canActivate: [roleGuard],
+        data: { pageKey: 'appointment_types', roles: ['admin'] },
+      },
+      {
         path: 'consultorios',
         loadComponent: () =>
           import('./features/consultorios/consultorios.component').then(m => m.ConsultoriosComponent),

@@ -54,6 +54,12 @@ _ICON_BILLING = (
     '<path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'
     '</svg>'
 )
+_ICON_APPT_TYPES = (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+    '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>'
+    '<line x1="7" y1="7" x2="7.01" y2="7"/>'
+    '</svg>'
+)
 _ICON_CONSULTORIOS = (
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
     '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'
@@ -128,6 +134,15 @@ STANDARD_PAGES = [
         'is_system': True,
         'icon': _ICON_BILLING,
         'default_viewers': ['ADMIN', 'RECEPTIONIST'],
+    },
+    {
+        'key': 'appointment_types',
+        'label': 'Tipos de Cita',
+        'route': '/appointment-types',
+        'sort_order': 65,
+        'is_system': True,
+        'icon': _ICON_APPT_TYPES,
+        'default_viewers': ['ADMIN'],
     },
     {
         'key': 'consultorios',
@@ -213,11 +228,28 @@ def seed_pages():
         print("  ✓ Pages already seeded")
 
 
+def seed_appointment_types():
+    """Insert the built-in appointment types if they don't exist yet."""
+    from app.models.appointment_type import AppointmentTypeCatalog, BUILTIN_TYPES
+    added = 0
+    for t in BUILTIN_TYPES:
+        if not AppointmentTypeCatalog.query.filter_by(key=t['key']).first():
+            db.session.add(AppointmentTypeCatalog(**t))
+            added += 1
+    if added:
+        print(f"  ✓ {added} appointment type(s) created")
+    else:
+        print("  ✓ Appointment types already seeded")
+
+
 def seed_db():
     print("🌱 Seeding database...")
 
     # ─── Pages & permissions ────────────────────────────────────────────────
     seed_pages()
+
+    # ─── Appointment types ──────────────────────────────────────────────────
+    seed_appointment_types()
 
     # ─── Create users ───────────────────────────────────────────────────────
     if not User.query.filter_by(email="admin@clinica.com").first():
