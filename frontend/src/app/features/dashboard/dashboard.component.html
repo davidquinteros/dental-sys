@@ -124,7 +124,7 @@
                     <span class="duration">{{ appt.duration_minutes }}min</span>
                   </div>
                   <div class="appt-info">
-                    <span class="patient-name">{{ appt.patient_name }}</span>
+                    <a class="patient-name patient-link" [routerLink]="['/patients', appt.patient_id]">{{ appt.patient_name }}</a>
                     <span class="appt-type">{{ appointmentTypeLabel(appt.appointment_type) }}</span>
                   </div>
                   <div class="appt-right">
