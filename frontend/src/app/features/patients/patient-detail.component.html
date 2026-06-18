@@ -239,8 +239,8 @@
           <div class="modal-title-row" style="flex-direction:column; align-items:flex-start; gap:6px;">
             <div style="display:flex; align-items:center; gap:10px; width:100%">
               <h3 class="modal-title" style="flex:1">{{ selectedPlan()!.name }}</h3>
-              <span class="pd-type-badge">{{ selectedPlan()!.treatment_type }}</span>
-              <span class="modal-status-pill" [class]="'pstatus-' + selectedPlan()!.status">
+              <span class="pill blue">{{ selectedPlan()!.treatment_type }}</span>
+              <span class="status-badge" [class]="'status-plan-' + selectedPlan()!.status">
                 {{ planStatusLabel(selectedPlan()!.status) }}
               </span>
             </div>
@@ -282,7 +282,7 @@
                 </button>
               </div>
               @if (!selectedPlan()!.sessions || selectedPlan()!.sessions!.length === 0) {
-                <div class="pd-empty">Sin sesiones registradas aún</div>
+                <div class="empty-tab">Sin sesiones registradas aún</div>
               } @else {
                 <div class="pd-sessions-list">
                   @for (s of selectedPlan()!.sessions!; track s.id; let i = $index) {

@@ -89,7 +89,6 @@
 .note-block p { font-size: 14px; color: #2d3748; line-height: 1.6; background: #f7fafc;
   padding: 14px 16px; border-radius: 8px; border-left: 3px solid #4299e1; margin: 0; }
 
-/* Plan card "Ver detalle" button */
 .plan-header-right { display: flex; align-items: center; gap: 8px; }
 .plan-detail-btn {
   display: inline-flex; align-items: center; gap: 3px;
@@ -100,15 +99,8 @@
 .plan-detail-btn svg { width: 13px; height: 13px; }
 .plan-detail-btn:hover { background: #bee3f8; }
 
-/* ── Plan detail modal styles ──────────────────────────────────────────────── */
 .modal-wide { max-width: 860px; }
 .modal-loading { display: flex; justify-content: center; align-items: center; padding: 60px; }
-.modal-status-pill { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
-.pstatus-active    { background: #e6fffa; color: #319795; }
-.pstatus-completed { background: #f0fff4; color: #276749; }
-.pstatus-cancelled { background: #fff5f5; color: #c53030; }
-.pstatus-on_hold   { background: #fffbeb; color: #b7791f; }
-.pd-type-badge { font-size: 12px; background: #ebf8ff; color: #2b6cb0; padding: 3px 10px; border-radius: 20px; font-weight: 500; text-transform: capitalize; white-space: nowrap; }
 .pd-tooth { font-size: 12px; color: #718096; }
 
 .pd-progress-card { background: #f7fafc; border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
@@ -125,7 +117,6 @@
 .pd-card-header h4 { font-size: 13px; font-weight: 600; color: #2d3748; margin: 0; }
 .pd-add-session-btn { font-size: 12px; color: #4299e1; background: none; border: none; cursor: pointer; font-weight: 600; padding: 0; }
 .pd-add-session-btn:hover { text-decoration: underline; }
-.pd-empty { padding: 28px; text-align: center; color: #a0aec0; font-size: 13px; }
 .pd-sessions-list { max-height: 280px; overflow-y: auto; }
 .pd-session-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #edf2f7; }
 .pd-session-item:last-child { border-bottom: none; }
@@ -154,7 +145,6 @@
 .pd-create-payment-btn svg { width: 14px; height: 14px; }
 .pd-create-payment-btn:hover { border-color: #4299e1; color: #4299e1; background: #ebf8ff; }
 
-/* Tab section header (title + action button) */
 .tab-section-header {
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 14px;
@@ -163,7 +153,6 @@
 .btn-sm { padding: 7px 14px; font-size: 13px; }
 .btn-sm svg { width: 14px; height: 14px; }
 
-/* ── Nueva Atención modal ────────────────────────────────────────────────────── */
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(0,0,0,0.45);
   display: flex; align-items: center; justify-content: center;
@@ -206,7 +195,6 @@
   padding: 14px 20px 18px; border-top: 1px solid #f0f4f8; flex-shrink: 0;
 }
 
-/* Modal form fields */
 .mform-group { display: flex; flex-direction: column; gap: 4px; }
 .mform-group label { font-size: 12px; font-weight: 600; color: #718096; text-transform: uppercase; letter-spacing: 0.4px; }
 .req { color: #e53e3e; }
