@@ -65,7 +65,8 @@ def login():
     if not email or not password:
         return jsonify({"error": "Email y contraseña requeridos"}), 400
 
-    user = User.query.filter_by(email=email).first()
+    # Email is unique platform-wide; never scope a login lookup to any one clinic.
+    user = User.query.filter_by(email=email).execution_options(skip_clinic_filter=True).first()
 
     if not user or not user.check_password(password):
         return jsonify({"error": "Credenciales incorrectas"}), 401

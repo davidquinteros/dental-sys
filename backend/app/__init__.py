@@ -41,6 +41,11 @@ def create_app(config=None):
     CORS(app, resources={r"/api/*": {"origins": cors_origins}})
     Swagger(app, config=SWAGGER_CONFIG, template=SWAGGER_TEMPLATE)
 
+    # Multi-tenancy: resolve the current clinic once per request, and register
+    # the session-level event listener that auto-filters every clinic-scoped query.
+    from app.middleware.tenancy import resolve_request_clinic
+    app.before_request(resolve_request_clinic)
+
     # JWT error handlers
     @jwt.unauthorized_loader
     def unauthorized_callback(reason):

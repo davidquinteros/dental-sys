@@ -40,6 +40,9 @@ class Patient(db.Model):
     allergies = db.Column(db.Text, nullable=True)
     medical_notes = db.Column(db.Text, nullable=True)  # General medical notes
 
+    # Medical history questionnaire (antecedentes patológicos/no patológicos) — optional, free-form JSON
+    medical_history = db.Column(db.JSON, nullable=True, default=dict)
+
     # Odontogram — JSON map of tooth number → {status, notes}
     odontogram = db.Column(db.JSON, nullable=True, default=dict)
 
@@ -88,6 +91,7 @@ class Patient(db.Model):
             "blood_type": self.blood_type.value if self.blood_type else None,
             "allergies": self.allergies,
             "medical_notes": self.medical_notes,
+            "medical_history": self.medical_history or {},
             "odontogram": self.odontogram or {},
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,

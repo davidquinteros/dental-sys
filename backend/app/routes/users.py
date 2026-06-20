@@ -167,6 +167,7 @@ def create_user():
         schema:
           $ref: '#/definitions/Error'
     """
+    current = get_current_user()
     data = request.get_json()
     required = ["email", "password", "first_name", "last_name", "role"]
     for field in required:
@@ -174,7 +175,9 @@ def create_user():
             return jsonify({"error": f"Campo requerido: {field}"}), 400
 
     email = data["email"].strip().lower()
-    if User.query.filter_by(email=email).first():
+    # Email is unique platform-wide (not per clinic), so this check must see every clinic.
+    existing = User.query.filter_by(email=email).execution_options(skip_clinic_filter=True).first()
+    if existing:
         return jsonify({"error": "El email ya está registrado"}), 409
 
     try:
@@ -187,6 +190,7 @@ def create_user():
         return jsonify({"error": "La contraseña debe tener al menos 8 caracteres"}), 400
 
     user = User(
+        clinic_id=current.clinic_id,
         email=email,
         first_name=data["first_name"].strip(),
         last_name=data["last_name"].strip(),

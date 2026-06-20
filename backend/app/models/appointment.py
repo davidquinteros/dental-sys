@@ -30,6 +30,7 @@ class Appointment(db.Model):
     __tablename__ = "appointments"
 
     id = db.Column(db.Integer, primary_key=True)
+    clinic_id = db.Column(db.Integer, db.ForeignKey("clinics.id"), nullable=False, index=True)
     patient_id = db.Column(db.Integer, db.ForeignKey("patients.id"), nullable=False, index=True)
     doctor_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
@@ -58,6 +59,7 @@ class Appointment(db.Model):
     completed_at = db.Column(db.DateTime, nullable=True)
 
     # Relationships
+    clinic = db.relationship("Clinic")
     patient = db.relationship("Patient", back_populates="appointments")
     doctor = db.relationship("User", foreign_keys=[doctor_id], back_populates="appointments_as_doctor")
     created_by = db.relationship("User", foreign_keys=[created_by_id], back_populates="appointments_created")
@@ -69,6 +71,7 @@ class Appointment(db.Model):
     def to_dict(self) -> dict:
         return {
             "id": self.id,
+            "clinic_id": self.clinic_id,
             "patient_id": self.patient_id,
             "patient_name": self.patient.full_name if self.patient else None,
             "doctor_id": self.doctor_id,

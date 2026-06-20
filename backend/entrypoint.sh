@@ -11,8 +11,8 @@ until pg_isready -h "$HOST" -p "$PORT" -U "$USER" > /dev/null 2>&1; do
 done
 echo "PostgreSQL listo."
 
-echo "Creando/verificando tablas..."
-python init_db.py
+echo "Aplicando migraciones..."
+flask db upgrade
 
 echo "Cargando datos iniciales (seed)..."
 flask seed

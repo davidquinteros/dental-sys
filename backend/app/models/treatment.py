@@ -15,6 +15,7 @@ class Treatment(db.Model):
     __tablename__ = "treatments"
 
     id = db.Column(db.Integer, primary_key=True)
+    clinic_id = db.Column(db.Integer, db.ForeignKey("clinics.id"), nullable=False, index=True)
     patient_id = db.Column(db.Integer, db.ForeignKey("patients.id"), nullable=False, index=True)
     doctor_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     appointment_id = db.Column(db.Integer, db.ForeignKey("appointments.id"), nullable=True)
@@ -39,6 +40,7 @@ class Treatment(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    clinic = db.relationship("Clinic")
     patient = db.relationship("Patient", back_populates="treatments")
     doctor = db.relationship("User", foreign_keys=[doctor_id])
     appointment = db.relationship("Appointment", back_populates="treatment")
@@ -47,7 +49,9 @@ class Treatment(db.Model):
     def to_dict(self) -> dict:
         return {
             "id": self.id,
+            "clinic_id": self.clinic_id,
             "patient_id": self.patient_id,
+            "patient_name": self.patient.full_name if self.patient else None,
             "doctor_id": self.doctor_id,
             "doctor_name": self.doctor.full_name if self.doctor else None,
             "appointment_id": self.appointment_id,
@@ -74,6 +78,7 @@ class TreatmentPlan(db.Model):
     __tablename__ = "treatment_plans"
 
     id = db.Column(db.Integer, primary_key=True)
+    clinic_id = db.Column(db.Integer, db.ForeignKey("clinics.id"), nullable=False, index=True)
     patient_id = db.Column(db.Integer, db.ForeignKey("patients.id"), nullable=False, index=True)
     doctor_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
@@ -97,6 +102,7 @@ class TreatmentPlan(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    clinic = db.relationship("Clinic")
     patient = db.relationship("Patient", back_populates="treatment_plans")
     doctor = db.relationship("User", foreign_keys=[doctor_id])
     sessions = db.relationship("Treatment", back_populates="treatment_plan", lazy="dynamic")
@@ -112,6 +118,7 @@ class TreatmentPlan(db.Model):
     def to_dict(self, include_sessions=False) -> dict:
         data = {
             "id": self.id,
+            "clinic_id": self.clinic_id,
             "patient_id": self.patient_id,
             "patient_name": self.patient.full_name if self.patient else None,
             "doctor_id": self.doctor_id,

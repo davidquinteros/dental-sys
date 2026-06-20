@@ -13,6 +13,7 @@
 .form-card-header svg { width: 18px; height: 18px; color: #718096; }
 
 .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 20px; }
+.form-body { padding: 20px; }
 .col-span-2 { grid-column: span 2; }
 .col-span-3 { grid-column: span 3; }
 .form-group { display: flex; flex-direction: column; gap: 5px; }

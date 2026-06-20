@@ -30,7 +30,8 @@ class Invoice(db.Model):
     __tablename__ = "invoices"
 
     id = db.Column(db.Integer, primary_key=True)
-    invoice_number = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    clinic_id = db.Column(db.Integer, db.ForeignKey("clinics.id"), nullable=False, index=True)
+    invoice_number = db.Column(db.String(20), nullable=False, index=True)
     patient_id = db.Column(db.Integer, db.ForeignKey("patients.id"), nullable=False, index=True)
     appointment_id = db.Column(db.Integer, db.ForeignKey("appointments.id"), nullable=True)
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
@@ -49,7 +50,10 @@ class Invoice(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    __table_args__ = (db.UniqueConstraint("clinic_id", "invoice_number", name="uq_invoice_clinic_number"),)
+
     # Relationships
+    clinic = db.relationship("Clinic")
     patient = db.relationship("Patient", back_populates="invoices")
     appointment = db.relationship("Appointment", back_populates="invoice")
     created_by = db.relationship("User", foreign_keys=[created_by_id])
@@ -68,6 +72,7 @@ class Invoice(db.Model):
     def to_dict(self) -> dict:
         return {
             "id": self.id,
+            "clinic_id": self.clinic_id,
             "invoice_number": self.invoice_number,
             "patient_id": self.patient_id,
             "patient_name": self.patient.full_name if self.patient else None,
@@ -145,6 +150,7 @@ class PaymentPlan(db.Model):
     __tablename__ = "payment_plans"
 
     id = db.Column(db.Integer, primary_key=True)
+    clinic_id = db.Column(db.Integer, db.ForeignKey("clinics.id"), nullable=False, index=True)
     patient_id = db.Column(db.Integer, db.ForeignKey("patients.id"), nullable=False, index=True)
     treatment_plan_id = db.Column(db.Integer, db.ForeignKey("treatment_plans.id"), nullable=False)
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
@@ -164,6 +170,7 @@ class PaymentPlan(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    clinic = db.relationship("Clinic")
     patient = db.relationship("Patient")
     treatment_plan = db.relationship("TreatmentPlan", back_populates="payment_plan")
     created_by = db.relationship("User", foreign_keys=[created_by_id])
@@ -181,6 +188,7 @@ class PaymentPlan(db.Model):
     def to_dict(self) -> dict:
         return {
             "id": self.id,
+            "clinic_id": self.clinic_id,
             "patient_id": self.patient_id,
             "patient_name": self.patient.full_name if self.patient else None,
             "treatment_plan_id": self.treatment_plan_id,

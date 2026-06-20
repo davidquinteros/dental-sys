@@ -23,6 +23,9 @@ backend/instance/
 # --- Local tooling ---
 .claude/
 
+# --- DB backups (contain real patient data, never commit) ---
+backups/
+
 # --- Editor / OS ---
 .vscode/
 .idea/

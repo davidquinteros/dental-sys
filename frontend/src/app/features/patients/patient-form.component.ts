@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { PatientService } from '../../core/services/api.service';
+import { MedicalHistory } from '../../core/models';
+import { MedicalHistoryComponent } from './medical-history.component';
 
 @Component({
   selector: 'app-patient-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, MedicalHistoryComponent],
   templateUrl: './patient-form.component.html',
   styleUrl: './patient-form.component.css',
 })
@@ -17,6 +19,7 @@ export class PatientFormComponent implements OnInit {
   loading = signal(false);
   saving = signal(false);
   errorMsg = signal('');
+  medicalHistory: MedicalHistory = { patologicos: {}, extracciones: {}, no_patologicos: {} };
   private patientId?: number;
 
   constructor(
@@ -56,6 +59,11 @@ export class PatientFormComponent implements OnInit {
             ...p,
             date_of_birth: p.date_of_birth ? p.date_of_birth.substring(0, 10) : '',
           });
+          this.medicalHistory = {
+            patologicos: p.medical_history?.patologicos ?? {},
+            extracciones: p.medical_history?.extracciones ?? {},
+            no_patologicos: p.medical_history?.no_patologicos ?? {},
+          };
           this.loading.set(false);
         },
         error: () => { this.loading.set(false); this.router.navigate(['/patients']); },
@@ -72,7 +80,7 @@ export class PatientFormComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.saving.set(true);
     this.errorMsg.set('');
-    const data = this.form.value;
+    const data = { ...this.form.value, medical_history: this.medicalHistory };
     const req = this.isEdit()
       ? this.patientService.update(this.patientId!, data)
       : this.patientService.create(data);

@@ -328,6 +328,7 @@ def create_appointment():
         return jsonify({"error": "El consultorio ya está ocupado en ese horario"}), 409
 
     appointment = Appointment(
+        clinic_id=current.clinic_id,
         patient_id=data["patient_id"],
         doctor_id=data["doctor_id"],
         consultorio_id=consultorio_id,

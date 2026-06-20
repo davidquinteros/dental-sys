@@ -21,5 +21,14 @@ with app.app_context():
             conn.commit()
             print("  ✓ appointment_type column migrated from ENUM to VARCHAR(100)")
 
+    # Add medical_history column to patients if the table already exists without it
+    with db.engine.connect() as conn:
+        table_exists = conn.execute(text(
+            "SELECT 1 FROM information_schema.tables WHERE table_name = 'patients'"
+        )).fetchone()
+        if table_exists:
+            conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS medical_history JSON"))
+            conn.commit()
+
     db.create_all()
     print("Tablas creadas/verificadas.")

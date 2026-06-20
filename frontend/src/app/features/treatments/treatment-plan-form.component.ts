@@ -1,10 +1,10 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { TreatmentService, PatientService, UserService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Patient, User } from '../../core/models';
+import { Patient, User, TreatmentPlan } from '../../core/models';
 
 @Component({
   selector: 'app-treatment-plan-form',
@@ -14,6 +14,13 @@ import { Patient, User } from '../../core/models';
   styleUrl: './treatment-plan-form.component.css',
 })
 export class TreatmentPlanFormComponent implements OnInit {
+  /** When true, renders without page chrome and emits (saved)/(cancelled) instead of navigating. */
+  @Input() embedded = false;
+  /** Pre-selected patient for embedded mode (skips the patient search field). */
+  @Input() presetPatient: Patient | null = null;
+  @Output() saved = new EventEmitter<TreatmentPlan>();
+  @Output() cancelled = new EventEmitter<void>();
+
   form: FormGroup;
   saving = signal(false);
   errorMsg = signal('');
@@ -47,9 +54,13 @@ export class TreatmentPlanFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.userService.getDoctors().subscribe(res => this.doctors.set(res.doctors));
-    const patientId = this.route.snapshot.queryParamMap.get('patient_id');
-    if (patientId) {
-      this.patientService.getById(+patientId).subscribe(res => this.selectedPatient.set(res.patient));
+    if (this.embedded) {
+      if (this.presetPatient) this.selectedPatient.set(this.presetPatient);
+    } else {
+      const patientId = this.route.snapshot.queryParamMap.get('patient_id');
+      if (patientId) {
+        this.patientService.getById(+patientId).subscribe(res => this.selectedPatient.set(res.patient));
+      }
     }
     if (this.auth.isDoctor()) {
       const me = this.auth.currentUser();
@@ -82,8 +93,19 @@ export class TreatmentPlanFormComponent implements OnInit {
       doctor_id: +val.doctor_id,
     };
     this.treatmentService.createPlan(payload).subscribe({
-      next: res => this.router.navigate(['/treatments/plans', res.treatment_plan.id]),
+      next: res => {
+        if (this.embedded) {
+          this.saving.set(false);
+          this.saved.emit(res.treatment_plan);
+        } else {
+          this.router.navigate(['/treatments/plans', res.treatment_plan.id]);
+        }
+      },
       error: err => { this.errorMsg.set(err.error?.error || 'Error al guardar'); this.saving.set(false); },
     });
+  }
+
+  onCancel(): void {
+    if (this.embedded) this.cancelled.emit();
   }
 }

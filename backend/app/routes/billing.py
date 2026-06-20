@@ -225,6 +225,7 @@ def create_invoice():
         return jsonify({"error": "Se requiere al menos un ítem"}), 400
 
     invoice = Invoice(
+        clinic_id=current.clinic_id,
         invoice_number=generate_invoice_number(),
         patient_id=data["patient_id"],
         appointment_id=data.get("appointment_id"),
@@ -636,6 +637,7 @@ def create_payment_plan():
     installment_amount = round((total - down) / installments, 2)
 
     plan = PaymentPlan(
+        clinic_id=current.clinic_id,
         patient_id=data["patient_id"],
         treatment_plan_id=data["treatment_plan_id"],
         created_by_id=current.id,

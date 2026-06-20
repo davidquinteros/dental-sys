@@ -3,7 +3,7 @@ from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from app import db
 from app.models.user import User, UserRole
 from app.models.permission import Page, RolePermission
-from app.middleware.auth import admin_required, require_auth
+from app.middleware.auth import admin_required, require_auth, get_current_user
 
 permissions_bp = Blueprint("permissions", __name__)
 
@@ -87,6 +87,7 @@ def create_page():
       400:
         description: Datos inválidos o clave duplicada
     """
+    current = get_current_user()
     data = request.get_json() or {}
     key = (data.get("key") or "").strip().lower().replace(" ", "_")
     label = (data.get("label") or "").strip()
@@ -108,9 +109,9 @@ def create_page():
     )
     db.session.add(page)
 
-    # Create default denied-permissions for all roles
+    # Create default denied-permissions for all roles, scoped to this clinic
     for role in UserRole:
-        rp = RolePermission(role=role, page_key=key)
+        rp = RolePermission(clinic_id=current.clinic_id, role=role, page_key=key)
         db.session.add(rp)
 
     db.session.commit()
@@ -230,6 +231,7 @@ def save_matrix():
       200:
         description: Permisos guardados
     """
+    current = get_current_user()
     data = request.get_json() or {}
     # data = { role: { page_key: { can_view, can_create, can_edit, can_delete } } }
     valid_roles = {r.value: r for r in UserRole}
@@ -246,7 +248,7 @@ def save_matrix():
                 role=role_enum, page_key=page_key
             ).first()
             if not rp:
-                rp = RolePermission(role=role_enum, page_key=page_key)
+                rp = RolePermission(clinic_id=current.clinic_id, role=role_enum, page_key=page_key)
                 db.session.add(rp)
             rp.can_view = bool(flags.get("can_view", False))
             rp.can_create = bool(flags.get("can_create", False))

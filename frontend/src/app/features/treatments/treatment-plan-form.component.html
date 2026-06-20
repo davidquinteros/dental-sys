@@ -1,12 +1,14 @@
-<div class="page">
-  <div class="page-header">
-    <div class="breadcrumb">
-      <a routerLink="/treatments" class="breadcrumb-link">Atenciones</a>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      <span>Nuevo Plan de Tratamiento</span>
+<div [class.page]="!embedded">
+  @if (!embedded) {
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a routerLink="/treatments" class="breadcrumb-link">Atenciones</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        <span>Nuevo Plan de Tratamiento</span>
+      </div>
+      <h1 class="page-title">Crear Plan de Tratamiento</h1>
     </div>
-    <h1 class="page-title">Crear Plan de Tratamiento</h1>
-  </div>
+  }
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
     <div class="form-card">
@@ -17,30 +19,32 @@
         Paciente y Médico
       </div>
       <div class="form-body">
-        <!-- Patient search -->
-        <div class="form-group">
-          <label>Paciente <span class="req">*</span></label>
-          <div class="search-select">
-            <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone:true}"
-              (input)="onSearch()" placeholder="Buscar paciente..." [disabled]="!!selectedPatient()"/>
-            @if (selectedPatient()) {
-              <div class="selected-item">
-                <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
-                <button type="button" (click)="clearPatient()">✕</button>
-              </div>
-            }
-            @if (patientResults().length > 0 && !selectedPatient()) {
-              <div class="dropdown">
-                @for (p of patientResults(); track p.id) {
-                  <div class="dropdown-item" (click)="selectPatient(p)">
-                    <span class="drop-name">{{ p.full_name }}</span>
-                    <span class="drop-meta">{{ p.document_number }}</span>
-                  </div>
-                }
-              </div>
-            }
+        <!-- Patient search (hidden when embedded with a preset patient) -->
+        @if (!embedded) {
+          <div class="form-group">
+            <label>Paciente <span class="req">*</span></label>
+            <div class="search-select">
+              <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone:true}"
+                (input)="onSearch()" placeholder="Buscar paciente..." [disabled]="!!selectedPatient()"/>
+              @if (selectedPatient()) {
+                <div class="selected-item">
+                  <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
+                  <button type="button" (click)="clearPatient()">✕</button>
+                </div>
+              }
+              @if (patientResults().length > 0 && !selectedPatient()) {
+                <div class="dropdown">
+                  @for (p of patientResults(); track p.id) {
+                    <div class="dropdown-item" (click)="selectPatient(p)">
+                      <span class="drop-name">{{ p.full_name }}</span>
+                      <span class="drop-meta">{{ p.document_number }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
           </div>
-        </div>
+        }
 
         <div class="form-group">
           <label>Médico Responsable <span class="req">*</span></label>
@@ -127,7 +131,11 @@
     @if (errorMsg()) { <div class="alert-error">{{ errorMsg() }}</div> }
 
     <div class="form-actions">
-      <a routerLink="/treatments" class="btn btn-secondary">Cancelar</a>
+      @if (embedded) {
+        <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancelar</button>
+      } @else {
+        <a routerLink="/treatments" class="btn btn-secondary">Cancelar</a>
+      }
       <button type="submit" class="btn btn-primary" [disabled]="saving() || !selectedPatient()">
         @if (saving()) { <span class="spinner-sm"></span> }
         Crear Plan de Tratamiento

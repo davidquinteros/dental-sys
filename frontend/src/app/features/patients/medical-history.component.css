@@ -1,0 +1,39 @@
+.hist-block, .hist-block.callout { border-radius: 12px; margin-bottom: 16px; max-width: 900px; }
+.hist-block { background: #f7fafc; padding: 16px 18px; }
+.hist-block.callout { background: #f0fff4; border: 1px solid #c6f6d5; padding: 4px 18px; }
+.hist-block-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.hist-block-title { font-size: 14px; font-weight: 600; color: #2d3748; margin: 0; }
+.hist-optional-tag { font-size: 10px; font-weight: 600; color: #a0aec0; text-transform: uppercase;
+  letter-spacing: 0.4px; background: #edf2f7; padding: 2px 8px; border-radius: 20px; }
+
+.hist-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px 20px; }
+.hist-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 7px 0; border-bottom: 1px solid #e2e8f0; }
+.hist-label { font-size: 13px; color: #4a5568; }
+.hist-row.callout-row { border-bottom-color: #c6f6d5; }
+.hist-row.callout-row .hist-label { color: #276749; font-weight: 500; }
+.hist-block.callout .hist-row:last-child { border-bottom: none; }
+
+.toggle-pair { display: flex; gap: 4px; flex-shrink: 0; }
+.toggle-btn { width: 38px; padding: 4px 0; font-size: 12px; font-weight: 600; border-radius: 6px;
+  border: 1.5px solid #e2e8f0; background: white; color: #a0aec0; cursor: pointer; transition: all 0.15s; }
+.toggle-btn.yes.active { background: #f0fff4; border-color: #9ae6b4; color: #276749; }
+.toggle-btn.no.active { background: #fff5f5; border-color: #feb2b2; color: #c53030; }
+.toggle-btn:hover:not(.active) { border-color: #cbd5e0; color: #718096; }
+
+.hist-answer { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; flex-shrink: 0; }
+.hist-answer.ans-yes { background: #f0fff4; color: #276749; }
+.hist-answer.ans-no { background: #fff5f5; color: #c53030; }
+.hist-answer.ans-none { background: #edf2f7; color: #a0aec0; }
+.hist-readonly-other { font-size: 13px; color: #4a5568; margin: 8px 0 0; }
+.hist-empty-msg { font-size: 13px; color: #a0aec0; margin: 4px 0 0; }
+
+.hist-other-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px; }
+.mform-group { display: flex; flex-direction: column; gap: 4px; width: 280px; }
+.mform-group label { font-size: 11px; font-weight: 600; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.4px; }
+.mform-group input {
+  padding: 8px 11px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+  font-size: 13px; color: #2d3748; outline: none; background: white; font-family: inherit;
+  transition: border-color 0.2s;
+}
+.mform-group input:focus { border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66,153,225,0.1); }

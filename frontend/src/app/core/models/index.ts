@@ -3,6 +3,8 @@ export type UserRole = 'admin' | 'doctor' | 'receptionist' | 'assistant' | 'gues
 
 export interface User {
   id: number;
+  clinic_id?: number;
+  clinic_name?: string;
   email: string;
   first_name: string;
   last_name: string;
@@ -12,6 +14,7 @@ export interface User {
   specialty?: string;
   license_number?: string;
   is_active: boolean;
+  is_platform_admin?: boolean;
   created_at: string;
 }
 
@@ -28,6 +31,13 @@ export interface LoginResponse {
 
 // ─── Patient Models ────────────────────────────────────────────────────────────
 export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | 'unknown';
+
+/** Optional medical history questionnaire (antecedentes patológicos / no patológicos). All fields optional. */
+export interface MedicalHistory {
+  patologicos: Record<string, boolean | string | null | undefined>;
+  extracciones: Record<string, boolean | null | undefined>;
+  no_patologicos: Record<string, boolean | string | null | undefined>;
+}
 
 export interface Patient {
   id: number;
@@ -47,6 +57,7 @@ export interface Patient {
   blood_type?: BloodType;
   allergies?: string;
   medical_notes?: string;
+  medical_history?: MedicalHistory;
   is_active: boolean;
   created_at: string;
   total_appointments?: number;
@@ -113,6 +124,7 @@ export type TreatmentPlanStatus = 'active' | 'completed' | 'cancelled' | 'on_hol
 export interface Treatment {
   id: number;
   patient_id: number;
+  patient_name: string;
   doctor_id: number;
   doctor_name: string;
   appointment_id?: number;

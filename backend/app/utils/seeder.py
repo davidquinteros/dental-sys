@@ -2,6 +2,7 @@
 Database seeder - Run with: flask seed
 Creates initial admin user, sample data, and standard app pages.
 """
+import click
 from app import db
 from app.models.user import User, UserRole
 from app.models.patient import Patient
@@ -176,8 +177,8 @@ STANDARD_PAGES = [
 ALL_ROLE_VALUES = [r.value for r in UserRole]
 
 
-def seed_pages():
-    """Insert missing pages and their default role permissions."""
+def seed_pages(clinic_id: int):
+    """Insert missing pages (global) and this clinic's default role permissions."""
     added = 0
     for p_data in STANDARD_PAGES:
         viewers = p_data.pop('default_viewers')
@@ -186,11 +187,17 @@ def seed_pages():
             page = Page(**p_data)
             db.session.add(page)
             db.session.flush()  # get the page into the session before FK refs
+            added += 1
 
-            # Create role_permissions for every role
-            for role in UserRole:
+        # Ensure this clinic has a role_permissions row for every role on this page
+        for role in UserRole:
+            exists = RolePermission.query.filter_by(
+                clinic_id=clinic_id, role=role, page_key=p_data['key']
+            ).first()
+            if not exists:
                 can_view = role.value in viewers
                 rp = RolePermission(
+                    clinic_id=clinic_id,
                     role=role,
                     page_key=p_data['key'],
                     can_view=can_view,
@@ -199,25 +206,6 @@ def seed_pages():
                     can_delete=role.value == 'ADMIN',
                 )
                 db.session.add(rp)
-
-            added += 1
-        else:
-            # Page already exists — still ensure role_permissions rows exist
-            for role in UserRole:
-                exists = RolePermission.query.filter_by(
-                    role=role, page_key=p_data['key']
-                ).first()
-                if not exists:
-                    can_view = role.value in viewers
-                    rp = RolePermission(
-                        role=role,
-                        page_key=p_data['key'],
-                        can_view=can_view,
-                        can_create=can_view,
-                        can_edit=can_view,
-                        can_delete=role.value == 'ADMIN',
-                    )
-                    db.session.add(rp)
 
         # Put viewers back so the list is reusable if seed is called twice
         p_data['default_viewers'] = viewers
@@ -228,13 +216,14 @@ def seed_pages():
         print("  ✓ Pages already seeded")
 
 
-def seed_appointment_types():
-    """Insert the built-in appointment types if they don't exist yet."""
+def seed_appointment_types(clinic_id: int):
+    """Insert the built-in appointment types for this clinic if they don't exist yet."""
     from app.models.appointment_type import AppointmentTypeCatalog, BUILTIN_TYPES
     added = 0
     for t in BUILTIN_TYPES:
-        if not AppointmentTypeCatalog.query.filter_by(key=t['key']).first():
-            db.session.add(AppointmentTypeCatalog(**t))
+        exists = AppointmentTypeCatalog.query.filter_by(clinic_id=clinic_id, key=t['key']).first()
+        if not exists:
+            db.session.add(AppointmentTypeCatalog(clinic_id=clinic_id, **t))
             added += 1
     if added:
         print(f"  ✓ {added} appointment type(s) created")
@@ -242,18 +231,22 @@ def seed_appointment_types():
         print("  ✓ Appointment types already seeded")
 
 
-def seed_db():
+def seed_db(clinic_id: int = 1):
     print("🌱 Seeding database...")
 
     # ─── Pages & permissions ────────────────────────────────────────────────
-    seed_pages()
+    seed_pages(clinic_id)
 
     # ─── Appointment types ──────────────────────────────────────────────────
-    seed_appointment_types()
+    seed_appointment_types(clinic_id)
 
-    # ─── Create users ───────────────────────────────────────────────────────
-    if not User.query.filter_by(email="admin@clinica.com").first():
+    # ─── Create demo users (email is unique platform-wide) ─────────────────
+    def _email_taken(email: str) -> bool:
+        return User.query.filter_by(email=email).execution_options(skip_clinic_filter=True).first() is not None
+
+    if not _email_taken("admin@clinica.com"):
         admin = User(
+            clinic_id=clinic_id,
             email="admin@clinica.com",
             first_name="Administrador",
             last_name="Sistema",
@@ -263,8 +256,9 @@ def seed_db():
         db.session.add(admin)
         print("  ✓ Admin user created: admin@clinica.com / Admin2025!")
 
-    if not User.query.filter_by(email="dr.garcia@clinica.com").first():
+    if not _email_taken("dr.garcia@clinica.com"):
         doctor = User(
+            clinic_id=clinic_id,
             email="dr.garcia@clinica.com",
             first_name="Carlos",
             last_name="García",
@@ -277,8 +271,9 @@ def seed_db():
         db.session.add(doctor)
         print("  ✓ Doctor created: dr.garcia@clinica.com / Doctor2025!")
 
-    if not User.query.filter_by(email="dr.morales@clinica.com").first():
+    if not _email_taken("dr.morales@clinica.com"):
         doctor2 = User(
+            clinic_id=clinic_id,
             email="dr.morales@clinica.com",
             first_name="Ana",
             last_name="Morales",
@@ -291,8 +286,9 @@ def seed_db():
         db.session.add(doctor2)
         print("  ✓ Doctor created: dr.morales@clinica.com / Doctor2025!")
 
-    if not User.query.filter_by(email="recepcion@clinica.com").first():
+    if not _email_taken("recepcion@clinica.com"):
         recep = User(
+            clinic_id=clinic_id,
             email="recepcion@clinica.com",
             first_name="María",
             last_name="López",
@@ -303,8 +299,9 @@ def seed_db():
         db.session.add(recep)
         print("  ✓ Receptionist created: recepcion@clinica.com / Recep2025!")
 
-    if not User.query.filter_by(email="asistente@clinica.com").first():
+    if not _email_taken("asistente@clinica.com"):
         asst = User(
+            clinic_id=clinic_id,
             email="asistente@clinica.com",
             first_name="Pedro",
             last_name="Vargas",
@@ -316,9 +313,10 @@ def seed_db():
         print("  ✓ Assistant created: asistente@clinica.com / Asist2025!")
 
     # ─── Sample patients ────────────────────────────────────────────────────
-    if Patient.query.count() == 0:
+    if Patient.query.filter_by(clinic_id=clinic_id).count() == 0:
         patients = [
             Patient(
+                clinic_id=clinic_id,
                 first_name="Juan", last_name="Pérez",
                 document_number="1234567",
                 date_of_birth=date(1985, 3, 15),
@@ -327,6 +325,7 @@ def seed_db():
                 blood_type="O+", city="Santa Cruz de la Sierra",
             ),
             Patient(
+                clinic_id=clinic_id,
                 first_name="María", last_name="González",
                 document_number="2345678",
                 date_of_birth=date(1992, 7, 22),
@@ -336,6 +335,7 @@ def seed_db():
                 allergies="Penicilina",
             ),
             Patient(
+                clinic_id=clinic_id,
                 first_name="Roberto", last_name="Sánchez",
                 document_number="3456789",
                 date_of_birth=date(1978, 11, 5),
@@ -351,9 +351,66 @@ def seed_db():
     print("✅ Seed completed!")
 
 
+def create_clinic(name: str, admin_email: str, admin_password: str,
+                   admin_first_name: str, admin_last_name: str) -> "Clinic":
+    """Onboard a new clinic: the clinic row, its pages/permissions/appointment
+    types (same defaults as any clinic), and its first admin user. No demo
+    data — that's only for the bundled seed clinic."""
+    from app.models.clinic import Clinic
+    import re
+
+    slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+    base_slug = slug
+    n = 1
+    while Clinic.query.filter_by(slug=slug).first():
+        n += 1
+        slug = f"{base_slug}-{n}"
+
+    clinic = Clinic(name=name, slug=slug)
+    db.session.add(clinic)
+    db.session.flush()  # get clinic.id
+
+    seed_pages(clinic.id)
+    seed_appointment_types(clinic.id)
+
+    email = admin_email.strip().lower()
+    if User.query.filter_by(email=email).execution_options(skip_clinic_filter=True).first():
+        raise ValueError(f"El email '{email}' ya está registrado en otra clínica")
+
+    admin = User(
+        clinic_id=clinic.id,
+        email=email,
+        first_name=admin_first_name,
+        last_name=admin_last_name,
+        role=UserRole.ADMIN,
+    )
+    admin.set_password(admin_password)
+    db.session.add(admin)
+    db.session.commit()
+
+    return clinic
+
+
 def register_seed_command(app):
     @app.cli.command("seed")
     def seed_command():
-        """Seed the database with initial data"""
+        """Seed the database with initial data (clinic #1)"""
         with app.app_context():
             seed_db()
+
+    @app.cli.command("create-clinic")
+    @click.option("--name", required=True, help="Clinic display name")
+    @click.option("--admin-email", required=True, help="First admin user's email")
+    @click.option("--admin-password", required=True, help="First admin user's password")
+    @click.option("--admin-first-name", default="Admin", help="First admin user's first name")
+    @click.option("--admin-last-name", default="", help="First admin user's last name")
+    def create_clinic_command(name, admin_email, admin_password, admin_first_name, admin_last_name):
+        """Onboard a new clinic (tenant) with its first admin user"""
+        with app.app_context():
+            try:
+                clinic = create_clinic(name, admin_email, admin_password, admin_first_name, admin_last_name)
+            except ValueError as e:
+                print(f"  ✗ {e}")
+                return
+            print(f"  ✓ Clinic '{clinic.name}' created (id={clinic.id}, slug={clinic.slug})")
+            print(f"  ✓ Admin user created: {admin_email}")

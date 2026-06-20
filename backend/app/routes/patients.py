@@ -254,6 +254,7 @@ def create_patient():
         blood_type=data.get("blood_type", "unknown"),
         allergies=data.get("allergies"),
         medical_notes=data.get("medical_notes"),
+        medical_history=data.get("medical_history"),
     )
 
     db.session.add(patient)
@@ -344,7 +345,7 @@ def update_patient(patient_id):
     updatable = [
         "first_name", "last_name", "phone", "phone_emergency",
         "email", "address", "city", "allergies", "medical_notes",
-        "blood_type", "gender", "document_type",
+        "medical_history", "blood_type", "gender", "document_type",
     ]
     for field in updatable:
         if field in data:

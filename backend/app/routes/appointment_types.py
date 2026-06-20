@@ -59,6 +59,7 @@ def create_type():
         n += 1
 
     t = AppointmentTypeCatalog(
+        clinic_id=current.clinic_id,
         key=key,
         label=label,
         color=data.get("color", "#4299e1"),

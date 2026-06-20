@@ -57,7 +57,7 @@
             @for (t of treatments(); track t.id) {
               <tr>
                 <td>{{ formatDate(t.performed_at) }}</td>
-                <td><a [routerLink]="['/patients', t.patient_id]" class="link">Paciente #{{ t.patient_id }}</a></td>
+                <td><a [routerLink]="['/patients', t.patient_id]" class="link">{{ t.patient_name }}</a></td>
                 <td><strong>{{ t.procedure }}</strong>
                   @if (t.description) { <div class="sub-text">{{ t.description }}</div> }
                 </td>

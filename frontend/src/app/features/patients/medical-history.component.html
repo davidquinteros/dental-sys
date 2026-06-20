@@ -1,0 +1,119 @@
+<!-- Antecedentes Patológicos -->
+<div class="hist-block">
+  <div class="hist-block-header">
+    <h3 class="hist-block-title">Antecedentes Patológicos</h3>
+    @if (!readonly) { <span class="hist-optional-tag">Opcional</span> }
+  </div>
+
+  @if (readonly) {
+    <div class="hist-grid">
+      @for (item of patologicosItems; track item.key) {
+        <div class="hist-row">
+          <span class="hist-label">{{ item.label }}</span>
+          <span class="hist-answer" [class]="answerClass(value.patologicos[item.key])">{{ answerLabel(value.patologicos[item.key]) }}</span>
+        </div>
+      }
+    </div>
+    @if (value.patologicos['otros']) {
+      <p class="hist-readonly-other"><strong>Otros:</strong> {{ value.patologicos['otros'] }}</p>
+    }
+    @if (!hasAnyAnswer()) {
+      <p class="hist-empty-msg">Sin antecedentes médicos registrados</p>
+    }
+  } @else {
+    <div class="hist-grid">
+      @for (item of patologicosItems; track item.key) {
+        <div class="hist-row">
+          <span class="hist-label">{{ item.label }}</span>
+          <div class="toggle-pair">
+            <button type="button" class="toggle-btn yes"
+              [class.active]="value.patologicos[item.key] === true"
+              (click)="setBool('patologicos', item.key, true)">Sí</button>
+            <button type="button" class="toggle-btn no"
+              [class.active]="value.patologicos[item.key] === false"
+              (click)="setBool('patologicos', item.key, false)">No</button>
+          </div>
+        </div>
+      }
+    </div>
+    <div class="hist-other-row">
+      <div class="mform-group">
+        <label>Otros</label>
+        <input type="text" [(ngModel)]="value.patologicos['otros']" (ngModelChange)="onTextChange()"
+          placeholder="Otras condiciones no listadas..."/>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Preguntas sobre extracciones previas -->
+<div class="hist-block callout">
+  @for (item of extraccionesItems; track item.key) {
+    <div class="hist-row callout-row">
+      <span class="hist-label">{{ item.label }}</span>
+      @if (readonly) {
+        <span class="hist-answer" [class]="answerClass(value.extracciones[item.key])">{{ answerLabel(value.extracciones[item.key]) }}</span>
+      } @else {
+        <div class="toggle-pair">
+          <button type="button" class="toggle-btn yes"
+            [class.active]="value.extracciones[item.key] === true"
+            (click)="setBool('extracciones', item.key, true)">Sí</button>
+          <button type="button" class="toggle-btn no"
+            [class.active]="value.extracciones[item.key] === false"
+            (click)="setBool('extracciones', item.key, false)">No</button>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Antecedentes No Patológicos -->
+<div class="hist-block">
+  <div class="hist-block-header">
+    <h3 class="hist-block-title">Antecedentes No Patológicos</h3>
+    @if (!readonly) { <span class="hist-optional-tag">Opcional</span> }
+  </div>
+
+  @if (readonly) {
+    <div class="hist-grid" style="max-width: 480px">
+      @for (item of noPatologicosItems; track item.key) {
+        <div class="hist-row">
+          <span class="hist-label">{{ item.label }}</span>
+          <span class="hist-answer" [class]="answerClass(value.no_patologicos[item.key])">{{ answerLabel(value.no_patologicos[item.key]) }}</span>
+        </div>
+      }
+    </div>
+    @if (value.no_patologicos['otros']) {
+      <p class="hist-readonly-other"><strong>Otros:</strong> {{ value.no_patologicos['otros'] }}</p>
+    }
+    @if (value.no_patologicos['ejercicio']) {
+      <p class="hist-readonly-other"><strong>Ejercicio:</strong> {{ value.no_patologicos['ejercicio'] }}</p>
+    }
+  } @else {
+    <div class="hist-grid" style="max-width: 480px">
+      @for (item of noPatologicosItems; track item.key) {
+        <div class="hist-row">
+          <span class="hist-label">{{ item.label }}</span>
+          <div class="toggle-pair">
+            <button type="button" class="toggle-btn yes"
+              [class.active]="value.no_patologicos[item.key] === true"
+              (click)="setBool('no_patologicos', item.key, true)">Sí</button>
+            <button type="button" class="toggle-btn no"
+              [class.active]="value.no_patologicos[item.key] === false"
+              (click)="setBool('no_patologicos', item.key, false)">No</button>
+          </div>
+        </div>
+      }
+    </div>
+    <div class="hist-other-row">
+      <div class="mform-group">
+        <label>Otros</label>
+        <input type="text" [(ngModel)]="value.no_patologicos['otros']" (ngModelChange)="onTextChange()" placeholder="Otros antecedentes..."/>
+      </div>
+      <div class="mform-group">
+        <label>Ejercicio</label>
+        <input type="text" [(ngModel)]="value.no_patologicos['ejercicio']" (ngModelChange)="onTextChange()" placeholder="Frecuencia, tipo..."/>
+      </div>
+    </div>
+  }
+</div>

@@ -1,10 +1,10 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { TreatmentService, PatientService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Patient } from '../../core/models';
+import { Patient, Treatment } from '../../core/models';
 
 @Component({
   selector: 'app-treatment-form',
@@ -14,6 +14,15 @@ import { Patient } from '../../core/models';
   styleUrl: './treatment-form.component.css',
 })
 export class TreatmentFormComponent implements OnInit {
+  /** When true, renders without page chrome and emits (saved)/(cancelled) instead of navigating. */
+  @Input() embedded = false;
+  /** Pre-selected patient for embedded mode (skips the patient search card). */
+  @Input() presetPatient: Patient | null = null;
+  /** Pre-fills the associated treatment plan ID for embedded mode. */
+  @Input() presetPlanId: number | null = null;
+  @Output() saved = new EventEmitter<Treatment>();
+  @Output() cancelled = new EventEmitter<void>();
+
   form: FormGroup;
   saving = signal(false);
   errorMsg = signal('');
@@ -45,6 +54,11 @@ export class TreatmentFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    if (this.embedded) {
+      if (this.presetPatient) this.selectedPatient.set(this.presetPatient);
+      if (this.presetPlanId) this.form.patchValue({ treatment_plan_id: this.presetPlanId });
+      return;
+    }
     const patientId = this.route.snapshot.queryParamMap.get('patient_id');
     if (patientId) {
       this.patientService.getById(+patientId).subscribe(res => this.selectedPatient.set(res.patient));
@@ -93,8 +107,19 @@ export class TreatmentFormComponent implements OnInit {
     if (val.treatment_plan_id) payload.treatment_plan_id = +val.treatment_plan_id;
 
     this.treatmentService.create(payload).subscribe({
-      next: res => this.router.navigate(['/treatments', res.treatment.id]),
+      next: res => {
+        if (this.embedded) {
+          this.saving.set(false);
+          this.saved.emit(res.treatment);
+        } else {
+          this.router.navigate(['/treatments', res.treatment.id]);
+        }
+      },
       error: err => { this.errorMsg.set(err.error?.error || 'Error al registrar'); this.saving.set(false); },
     });
+  }
+
+  onCancel(): void {
+    if (this.embedded) this.cancelled.emit();
   }
 }

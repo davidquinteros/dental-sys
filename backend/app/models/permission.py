@@ -41,6 +41,7 @@ class RolePermission(db.Model):
     __tablename__ = "role_permissions"
 
     id = db.Column(db.Integer, primary_key=True)
+    clinic_id = db.Column(db.Integer, db.ForeignKey("clinics.id"), nullable=False, index=True)
     role = db.Column(db.Enum(UserRole), nullable=False)
     page_key = db.Column(db.String(50), db.ForeignKey("pages.key", ondelete="CASCADE"), nullable=False)
     can_view = db.Column(db.Boolean, default=False, nullable=False)
@@ -49,12 +50,14 @@ class RolePermission(db.Model):
     can_delete = db.Column(db.Boolean, default=False, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    __table_args__ = (db.UniqueConstraint("role", "page_key", name="uq_role_page"),)
+    __table_args__ = (db.UniqueConstraint("clinic_id", "role", "page_key", name="uq_role_page_clinic"),)
 
+    clinic = db.relationship("Clinic")
     page = db.relationship("Page", back_populates="permissions")
 
     def to_dict(self) -> dict:
         return {
+            "clinic_id": self.clinic_id,
             "role": self.role.value,
             "page_key": self.page_key,
             "can_view": self.can_view,

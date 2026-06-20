@@ -30,6 +30,7 @@ def create_consultorio():
         return jsonify({"error": "El nombre del consultorio es requerido"}), 400
 
     c = Consultorio(
+        clinic_id=current.clinic_id,
         name=data["name"].strip(),
         description=data.get("description", "").strip() or None,
         color=data.get("color", "#4299e1"),

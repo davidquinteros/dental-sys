@@ -202,6 +202,7 @@ def create_treatment():
             return jsonify({"error": f"Campo requerido: {field}"}), 400
 
     treatment = Treatment(
+        clinic_id=current.clinic_id,
         patient_id=data["patient_id"],
         doctor_id=data.get("doctor_id", current.id),
         appointment_id=data.get("appointment_id"),
@@ -500,6 +501,7 @@ def create_treatment_plan():
             return jsonify({"error": f"Campo requerido: {field}"}), 400
 
     plan = TreatmentPlan(
+        clinic_id=current.clinic_id,
         patient_id=data["patient_id"],
         doctor_id=data.get("doctor_id", current.id),
         name=data["name"],

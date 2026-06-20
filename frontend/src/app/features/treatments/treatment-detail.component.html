@@ -62,7 +62,7 @@
           <h4>Información</h4>
           <div class="meta-row">
             <span class="meta-label">Paciente</span>
-            <a [routerLink]="['/patients', treatment()!.patient_id]" class="meta-link">Paciente #{{ treatment()!.patient_id }}</a>
+            <a [routerLink]="['/patients', treatment()!.patient_id]" class="meta-link">{{ treatment()!.patient_name }}</a>
           </div>
           <div class="meta-row">
             <span class="meta-label">Médico</span>

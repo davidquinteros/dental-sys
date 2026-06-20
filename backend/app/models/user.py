@@ -15,6 +15,7 @@ class User(db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
+    clinic_id = db.Column(db.Integer, db.ForeignKey("clinics.id"), nullable=True, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     first_name = db.Column(db.String(80), nullable=False)
@@ -24,8 +25,12 @@ class User(db.Model):
     specialty = db.Column(db.String(120), nullable=True)  # For doctors
     license_number = db.Column(db.String(50), nullable=True)  # For doctors
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    # Platform staff (us, the SaaS operator) — separate from clinic role, not exposed in the roles UI
+    is_platform_admin = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    clinic = db.relationship("Clinic")
 
     # Relationships
     appointments_as_doctor = db.relationship(
@@ -63,6 +68,8 @@ class User(db.Model):
     def to_dict(self) -> dict:
         return {
             "id": self.id,
+            "clinic_id": self.clinic_id,
+            "clinic_name": self.clinic.name if self.clinic else None,
             "email": self.email,
             "first_name": self.first_name,
             "last_name": self.last_name,
@@ -72,6 +79,7 @@ class User(db.Model):
             "specialty": self.specialty,
             "license_number": self.license_number,
             "is_active": self.is_active,
+            "is_platform_admin": self.is_platform_admin,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 

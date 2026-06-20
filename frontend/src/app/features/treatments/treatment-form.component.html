@@ -1,56 +1,60 @@
-<div class="page">
-  <div class="page-header">
-    <div class="breadcrumb">
-      <a routerLink="/treatments" class="breadcrumb-link">Atenciones</a>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      <span>Nueva Atención</span>
+<div [class.page]="!embedded">
+  @if (!embedded) {
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a routerLink="/treatments" class="breadcrumb-link">Atenciones</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        <span>Nueva Atención</span>
+      </div>
+      <h1 class="page-title">Registrar Atención Clínica</h1>
     </div>
-    <h1 class="page-title">Registrar Atención Clínica</h1>
-  </div>
+  }
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
 
-    <!-- Patient search -->
-    <div class="form-card">
-      <div class="form-card-header">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-        </svg>
-        Datos del Paciente
-      </div>
-      <div class="form-body">
-        <div class="form-group">
-          <label>Paciente <span class="req">*</span></label>
-          <div class="search-select">
-            <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone:true}"
-              (input)="onSearch()" placeholder="Buscar paciente..."
-              [disabled]="!!selectedPatient()" class="search-input"/>
-            @if (selectedPatient()) {
-              <div class="selected-item">
-                <div class="selected-info">
-                  <span class="sel-name">{{ selectedPatient()!.full_name }}</span>
-                  <span class="sel-meta">{{ selectedPatient()!.document_number }}
-                    @if (selectedPatient()!.allergies) { · ⚠️ Alergia: {{ selectedPatient()!.allergies }} }
-                  </span>
-                </div>
-                <button type="button" class="clear-btn" (click)="clearPatient()">✕</button>
-              </div>
-            }
-            @if (patientResults().length > 0 && !selectedPatient()) {
-              <div class="dropdown">
-                @for (p of patientResults(); track p.id) {
-                  <div class="dropdown-item" (click)="selectPatient(p)">
-                    <span class="drop-name">{{ p.full_name }}</span>
-                    <span class="drop-meta">{{ p.document_number }}{{ p.allergies ? ' · ⚠️ ' + p.allergies : '' }}</span>
+    <!-- Patient search (hidden when embedded with a preset patient) -->
+    @if (!embedded) {
+      <div class="form-card">
+        <div class="form-card-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+          </svg>
+          Datos del Paciente
+        </div>
+        <div class="form-body">
+          <div class="form-group">
+            <label>Paciente <span class="req">*</span></label>
+            <div class="search-select">
+              <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone:true}"
+                (input)="onSearch()" placeholder="Buscar paciente..."
+                [disabled]="!!selectedPatient()" class="search-input"/>
+              @if (selectedPatient()) {
+                <div class="selected-item">
+                  <div class="selected-info">
+                    <span class="sel-name">{{ selectedPatient()!.full_name }}</span>
+                    <span class="sel-meta">{{ selectedPatient()!.document_number }}
+                      @if (selectedPatient()!.allergies) { · ⚠️ Alergia: {{ selectedPatient()!.allergies }} }
+                    </span>
                   </div>
-                }
-              </div>
-            }
+                  <button type="button" class="clear-btn" (click)="clearPatient()">✕</button>
+                </div>
+              }
+              @if (patientResults().length > 0 && !selectedPatient()) {
+                <div class="dropdown">
+                  @for (p of patientResults(); track p.id) {
+                    <div class="dropdown-item" (click)="selectPatient(p)">
+                      <span class="drop-name">{{ p.full_name }}</span>
+                      <span class="drop-meta">{{ p.document_number }}{{ p.allergies ? ' · ⚠️ ' + p.allergies : '' }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    }
 
     <!-- Clinical data -->
     <div class="form-card">
@@ -138,7 +142,11 @@
     }
 
     <div class="form-actions">
-      <a routerLink="/treatments" class="btn btn-secondary">Cancelar</a>
+      @if (embedded) {
+        <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancelar</button>
+      } @else {
+        <a routerLink="/treatments" class="btn btn-secondary">Cancelar</a>
+      }
       <button type="submit" class="btn btn-primary" [disabled]="saving() || !selectedPatient()">
         @if (saving()) { <span class="spinner-sm"></span> }
         Registrar Atención
