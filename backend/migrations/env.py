@@ -2,6 +2,7 @@ import logging
 from logging.config import fileConfig
 
 from flask import current_app
+from sqlalchemy import text
 
 from alembic import context
 
@@ -97,6 +98,14 @@ def run_migrations_online():
     connectable = get_engine()
 
     with connectable.connect() as connection:
+        # Migrations must see every row regardless of RLS policy (e.g. the
+        # multi-tenancy backfill UPDATEs every clinic's rows). Commit
+        # immediately: SQLAlchemy 2.0 autobegin would otherwise nest
+        # Alembic's own transaction as a SAVEPOINT, and the whole migration
+        # would silently roll back when the connection closes.
+        connection.execute(text("SELECT set_config('app.bypass_rls', 'on', false)"))
+        connection.commit()
+
         context.configure(
             connection=connection,
             target_metadata=get_metadata(),

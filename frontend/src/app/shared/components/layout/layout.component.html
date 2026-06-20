@@ -41,7 +41,7 @@
       @if (!sidebarCollapsed()) {
         <div class="brand-text">
           <span class="brand-name">DentalSys</span>
-          <span class="brand-tagline">Clínica Dental</span>
+          <span class="brand-tagline">{{ auth.currentUser()?.clinic_name || 'Clínica Dental' }}</span>
         </div>
       }
       <button class="close-drawer-btn" (click)="closeMobileMenu()" aria-label="Cerrar menú">

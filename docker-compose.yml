@@ -29,7 +29,12 @@ services:
       FLASK_ENV: development
       FLASK_DEBUG: "1"
       SECRET_KEY: dev-secret-change-in-prod
-      DATABASE_URL: postgresql://dental_user:dental_password@db:5432/dental_clinic_db
+      # Runtime traffic uses a restricted, non-superuser role so Row Level
+      # Security (see migration a3f9c2d81e47) actually applies to it.
+      DATABASE_URL: postgresql://dental_app:dental_app_password@db:5432/dental_clinic_db
+      # Migrations need DDL/ownership privileges, so they run as the
+      # superuser role instead — see entrypoint.sh.
+      MIGRATIONS_DATABASE_URL: postgresql://dental_user:dental_password@db:5432/dental_clinic_db
       JWT_SECRET_KEY: jwt-secret-change-in-prod
       JWT_ACCESS_TOKEN_EXPIRES: "3600"
       JWT_REFRESH_TOKEN_EXPIRES: "2592000"
