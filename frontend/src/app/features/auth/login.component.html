@@ -126,6 +126,18 @@
           }
         </div>
       </div>
+
+      <div class="demo-credentials">
+        <p class="demo-title">Credenciales de prueba — Clínica B (demo de aislamiento):</p>
+        <div class="demo-grid">
+          @for (cred of demoCredentialsClinicB; track cred.role) {
+            <button class="demo-chip" (click)="fillCredentials(cred.email, cred.password)">
+              <span class="demo-role">{{ cred.role }}</span>
+              <span class="demo-email">{{ cred.email }}</span>
+            </button>
+          }
+        </div>
+      </div>
     </div>
   </div>
 </div>

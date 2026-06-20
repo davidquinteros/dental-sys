@@ -1,12 +1,14 @@
-<div class="page">
+<div class="page" [class.embedded]="embedded">
   @if (loading()) {
     <div class="loading-center"><div class="spinner-lg"></div></div>
   } @else if (treatment()) {
-    <div class="breadcrumb">
-      <a routerLink="/treatments" class="breadcrumb-link">Atenciones</a>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      <span>Atención #{{ treatment()!.id }}</span>
-    </div>
+    @if (!embedded) {
+      <div class="breadcrumb">
+        <a routerLink="/treatments" class="breadcrumb-link">Atenciones</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        <span>Atención #{{ treatment()!.id }}</span>
+      </div>
+    }
 
     <div class="detail-header">
       <div>
@@ -17,7 +19,11 @@
         @if (treatment()!.treatment_plan_id) {
           <a [routerLink]="['/treatments/plans', treatment()!.treatment_plan_id]" class="btn btn-secondary">Ver Plan</a>
         }
-        <a [routerLink]="['/patients', treatment()!.patient_id]" class="btn btn-primary">Ver Paciente</a>
+        @if (!embedded) {
+          <a [routerLink]="['/patients', treatment()!.patient_id]" class="btn btn-primary">Ver Paciente</a>
+        } @else {
+          <button type="button" class="btn btn-secondary" (click)="closed.emit()">Cerrar</button>
+        }
       </div>
     </div>
 
@@ -30,12 +36,12 @@
             <p>{{ treatment()!.diagnosis }}</p>
           </div>
         }
-        @if (treatment()!.description) {
+        <!-- @if (treatment()!.description) {
           <div class="info-section">
             <h4>Descripción del Procedimiento</h4>
             <p>{{ treatment()!.description }}</p>
           </div>
-        }
+        } -->
         @if (treatment()!.clinical_notes) {
           <div class="info-section">
             <h4>Notas Clínicas</h4>

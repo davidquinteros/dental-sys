@@ -109,6 +109,10 @@ export class TreatmentService {
     return this.http.get(`${API}/treatments/`, { params: httpParams });
   }
 
+  getById(id: number): Observable<{ treatment: Treatment }> {
+    return this.http.get<{ treatment: Treatment }>(`${API}/treatments/${id}`);
+  }
+
   create(data: Partial<Treatment>): Observable<{ treatment: Treatment }> {
     return this.http.post<{ treatment: Treatment }>(`${API}/treatments/`, data);
   }
@@ -224,6 +228,10 @@ export class UserService {
 
   delete(id: number): Observable<any> {
     return this.http.delete(`${API}/users/${id}`);
+  }
+
+  resetPassword(id: number, password: string): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>(`${API}/users/${id}/reset-password`, { password });
   }
 }
 

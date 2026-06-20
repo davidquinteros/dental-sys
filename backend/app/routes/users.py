@@ -1,3 +1,4 @@
+import re
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.user import User, UserRole
@@ -5,6 +6,17 @@ from app.middleware.auth import require_auth, admin_required, get_current_user
 from app.middleware.tenancy import platform_wide_lookup
 
 users_bp = Blueprint("users", __name__)
+
+PASSWORD_ERROR = "La contraseña debe tener al menos 6 caracteres, una mayúscula, una minúscula y un carácter especial"
+
+
+def _is_strong_password(password: str) -> bool:
+    return (
+        len(password) >= 6
+        and re.search(r"[A-Z]", password) is not None
+        and re.search(r"[a-z]", password) is not None
+        and re.search(r"[^A-Za-z0-9]", password) is not None
+    )
 
 
 @users_bp.route("/", methods=["GET"])
@@ -125,7 +137,8 @@ def create_user():
             password:
               type: string
               example: Doctor2025!
-              minLength: 8
+              minLength: 6
+              description: Mínimo 6 caracteres, con al menos una mayúscula, una minúscula y un carácter especial.
             first_name:
               type: string
               example: Lucía
@@ -188,8 +201,8 @@ def create_user():
         valid = [r.value for r in UserRole]
         return jsonify({"error": f"Rol inválido. Válidos: {valid}"}), 400
 
-    if len(data["password"]) < 8:
-        return jsonify({"error": "La contraseña debe tener al menos 8 caracteres"}), 400
+    if not _is_strong_password(data["password"]):
+        return jsonify({"error": PASSWORD_ERROR}), 400
 
     user = User(
         clinic_id=current.clinic_id,
@@ -304,6 +317,67 @@ def update_user(user_id):
 
     db.session.commit()
     return jsonify({"user": user.to_dict(), "message": "Usuario actualizado"}), 200
+
+
+@users_bp.route("/<int:user_id>/reset-password", methods=["PUT"])
+@admin_required
+def reset_password(user_id):
+    """
+    Restaurar contraseña de un usuario
+    ---
+    tags:
+      - Usuarios
+    security:
+      - BearerAuth: []
+    description: Solo administradores. Establece una nueva contraseña para el usuario indicado.
+    parameters:
+      - in: path
+        name: user_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [password]
+          properties:
+            password:
+              type: string
+              example: NuevaClave2025!
+              minLength: 6
+              description: Mínimo 6 caracteres, con al menos una mayúscula, una minúscula y un carácter especial.
+    responses:
+      200:
+        description: Contraseña restaurada correctamente
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+      400:
+        description: Contraseña no cumple los requisitos de seguridad
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Acceso denegado (no es administrador)
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Usuario no encontrado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    user = User.query.get_or_404(user_id, description="Usuario no encontrado")
+    data = request.get_json()
+    password = (data or {}).get("password", "")
+
+    if not _is_strong_password(password):
+        return jsonify({"error": PASSWORD_ERROR}), 400
+
+    user.set_password(password)
+    db.session.commit()
+    return jsonify({"message": "Contraseña restaurada correctamente"}), 200
 
 
 @users_bp.route("/<int:user_id>", methods=["DELETE"])

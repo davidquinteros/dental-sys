@@ -3,6 +3,7 @@ from app import db
 from app.models.appointment import Appointment, AppointmentStatus, AppointmentType
 from app.models.user import User, UserRole
 from app.middleware.auth import clinical_access_required, get_current_user
+from app.utils.clinic_time import local_now, local_today
 from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
 
@@ -312,7 +313,7 @@ def create_appointment():
     except ValueError:
         return jsonify({"error": "Formato de fecha inválido. Use ISO 8601"}), 400
 
-    if scheduled_at < datetime.utcnow():
+    if scheduled_at < local_now():
         return jsonify({"error": "No se puede agendar en el pasado"}), 400
 
     from app.models.appointment_type import AppointmentTypeCatalog
@@ -456,7 +457,7 @@ def update_appointment(appt_id):
             new_status = AppointmentStatus(data["status"])
             appt.status = new_status
             if new_status == AppointmentStatus.COMPLETED:
-                appt.completed_at = datetime.utcnow()
+                appt.completed_at = local_now()
         except ValueError:
             return jsonify({"error": "Estado inválido"}), 400
 
@@ -657,7 +658,7 @@ def today_appointments():
           $ref: '#/definitions/Error'
     """
     current = get_current_user()
-    today = datetime.utcnow().date()
+    today = local_today()
     day_start = datetime.combine(today, datetime.min.time())
     day_end = datetime.combine(today, datetime.max.time())
 

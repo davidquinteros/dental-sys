@@ -6,6 +6,7 @@ from app.models.billing import Invoice, InvoiceStatus
 from app.models.treatment import TreatmentPlan
 from app.models.user import UserRole
 from app.middleware.auth import require_auth, get_current_user
+from app.utils.clinic_time import local_today
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
@@ -108,7 +109,7 @@ def get_dashboard():
           $ref: '#/definitions/Error'
     """
     current = get_current_user()
-    today = datetime.utcnow().date()
+    today = local_today()
     week_start = today - timedelta(days=today.weekday())
     week_end = week_start + timedelta(days=6)
     month_start = today.replace(day=1)

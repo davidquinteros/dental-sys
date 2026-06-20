@@ -98,11 +98,11 @@
             placeholder="Diagnóstico clínico del paciente..."></textarea>
         </div>
 
-        <div class="form-group">
+        <!-- <div class="form-group">
           <label>Descripción del Procedimiento</label>
           <textarea formControlName="description" rows="3"
             placeholder="Descripción detallada del procedimiento realizado..."></textarea>
-        </div>
+        </div> -->
 
         <div class="form-row">
           <div class="form-group">
@@ -126,12 +126,36 @@
         <!-- Optional links -->
         <div class="form-row">
           <div class="form-group">
-            <label>Cita Asociada (ID)</label>
-            <input formControlName="appointment_id" type="number" placeholder="ID de la cita (opcional)"/>
+            <label>Cita Asociada</label>
+            <select formControlName="appointment_id" [disabled]="!selectedPatient() || loadingAppointments()">
+              @if (!selectedPatient()) {
+                <option value="">Seleccione un paciente primero</option>
+              } @else if (loadingAppointments()) {
+                <option value="">Cargando citas de hoy...</option>
+              } @else {
+                <option value="">{{ appointmentOptions().length ? '— Ninguna —' : 'Sin citas de hoy para este paciente' }}</option>
+                @for (appt of appointmentOptions(); track appt.id) {
+                  <option [value]="appt.id">
+                    {{ appt.scheduled_at | date:'HH:mm' }} · {{ appointmentTypeLabel(appt.appointment_type) }} · Dr(a). {{ appt.doctor_name }}
+                  </option>
+                }
+              }
+            </select>
           </div>
           <div class="form-group">
-            <label>Plan de Tratamiento (ID)</label>
-            <input formControlName="treatment_plan_id" type="number" placeholder="ID del plan (opcional)"/>
+            <label>Plan de Tratamiento</label>
+            <select formControlName="treatment_plan_id" [disabled]="!selectedPatient() || loadingPlans()">
+              @if (!selectedPatient()) {
+                <option value="">Seleccione un paciente primero</option>
+              } @else if (loadingPlans()) {
+                <option value="">Cargando planes...</option>
+              } @else {
+                <option value="">{{ planOptions().length ? '— Ninguno —' : 'Sin planes activos para este paciente' }}</option>
+                @for (plan of planOptions(); track plan.id) {
+                  <option [value]="plan.id">{{ plan.name }} ({{ planStatusLabel(plan.status) }})</option>
+                }
+              }
+            </select>
           </div>
         </div>
       </div>

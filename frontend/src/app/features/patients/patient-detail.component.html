@@ -137,16 +137,27 @@
             <div class="table-wrapper">
             <table class="table">
               <thead>
-                <tr><th>Fecha</th><th>Procedimiento</th><th>Pieza</th><th>Médico</th><th>Notas</th></tr>
+                <tr><th class="col-date">Fecha</th><th>Pieza</th><th>Procedimiento</th><th>Diagnóstico</th><th>Próximos Pasos</th><th class="col-actions">Acciones</th></tr>
               </thead>
               <tbody>
                 @for (t of treatments(); track t.id) {
                   <tr>
-                    <td>{{ formatDate(t.performed_at) }}</td>
-                    <td><strong>{{ t.procedure }}</strong></td>
+                    <td class="col-date">
+                      <span class="cell-date">{{ formatDate(t.performed_at) }}</span>
+                      <span class="cell-doctor">{{ t.doctor_name }}</span>
+                    </td>
                     <td>{{ t.tooth_number || '—' }}</td>
-                    <td>{{ t.doctor_name }}</td>
-                    <td class="notes-cell">{{ t.description || '—' }}</td>
+                    <td><strong>{{ t.procedure }}</strong></td>
+                    <td class="notes-cell">{{ t.diagnosis || '—' }}</td>
+                    <td class="notes-cell">{{ t.next_steps || '—' }}</td>
+                    <td class="col-actions">
+                      <button type="button" class="icon-btn" title="Ver detalle de la atención" (click)="openTreatmentDetail(t.id)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      </button>
+                    </td>
                   </tr>
                 }
               </tbody>
@@ -351,6 +362,21 @@
         </div>
       }
 
+    </div>
+  </div>
+}
+
+<!-- ── Modal Detalle Atención ───────────────────────────────────────────────── -->
+@if (showTreatmentDetailModal()) {
+  <div class="modal-backdrop" (click)="showTreatmentDetailModal.set(false)">
+    <div class="modal modal-wide" (click)="$event.stopPropagation()">
+      <div class="modal-body">
+        <app-treatment-detail
+          [embedded]="true"
+          [treatmentId]="selectedTreatmentId()"
+          (closed)="showTreatmentDetailModal.set(false)">
+        </app-treatment-detail>
+      </div>
     </div>
   </div>
 }

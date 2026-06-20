@@ -6,6 +6,7 @@ import { Patient, Appointment, Treatment, TreatmentPlan } from '../../core/model
 import { OdontogramComponent } from './odontogram.component';
 import { TreatmentFormComponent } from '../treatments/treatment-form.component';
 import { TreatmentPlanFormComponent } from '../treatments/treatment-plan-form.component';
+import { TreatmentDetailComponent } from '../treatments/treatment-detail.component';
 import { MedicalHistoryComponent } from './medical-history.component';
 
 @Component({
@@ -13,7 +14,7 @@ import { MedicalHistoryComponent } from './medical-history.component';
   standalone: true,
   imports: [
     CommonModule, RouterLink, OdontogramComponent,
-    TreatmentFormComponent, TreatmentPlanFormComponent, MedicalHistoryComponent,
+    TreatmentFormComponent, TreatmentPlanFormComponent, TreatmentDetailComponent, MedicalHistoryComponent,
   ],
   templateUrl: './patient-detail.component.html',
   styleUrl: './patient-detail.component.css',
@@ -37,6 +38,10 @@ export class PatientDetailComponent implements OnInit {
   showPlanDetailModal = signal(false);
   planDetailLoading = signal(false);
   selectedPlan = signal<TreatmentPlan | null>(null);
+
+  // Treatment detail modal (form delegated to <app-treatment-detail embedded>)
+  showTreatmentDetailModal = signal(false);
+  selectedTreatmentId = signal<number | null>(null);
 
   get tabs() {
     return [
@@ -109,6 +114,11 @@ export class PatientDetailComponent implements OnInit {
     this.treatments.update(list => [treatment, ...list]);
     this.showTreatmentModal.set(false);
     this.activeTab.set('treatments');
+  }
+
+  openTreatmentDetail(treatmentId: number): void {
+    this.selectedTreatmentId.set(treatmentId);
+    this.showTreatmentDetailModal.set(true);
   }
 
   // ── Plan detail modal ─────────────────────────────────────────────────────────

@@ -368,6 +368,66 @@ def seed_db(clinic_id: int = 1):
     print("✅ Seed completed!")
 
 
+def seed_demo_clinic_b():
+    """Second, smaller demo clinic — exists purely so the login page can show
+    a real working "other clinic" login to demonstrate multi-tenant
+    isolation, without anyone having to run `flask create-clinic` by hand.
+    Idempotent like seed_db(), safe to call every time `flask seed` runs."""
+    from app.models.clinic import Clinic
+
+    _bypass_rls()
+    clinic = Clinic.query.filter_by(slug="clinica-demo-b").first()
+    if not clinic:
+        clinic = Clinic(name="Clínica Demo B", slug="clinica-demo-b")
+        db.session.add(clinic)
+        db.session.flush()  # get clinic.id
+        print("  ✓ Clínica Demo B creada")
+
+    seed_pages(clinic.id)
+    seed_appointment_types(clinic.id)
+
+    def _email_taken(email: str) -> bool:
+        return User.query.filter_by(email=email).execution_options(skip_clinic_filter=True).first() is not None
+
+    if not _email_taken("admin@clinicab.com"):
+        admin = User(
+            clinic_id=clinic.id,
+            email="admin@clinicab.com",
+            first_name="Administradora",
+            last_name="Demo B",
+            role=UserRole.ADMIN,
+        )
+        admin.set_password("AdminB2025!")
+        db.session.add(admin)
+        print("  ✓ Admin user created: admin@clinicab.com / AdminB2025!")
+
+    if Patient.query.filter_by(clinic_id=clinic.id).count() == 0:
+        patients = [
+            Patient(
+                clinic_id=clinic.id,
+                first_name="Lucía", last_name="Fernández",
+                document_number="B-1000001",
+                date_of_birth=date(1990, 5, 10),
+                gender="F", phone="591-70099999",
+                email="lucia.fernandez@email.com",
+                blood_type="O+", city="La Paz",
+            ),
+            Patient(
+                clinic_id=clinic.id,
+                first_name="Diego", last_name="Castro",
+                document_number="B-1000002",
+                date_of_birth=date(1988, 9, 2),
+                gender="M", phone="591-70088888",
+                blood_type="A-", city="La Paz",
+            ),
+        ]
+        for p in patients:
+            db.session.add(p)
+        print(f"  ✓ {len(patients)} sample patient(s) created (Clínica Demo B)")
+
+    db.session.commit()
+
+
 def create_clinic(name: str, admin_email: str, admin_password: str,
                    admin_first_name: str, admin_last_name: str) -> "Clinic":
     """Onboard a new clinic: the clinic row, its pages/permissions/appointment
@@ -412,9 +472,10 @@ def create_clinic(name: str, admin_email: str, admin_password: str,
 def register_seed_command(app):
     @app.cli.command("seed")
     def seed_command():
-        """Seed the database with initial data (clinic #1)"""
+        """Seed the database with initial data (clinic #1 + demo Clinic B)"""
         with app.app_context():
             seed_db()
+            seed_demo_clinic_b()
 
     @app.cli.command("create-clinic")
     @click.option("--name", required=True, help="Clinic display name")

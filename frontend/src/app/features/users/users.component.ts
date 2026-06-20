@@ -1,8 +1,18 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { UserService } from '../../core/services/api.service';
 import { User } from '../../core/models';
+
+export function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
+  const value: string = control.value || '';
+  if (!value) return null;
+  const weak = value.length < 6
+    || !/[A-Z]/.test(value)
+    || !/[a-z]/.test(value)
+    || !/[^A-Za-z0-9]/.test(value);
+  return weak ? { weakPassword: true } : null;
+}
 
 @Component({
   selector: 'app-users',
@@ -18,8 +28,15 @@ export class UsersComponent implements OnInit {
   editingUser = signal<User | null>(null);
   modalSaving = signal(false);
   modalError = signal('');
+  showPassword = signal(false);
   roleFilter = signal('');
   userForm: FormGroup;
+
+  resetPasswordUser = signal<User | null>(null);
+  resetPasswordForm: FormGroup;
+  resetShowPassword = signal(false);
+  resetSaving = signal(false);
+  resetError = signal('');
 
   roleTabs = [
     { value: '', label: 'Todos' },
@@ -34,11 +51,15 @@ export class UsersComponent implements OnInit {
       first_name: ['', Validators.required],
       last_name: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.minLength(8)]],
+      password: ['', [passwordStrengthValidator]],
       role: ['', Validators.required],
       phone: [''],
       specialty: [''],
       license_number: [''],
+    });
+
+    this.resetPasswordForm = this.fb.group({
+      password: ['', [Validators.required, passwordStrengthValidator]],
     });
   }
 
@@ -65,9 +86,10 @@ export class UsersComponent implements OnInit {
   openModal(): void {
     this.editingUser.set(null);
     this.userForm.reset({ role: '', phone: '' });
-    this.userForm.get('password')?.setValidators([Validators.required, Validators.minLength(8)]);
+    this.userForm.get('password')?.setValidators([Validators.required, passwordStrengthValidator]);
     this.userForm.get('password')?.updateValueAndValidity();
     this.modalError.set('');
+    this.showPassword.set(false);
     this.showModal.set(true);
   }
 
@@ -114,6 +136,39 @@ export class UsersComponent implements OnInit {
   }
 
   hasErr(f: string): boolean { const c = this.userForm.get(f); return !!(c?.invalid && c?.touched); }
+  toggleShowPassword(): void { this.showPassword.update(v => !v); }
+
+  openResetPassword(user: User): void {
+    this.resetPasswordUser.set(user);
+    this.resetPasswordForm.reset();
+    this.resetShowPassword.set(false);
+    this.resetError.set('');
+  }
+
+  closeResetPassword(): void { this.resetPasswordUser.set(null); }
+  toggleResetShowPassword(): void { this.resetShowPassword.update(v => !v); }
+  hasResetErr(): boolean {
+    const c = this.resetPasswordForm.get('password');
+    return !!(c?.invalid && c?.touched);
+  }
+
+  submitResetPassword(): void {
+    if (this.resetPasswordForm.invalid) { this.resetPasswordForm.markAllAsTouched(); return; }
+    const user = this.resetPasswordUser();
+    if (!user) return;
+    this.resetSaving.set(true);
+    this.resetError.set('');
+    this.userService.resetPassword(user.id, this.resetPasswordForm.value.password).subscribe({
+      next: () => {
+        this.resetSaving.set(false);
+        this.closeResetPassword();
+      },
+      error: err => {
+        this.resetSaving.set(false);
+        this.resetError.set(err.error?.error || 'Error al restaurar la contraseña');
+      },
+    });
+  }
   initials(u: User): string { return `${u.first_name[0]}${u.last_name[0]}`.toUpperCase(); }
   roleLabel(r: string): string {
     const m: Record<string, string> = { admin: 'Administrador', doctor: 'Médico', receptionist: 'Recepcionista', assistant: 'Asistente' };

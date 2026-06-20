@@ -24,6 +24,12 @@ export class LoginComponent {
     { role: 'Asistente', email: 'asistente@clinica.com', password: 'Asist2025!' },
   ];
 
+  // Clínica Demo B (sembrada por `flask seed`) — para mostrar el aislamiento
+  // multi-tenant: estos datos nunca se mezclan con los de la clínica de arriba.
+  demoCredentialsClinicB = [
+    { role: 'Admin', email: 'admin@clinicab.com', password: 'AdminB2025!' },
+  ];
+
   constructor(private fb: FormBuilder, private auth: AuthService, private router: Router) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],

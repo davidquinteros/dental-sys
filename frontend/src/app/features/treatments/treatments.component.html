@@ -58,9 +58,7 @@
               <tr>
                 <td>{{ formatDate(t.performed_at) }}</td>
                 <td><a [routerLink]="['/patients', t.patient_id]" class="link">{{ t.patient_name }}</a></td>
-                <td><strong>{{ t.procedure }}</strong>
-                  @if (t.description) { <div class="sub-text">{{ t.description }}</div> }
-                </td>
+                <td><strong>{{ t.procedure }}</strong></td>
                 <td>{{ t.tooth_number ? '🦷 #' + t.tooth_number : '—' }}</td>
                 <td class="text-sm">{{ t.doctor_name }}</td>
                 <td>

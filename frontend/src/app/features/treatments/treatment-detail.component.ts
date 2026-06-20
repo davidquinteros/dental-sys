@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { TreatmentService } from '../../core/services/api.service';
@@ -12,21 +12,21 @@ import { Treatment } from '../../core/models';
   styleUrl: './treatment-detail.component.css',
 })
 export class TreatmentDetailComponent implements OnInit {
+  /** When true, renders without page chrome (no breadcrumb/page actions) and emits (closed) instead of navigating. */
+  @Input() embedded = false;
+  /** Treatment to load in embedded mode (ignored when routed — that mode reads the id from the URL). */
+  @Input() treatmentId: number | null = null;
+  @Output() closed = new EventEmitter<void>();
+
   treatment = signal<Treatment | null>(null);
   loading = signal(true);
 
   constructor(private route: ActivatedRoute, private treatmentService: TreatmentService) {}
 
   ngOnInit(): void {
-    const id = +this.route.snapshot.paramMap.get('id')!;
-    this.treatmentService.getAll({ per_page: 1 }); // warm up
-    // Use the list endpoint filtered by id for now
-    this.treatmentService.getAll({ per_page: 100 }).subscribe({
-      next: res => {
-        const t = res.treatments.find((t: any) => t.id === id);
-        this.treatment.set(t || null);
-        this.loading.set(false);
-      },
+    const id = this.embedded ? this.treatmentId! : +this.route.snapshot.paramMap.get('id')!;
+    this.treatmentService.getById(id).subscribe({
+      next: res => { this.treatment.set(res.treatment); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }

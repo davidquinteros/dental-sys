@@ -3,6 +3,7 @@ from app import db
 from app.models.billing import Invoice, InvoiceItem, Payment, PaymentPlan, InvoiceStatus, PaymentMethod
 from app.middleware.auth import clinical_access_required, admin_required, get_current_user
 from app.models.user import UserRole
+from app.utils.clinic_time import local_now
 from datetime import datetime, date
 
 billing_bp = Blueprint("billing", __name__)
@@ -10,7 +11,7 @@ billing_bp = Blueprint("billing", __name__)
 
 def generate_invoice_number() -> str:
     """Generate sequential invoice number like INV-2025-0001"""
-    year = datetime.utcnow().year
+    year = local_now().year
     last = Invoice.query.filter(
         Invoice.invoice_number.like(f"INV-{year}-%")
     ).order_by(Invoice.id.desc()).first()
