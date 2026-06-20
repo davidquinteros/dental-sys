@@ -13,13 +13,14 @@ rather than skipping the filter (which would return every clinic's data).
 
 This is mirrored at the Postgres level too (migration a3f9c2d81e47, Row Level
 Security as defense-in-depth) via the app.current_clinic_id / app.bypass_rls
-session GUCs set below.
+session GUCs, applied below via a connection-pool checkout listener.
 """
 from contextlib import contextmanager
-from flask import g
+from flask import g, has_app_context
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from sqlalchemy import event, text
 from sqlalchemy.orm import Session, with_loader_criteria
+from sqlalchemy.pool import Pool
 
 NO_MATCH_CLINIC_ID = -1
 
@@ -41,52 +42,53 @@ def platform_wide_lookup():
         yield
 
 
-def _set_db_clinic_context(clinic_id, bypass: bool):
-    """Mirror g.clinic_id into Postgres session settings so the RLS policies
-    (defense-in-depth layer, see migration a3f9c2d81e47) see the same value
-    the ORM-level filter is using.
+# ─── Postgres session GUCs (RLS defense-in-depth) ───────────────────────────
+#
+# Earlier versions of this module set app.current_clinic_id / app.bypass_rls
+# via db.session.execute(...) + db.session.commit() once per request. That's
+# broken under real concurrency: SQLAlchemy's connection pool returns the
+# DBAPI connection to the pool on every commit, and the *next* statement
+# (even within the same request, e.g. re-reading a just-inserted row whose
+# attributes were expired by that commit) may be handed a *different*
+# physical connection — one whose GUCs belong to a different clinic, or none
+# at all. Under gunicorn with multiple workers/threads this isn't a corner
+# case, it's routine: it surfaced locally as `ObjectDeletedError` (RLS hiding
+# a row this same request had just committed) the moment real concurrent
+# requests were tested.
+#
+# Fix: re-apply the GUCs on *every* checkout from the pool, not once via a
+# commit. `g` holds the current request's tenant context (set below by
+# resolve_request_clinic, or by CLI commands via an app context); whichever
+# physical connection gets handed out, it's stamped with whatever the
+# *currently active* context is at that exact moment.
+def _current_tenant_context():
+    if not has_app_context():
+        return NO_MATCH_CLINIC_ID, False
+    return getattr(g, "clinic_id", NO_MATCH_CLINIC_ID), getattr(g, "rls_bypass", False)
 
-    Deliberately session-scoped (is_local=false), not transaction-scoped:
-    a single request can commit more than once (e.g. create_patient()
-    commits, then to_dict() lazily reloads an expired attribute in a brand
-    new autobegin transaction) — is_local=true would revert at that first
-    commit and leave the rest of the request unscoped. reset_db_clinic_context
-    (teardown_request) is what actually prevents this from leaking into the
-    next request that reuses the same pooled connection.
-    """
-    from app import db
-    db.session.execute(
-        text("SELECT set_config('app.bypass_rls', :bypass, false), "
-             "set_config('app.current_clinic_id', :cid, false)"),
-        {"bypass": "on" if bypass else "off",
-         "cid": str(clinic_id) if clinic_id is not None else ""},
-    )
-    db.session.commit()
 
-
-def reset_db_clinic_context(*_args):
-    """Flask teardown_request hook: force this connection back to fail-closed
-    before it's returned to the pool, so the next request to reuse it (which
-    may belong to a completely different user) never inherits this one's
-    clinic context.
-
-    A failed query earlier in the request can leave the transaction in
-    Postgres's "aborted, commands ignored until rollback" state, so the
-    set_config below would itself raise — roll back first to clear that,
-    then retry once on a clean transaction.
-    """
-    from app import db
-    for _attempt in range(2):
-        try:
-            db.session.execute(
-                text("SELECT set_config('app.bypass_rls', 'off', false), "
-                     "set_config('app.current_clinic_id', :cid, false)"),
-                {"cid": str(NO_MATCH_CLINIC_ID)},
-            )
-            db.session.commit()
-            return
-        except Exception:
-            db.session.rollback()
+@event.listens_for(Pool, "checkout")
+def _stamp_tenant_guc_on_checkout(dbapi_connection, connection_record, connection_proxy):
+    clinic_id, bypass = _current_tenant_context()
+    cursor = dbapi_connection.cursor()
+    try:
+        # current_clinic_id is always a valid integer string, even when
+        # unscoped (bypass=True covers actual access in that case) — the RLS
+        # policy casts it with ::int, and '' raises InvalidTextRepresentation.
+        # Postgres doesn't guarantee bypass_rls='on' short-circuits the policy's
+        # OR before the ::int cast runs, so the right side must stay castable.
+        cursor.execute(
+            "SELECT set_config('app.bypass_rls', %s, false), "
+            "set_config('app.current_clinic_id', %s, false)",
+            ('on' if bypass else 'off', str(clinic_id) if clinic_id is not None else str(NO_MATCH_CLINIC_ID)),
+        )
+    finally:
+        cursor.close()
+    # is_local=false makes the setting outlive any transaction on this
+    # connection, but the implicit transaction this SELECT opened (psycopg2
+    # always opens one) should still be closed out before SQLAlchemy starts
+    # using the connection for its own work.
+    dbapi_connection.commit()
 
 
 def _scoped_models():
@@ -111,37 +113,45 @@ def resolve_request_clinic():
     """
     from app.models.user import User
 
+    # g.clinic_id is deliberately left unset (not even NO_MATCH_CLINIC_ID)
+    # until we either resolve it or give up — _apply_clinic_filter treats an
+    # unset g.clinic_id as "no filter" (matching its CLI/no-request-context
+    # case), which is exactly what the bootstrap lookup below needs: at this
+    # point we don't yet know the user's clinic, so the ORM-level filter must
+    # not scope that lookup to anything, and RLS-level visibility is handled
+    # by g.rls_bypass instead. Setting g.clinic_id to the fail-closed sentinel
+    # *before* this lookup would scope it to "matches nothing" and hide the
+    # user's own row.
+    g.rls_bypass = False
+
     try:
         verify_jwt_in_request(optional=True)
         user_id = get_jwt_identity()
         if not user_id:
-            _set_db_clinic_context(NO_MATCH_CLINIC_ID, bypass=False)
+            g.clinic_id = NO_MATCH_CLINIC_ID
             return
 
         # Bootstrap lookup: we don't know this user's clinic yet, so there's
         # no value to scope this one query by. Bypass RLS just long enough
-        # to read their own row (the application-level filter already skips
-        # itself here too, since g.clinic_id isn't set until below).
-        _set_db_clinic_context(NO_MATCH_CLINIC_ID, bypass=True)
+        # to read their own row.
+        g.rls_bypass = True
         user = User.query.get(user_id)
         if not user:
-            _set_db_clinic_context(NO_MATCH_CLINIC_ID, bypass=False)
+            g.clinic_id = NO_MATCH_CLINIC_ID
+            g.rls_bypass = False
             return
 
         if user.is_platform_admin:
             # Intentionally unscoped — platform staff operate across clinics.
             g.clinic_id = None
-            _set_db_clinic_context(None, bypass=True)
+            g.rls_bypass = True
             return
 
         g.clinic_id = user.clinic_id if user.clinic_id is not None else NO_MATCH_CLINIC_ID
-        _set_db_clinic_context(g.clinic_id, bypass=False)
+        g.rls_bypass = False
     except Exception:
-        try:
-            _set_db_clinic_context(NO_MATCH_CLINIC_ID, bypass=False)
-        except Exception:
-            pass
-        return
+        g.clinic_id = NO_MATCH_CLINIC_ID
+        g.rls_bypass = False
 
 
 @event.listens_for(Session, "do_orm_execute")
@@ -154,7 +164,7 @@ def _apply_clinic_filter(execute_state):
         # (e.g. checking email uniqueness across all clinics at signup).
         return
 
-    clinic_id = getattr(g, "clinic_id", None)
+    clinic_id = getattr(g, "clinic_id", None) if has_app_context() else None
     if clinic_id is None:
         # No request context (CLI/seed scripts) or an explicit platform-admin
         # request — both are trusted to operate unscoped.

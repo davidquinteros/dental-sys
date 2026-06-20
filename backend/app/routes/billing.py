@@ -413,7 +413,12 @@ def add_payment(invoice_id):
           $ref: '#/definitions/Error'
     """
     current = get_current_user()
-    invoice = Invoice.query.get_or_404(invoice_id, description="Factura no encontrada")
+    # Row lock: without it, two concurrent payments against the same invoice
+    # can both read the same pre-payment balance and both pass validation,
+    # corrupting amount_paid/balance. Held until commit/rollback below.
+    invoice = Invoice.query.filter_by(id=invoice_id).with_for_update().first()
+    if not invoice:
+        return jsonify({"error": "Factura no encontrada"}), 404
 
     if invoice.status in [InvoiceStatus.PAID, InvoiceStatus.CANCELLED]:
         return jsonify({"error": "La factura ya está pagada o cancelada"}), 400

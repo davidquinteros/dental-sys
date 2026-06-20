@@ -4,6 +4,7 @@ from app.models.appointment import Appointment, AppointmentStatus, AppointmentTy
 from app.models.user import User, UserRole
 from app.middleware.auth import clinical_access_required, get_current_user
 from datetime import datetime, timedelta
+from sqlalchemy.orm import joinedload
 
 appointments_bp = Blueprint("appointments", __name__)
 
@@ -137,7 +138,11 @@ def list_appointments():
     date_to = request.args.get("date_to")
     show_all = request.args.get("all", "").lower() in ("true", "1")
 
-    query = Appointment.query
+    query = Appointment.query.options(
+        joinedload(Appointment.patient),
+        joinedload(Appointment.doctor),
+        joinedload(Appointment.consultorio),
+    )
 
     # Doctors only see their own appointments unless admin/receptionist,
     # or unless they explicitly request the shared clinic agenda (all=true)
@@ -656,7 +661,11 @@ def today_appointments():
     day_start = datetime.combine(today, datetime.min.time())
     day_end = datetime.combine(today, datetime.max.time())
 
-    query = Appointment.query.filter(
+    query = Appointment.query.options(
+        joinedload(Appointment.patient),
+        joinedload(Appointment.doctor),
+        joinedload(Appointment.consultorio),
+    ).filter(
         Appointment.scheduled_at >= day_start,
         Appointment.scheduled_at <= day_end,
     )

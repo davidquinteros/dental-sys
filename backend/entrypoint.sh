@@ -21,5 +21,21 @@ DATABASE_URL="${MIGRATIONS_DATABASE_URL:-$DATABASE_URL}" flask db upgrade
 echo "Cargando datos iniciales (seed)..."
 flask seed
 
-echo "Iniciando servidor Flask..."
-exec flask run --host=0.0.0.0 --port=5000
+echo "Iniciando servidor con gunicorn..."
+# gthread workers: each worker keeps its own SQLAlchemy connection pool, and
+# threads within a worker share it, so total Postgres connections used here
+# is roughly WEB_CONCURRENCY * (pool_size + max_overflow) from app/__init__.py
+# — tune both together against the DB's actual max_connections.
+#
+# Defaults below (2 workers x 2 threads) are deliberately conservative —
+# sized for a small/free-tier instance (e.g. Render free, 512MB RAM) so an
+# unset env var can't accidentally over-commit memory. Set WEB_CONCURRENCY/
+# WEB_THREADS explicitly once on a bigger plan; see backend/.env.example for
+# suggested values per tier.
+exec gunicorn \
+  --workers "${WEB_CONCURRENCY:-2}" \
+  --threads "${WEB_THREADS:-2}" \
+  --worker-class gthread \
+  --timeout "${WEB_TIMEOUT:-60}" \
+  --bind 0.0.0.0:5000 \
+  run:app

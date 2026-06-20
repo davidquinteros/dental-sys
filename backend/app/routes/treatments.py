@@ -217,9 +217,11 @@ def create_treatment():
         next_steps=data.get("next_steps"),
     )
 
-    # Update plan session count if linked
+    # Update plan session count if linked. Row-locked so two treatments
+    # registered against the same plan concurrently don't both read the same
+    # pre-increment count and lose an update.
     if treatment.treatment_plan_id:
-        plan = TreatmentPlan.query.get(treatment.treatment_plan_id)
+        plan = TreatmentPlan.query.filter_by(id=treatment.treatment_plan_id).with_for_update().first()
         if plan:
             plan.completed_sessions += 1
 

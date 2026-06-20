@@ -3,7 +3,7 @@ Database seeder - Run with: flask seed
 Creates initial admin user, sample data, and standard app pages.
 """
 import click
-from sqlalchemy import text
+from flask import g
 from app import db
 from app.models.user import User, UserRole
 from app.models.patient import Patient
@@ -15,8 +15,15 @@ def _bypass_rls():
     """CLI commands (flask seed, flask create-clinic) run outside any HTTP
     request, so there's no before_request hook to set the RLS session GUCs.
     These commands are trusted and need to see/write every clinic, so bypass
-    RLS for the whole command rather than scoping per query."""
-    db.session.execute(text("SELECT set_config('app.bypass_rls', 'on', false)"))
+    RLS for the whole command rather than scoping per query.
+
+    Setting g.rls_bypass (consumed by the connection-pool checkout listener
+    in app.middleware.tenancy) rather than issuing `set_config` directly
+    here is what makes this survive across the command's own commits — each
+    one releases the connection back to the pool, and only the checkout
+    listener is guaranteed to run again before the next statement."""
+    g.rls_bypass = True
+    g.clinic_id = None
 
 # ── Icons stored as minimal SVG strings ──────────────────────────────────────
 

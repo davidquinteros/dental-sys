@@ -8,6 +8,7 @@ from app.models.user import UserRole
 from app.middleware.auth import require_auth, get_current_user
 from datetime import datetime, timedelta
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -113,7 +114,11 @@ def get_dashboard():
     month_start = today.replace(day=1)
 
     # ─── Today's appointments ───────────────────────────────────────────────
-    today_query = Appointment.query.filter(
+    today_query = Appointment.query.options(
+        joinedload(Appointment.patient),
+        joinedload(Appointment.doctor),
+        joinedload(Appointment.consultorio),
+    ).filter(
         Appointment.scheduled_at >= datetime.combine(today, datetime.min.time()),
         Appointment.scheduled_at <= datetime.combine(today, datetime.max.time()),
     )
@@ -178,7 +183,11 @@ def get_dashboard():
     calendar_appointments = []
     cal_start = datetime.combine(today, datetime.min.time())
     cal_end = datetime.combine(today + timedelta(days=6), datetime.max.time())
-    cal_query = Appointment.query.filter(
+    cal_query = Appointment.query.options(
+        joinedload(Appointment.patient),
+        joinedload(Appointment.doctor),
+        joinedload(Appointment.consultorio),
+    ).filter(
         Appointment.scheduled_at >= cal_start,
         Appointment.scheduled_at <= cal_end,
         Appointment.status.not_in([AppointmentStatus.CANCELLED]),
@@ -188,12 +197,14 @@ def get_dashboard():
     calendar_appointments = [a.to_dict() for a in cal_query.order_by(Appointment.scheduled_at).limit(50)]
 
     # ─── Appointment status breakdown ──────────────────────────────────────
-    status_counts = {}
-    for status in AppointmentStatus:
-        cnt_q = Appointment.query.filter_by(status=status)
-        if current.role == UserRole.DOCTOR:
-            cnt_q = cnt_q.filter_by(doctor_id=current.id)
-        status_counts[status.value] = cnt_q.count()
+    breakdown_query = db.session.query(Appointment.status, func.count(Appointment.id))
+    if current.role == UserRole.DOCTOR:
+        breakdown_query = breakdown_query.filter(Appointment.doctor_id == current.id)
+    breakdown_query = breakdown_query.group_by(Appointment.status)
+
+    status_counts = {status.value: 0 for status in AppointmentStatus}
+    for status, count in breakdown_query.all():
+        status_counts[status.value] = count
 
     return jsonify({
         "today": {

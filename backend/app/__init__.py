@@ -26,6 +26,18 @@ def create_app(config=None):
         "DATABASE_URL", "postgresql://postgres:password@localhost:5432/dental_clinic_db"
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    # Each gunicorn worker (see entrypoint.sh) gets its own pool of this size;
+    # pool_recycle keeps connections from going stale against a managed
+    # Postgres (e.g. Supabase) that can drop idle connections server-side.
+    # Defaults are conservative (small/free-tier DB plans) — see
+    # backend/.env.example for suggested values once on a bigger plan.
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_size": int(os.getenv("DB_POOL_SIZE", 3)),
+        "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", 2)),
+        "pool_timeout": int(os.getenv("DB_POOL_TIMEOUT", 30)),
+        "pool_recycle": int(os.getenv("DB_POOL_RECYCLE", 280)),
+        "pool_pre_ping": True,
+    }
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "jwt-secret-change-in-prod")
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 3600))
 
@@ -42,12 +54,11 @@ def create_app(config=None):
     Swagger(app, config=SWAGGER_CONFIG, template=SWAGGER_TEMPLATE)
 
     # Multi-tenancy: resolve the current clinic once per request, and register
-    # the session-level event listener that auto-filters every clinic-scoped query.
-    from app.middleware.tenancy import resolve_request_clinic, reset_db_clinic_context
+    # the session-level event listener that auto-filters every clinic-scoped
+    # query, plus the connection-pool checkout listener that mirrors it into
+    # Postgres session GUCs for RLS. See app/middleware/tenancy.py.
+    from app.middleware.tenancy import resolve_request_clinic  # noqa: F401 (registers event listeners on import)
     app.before_request(resolve_request_clinic)
-    # Reset the Postgres session GUCs before the connection returns to the
-    # pool, so a future request reusing it never inherits this one's clinic.
-    app.teardown_request(reset_db_clinic_context)
 
     # JWT error handlers
     @jwt.unauthorized_loader
