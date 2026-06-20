@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from app import db
 from app.models.user import User, UserRole
 from app.middleware.auth import require_auth, admin_required, get_current_user
+from app.middleware.tenancy import platform_wide_lookup
 
 users_bp = Blueprint("users", __name__)
 
@@ -176,7 +177,8 @@ def create_user():
 
     email = data["email"].strip().lower()
     # Email is unique platform-wide (not per clinic), so this check must see every clinic.
-    existing = User.query.filter_by(email=email).execution_options(skip_clinic_filter=True).first()
+    with platform_wide_lookup():
+        existing = User.query.filter_by(email=email).execution_options(skip_clinic_filter=True).first()
     if existing:
         return jsonify({"error": "El email ya está registrado"}), 409
 

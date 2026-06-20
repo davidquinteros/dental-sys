@@ -5,6 +5,7 @@ from flask_jwt_extended import (
 )
 from app.models.user import User
 from app.middleware.auth import require_auth, get_current_user
+from app.middleware.tenancy import platform_wide_lookup
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -66,7 +67,8 @@ def login():
         return jsonify({"error": "Email y contraseña requeridos"}), 400
 
     # Email is unique platform-wide; never scope a login lookup to any one clinic.
-    user = User.query.filter_by(email=email).execution_options(skip_clinic_filter=True).first()
+    with platform_wide_lookup():
+        user = User.query.filter_by(email=email).execution_options(skip_clinic_filter=True).first()
 
     if not user or not user.check_password(password):
         return jsonify({"error": "Credenciales incorrectas"}), 401

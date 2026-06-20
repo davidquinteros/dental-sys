@@ -43,8 +43,11 @@ def create_app(config=None):
 
     # Multi-tenancy: resolve the current clinic once per request, and register
     # the session-level event listener that auto-filters every clinic-scoped query.
-    from app.middleware.tenancy import resolve_request_clinic
+    from app.middleware.tenancy import resolve_request_clinic, reset_db_clinic_context
     app.before_request(resolve_request_clinic)
+    # Reset the Postgres session GUCs before the connection returns to the
+    # pool, so a future request reusing it never inherits this one's clinic.
+    app.teardown_request(reset_db_clinic_context)
 
     # JWT error handlers
     @jwt.unauthorized_loader

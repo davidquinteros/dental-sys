@@ -3,11 +3,20 @@ Database seeder - Run with: flask seed
 Creates initial admin user, sample data, and standard app pages.
 """
 import click
+from sqlalchemy import text
 from app import db
 from app.models.user import User, UserRole
 from app.models.patient import Patient
 from app.models.permission import Page, RolePermission
 from datetime import date
+
+
+def _bypass_rls():
+    """CLI commands (flask seed, flask create-clinic) run outside any HTTP
+    request, so there's no before_request hook to set the RLS session GUCs.
+    These commands are trusted and need to see/write every clinic, so bypass
+    RLS for the whole command rather than scoping per query."""
+    db.session.execute(text("SELECT set_config('app.bypass_rls', 'on', false)"))
 
 # ── Icons stored as minimal SVG strings ──────────────────────────────────────
 
@@ -233,6 +242,7 @@ def seed_appointment_types(clinic_id: int):
 
 def seed_db(clinic_id: int = 1):
     print("🌱 Seeding database...")
+    _bypass_rls()
 
     # ─── Pages & permissions ────────────────────────────────────────────────
     seed_pages(clinic_id)
@@ -359,6 +369,7 @@ def create_clinic(name: str, admin_email: str, admin_password: str,
     from app.models.clinic import Clinic
     import re
 
+    _bypass_rls()
     slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
     base_slug = slug
     n = 1
