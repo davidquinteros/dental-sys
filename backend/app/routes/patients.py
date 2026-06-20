@@ -221,6 +221,7 @@ def create_patient():
         schema:
           $ref: '#/definitions/Error'
     """
+    current = get_current_user()
     data = request.get_json()
     required = ["first_name", "last_name", "document_number"]
     for field in required:
@@ -238,6 +239,7 @@ def create_patient():
         return jsonify({"error": "Formato de fecha incorrecto. Use YYYY-MM-DD"}), 400
 
     patient = Patient(
+        clinic_id=current.clinic_id,
         first_name=data["first_name"].strip(),
         last_name=data["last_name"].strip(),
         document_number=data["document_number"].strip(),

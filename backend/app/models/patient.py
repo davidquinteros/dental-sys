@@ -19,10 +19,11 @@ class Patient(db.Model):
     __tablename__ = "patients"
 
     id = db.Column(db.Integer, primary_key=True)
+    clinic_id = db.Column(db.Integer, db.ForeignKey("clinics.id"), nullable=False, index=True)
     # Personal information
     first_name = db.Column(db.String(80), nullable=False)
     last_name = db.Column(db.String(80), nullable=False)
-    document_number = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    document_number = db.Column(db.String(20), nullable=False, index=True)
     document_type = db.Column(db.String(20), default="CI", nullable=False)  # CI, Passport, etc.
     date_of_birth = db.Column(db.Date, nullable=True)
     gender = db.Column(db.String(10), nullable=True)  # M, F, Other
@@ -47,7 +48,10 @@ class Patient(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    __table_args__ = (db.UniqueConstraint("clinic_id", "document_number", name="uq_patient_clinic_document"),)
+
     # Relationships
+    clinic = db.relationship("Clinic")
     appointments = db.relationship("Appointment", back_populates="patient", lazy="dynamic")
     treatments = db.relationship("Treatment", back_populates="patient", lazy="dynamic")
     treatment_plans = db.relationship("TreatmentPlan", back_populates="patient", lazy="dynamic")
@@ -67,6 +71,7 @@ class Patient(db.Model):
     def to_dict(self, include_history=False) -> dict:
         data = {
             "id": self.id,
+            "clinic_id": self.clinic_id,
             "first_name": self.first_name,
             "last_name": self.last_name,
             "full_name": self.full_name,
