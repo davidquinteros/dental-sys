@@ -1,0 +1,166 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <a routerLink="/clinics" class="text-muted" style="font-size: 13px;">← Volver a clínicas</a>
+      <h1 class="page-title">{{ detail()?.clinic?.name || 'Clínica' }}</h1>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="text-muted">Cargando...</p>
+  } @else if (detail()) {
+    <div class="card">
+      <h3 style="margin-bottom: 16px;">Datos y suscripción</h3>
+      @if (editMessage()) { <div class="alert alert-success">{{ editMessage() }}</div> }
+      <form (ngSubmit)="saveEdit()">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" name="name" [(ngModel)]="editForm.name" required />
+          </div>
+          <div class="form-group">
+            <label>Plan</label>
+            <select name="tier" [(ngModel)]="editForm.subscription_tier_id">
+              <option [ngValue]="null">Sin asignar</option>
+              @for (t of tiers(); track t.id) {
+                <option [ngValue]="t.id">{{ t.name }} — {{ t.monthly_price }}/mes</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Estado de suscripción</label>
+            <select name="status" [(ngModel)]="editForm.subscription_status">
+              <option value="trial">trial</option>
+              <option value="active">active</option>
+              <option value="past_due">past_due</option>
+              <option value="suspended">suspended</option>
+              <option value="cancelled">cancelled</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Clínica activa (acceso al sistema)</label>
+            <select name="is_active" [(ngModel)]="editForm.is_active">
+              <option [ngValue]="true">Sí</option>
+              <option [ngValue]="false">No</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notas internas</label>
+          <textarea name="notes" rows="3" [(ngModel)]="editForm.notes"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" [disabled]="savingEdit()">
+          {{ savingEdit() ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 16px;">Administrador de la clínica</h3>
+      @if (detail()!.admins.length === 0) {
+        <p class="text-muted">Esta clínica no tiene un usuario administrador.</p>
+      } @else {
+        <div class="table-wrapper">
+          <table class="table">
+            <thead><tr><th>Nombre</th><th>Email</th><th>Activo</th></tr></thead>
+            <tbody>
+              @for (a of detail()!.admins; track a.id) {
+                <tr>
+                  <td>{{ a.full_name }}</td>
+                  <td>{{ a.email }}</td>
+                  <td>{{ a.is_active ? 'Sí' : 'No' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (detail()!.admins.length > 1) {
+          <div class="form-group" style="margin-top: 12px; max-width: 320px;">
+            <label>Administrador a restaurar</label>
+            <select [(ngModel)]="resetUserId">
+              <option [ngValue]="null">Seleccionar...</option>
+              @for (a of detail()!.admins; track a.id) {
+                <option [ngValue]="a.id">{{ a.full_name }} ({{ a.email }})</option>
+              }
+            </select>
+          </div>
+        }
+
+        @if (resetError()) { <div class="alert alert-error" style="margin-top: 12px;">{{ resetError() }}</div> }
+
+        @if (resetResult()) {
+          <div class="alert alert-info" style="margin-top: 12px;">
+            Contraseña temporal para <strong>{{ resetResult()!.user.email }}</strong>:
+            <code style="font-size: 15px; font-weight: 700;">{{ resetResult()!.temporary_password }}</code>
+            <br><small>Compártala ahora con el administrador de la clínica — no se mostrará de nuevo.</small>
+          </div>
+        }
+
+        <button class="btn btn-secondary" style="margin-top: 12px;"
+                [disabled]="resettingPassword() || (detail()!.admins.length > 1 && !resetUserId)"
+                (click)="resetPassword()">
+          {{ resettingPassword() ? 'Generando...' : 'Restaurar contraseña' }}
+        </button>
+      }
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 16px;">Registrar pago de suscripción</h3>
+      @if (paymentError()) { <div class="alert alert-error">{{ paymentError() }}</div> }
+      <form (ngSubmit)="recordPayment()">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Monto</label>
+            <input type="number" step="0.01" name="amount" [(ngModel)]="paymentForm.amount" required />
+          </div>
+          <div class="form-group">
+            <label>Fecha de pago</label>
+            <input type="date" name="payment_date" [(ngModel)]="paymentForm.payment_date" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Periodo desde</label>
+            <input type="date" name="period_start" [(ngModel)]="paymentForm.period_start" />
+          </div>
+          <div class="form-group">
+            <label>Periodo hasta (próximo vencimiento)</label>
+            <input type="date" name="period_end" [(ngModel)]="paymentForm.period_end" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notas</label>
+          <input type="text" name="notes" [(ngModel)]="paymentForm.notes" />
+        </div>
+        <button type="submit" class="btn btn-primary" [disabled]="savingPayment()">
+          {{ savingPayment() ? 'Registrando...' : 'Registrar pago' }}
+        </button>
+      </form>
+
+      <h4 style="margin: 20px 0 12px;">Historial de pagos</h4>
+      @if (detail()!.payments.length === 0) {
+        <p class="text-muted">Sin pagos registrados.</p>
+      } @else {
+        <div class="table-wrapper">
+          <table class="table">
+            <thead><tr><th>Fecha</th><th>Monto</th><th>Periodo</th><th>Notas</th><th>Registrado por</th></tr></thead>
+            <tbody>
+              @for (p of detail()!.payments; track p.id) {
+                <tr>
+                  <td>{{ formatDate(p.payment_date) }}</td>
+                  <td>{{ p.amount }}</td>
+                  <td>{{ formatDate(p.period_start) }} – {{ formatDate(p.period_end) }}</td>
+                  <td>{{ p.notes || '—' }}</td>
+                  <td>{{ p.recorded_by || '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+</div>

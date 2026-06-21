@@ -2,9 +2,9 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AppointmentService, UserService } from '../../core/services/api.service';
+import { AppointmentService, UserService, PatientService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Appointment, User } from '../../core/models';
+import { Appointment, User, Patient } from '../../core/models';
 
 interface AppointmentFilters {
   status: string;
@@ -31,9 +31,15 @@ export class AppointmentsListComponent implements OnInit {
 
   filters: AppointmentFilters = { status: '', doctor_id: '', date_from: '', date_to: '' };
 
+  selectedPatient = signal<Patient | null>(null);
+  patientResults = signal<Patient[]>([]);
+  patientSearch = '';
+  private searchTimeout: any;
+
   constructor(
     private apptService: AppointmentService,
     private userService: UserService,
+    private patientService: PatientService,
     public auth: AuthService,
     private route: ActivatedRoute,
   ) {}
@@ -41,9 +47,37 @@ export class AppointmentsListComponent implements OnInit {
   ngOnInit(): void {
     // Pre-fill patient_id from query params if present
     const patientId = this.route.snapshot.queryParamMap.get('patient_id');
-    if (patientId) this.filters['patient_id'] = patientId;
+    if (patientId) {
+      this.filters['patient_id'] = patientId;
+      this.patientService.getById(+patientId).subscribe(res => this.selectedPatient.set(res.patient));
+    }
     this.userService.getDoctors().subscribe(res => this.doctors.set(res.doctors));
     this.loadAppointments();
+  }
+
+  // ── Patient search filter ────────────────────────────────────────────────────
+  onPatientSearch(): void {
+    clearTimeout(this.searchTimeout);
+    if (!this.patientSearch || this.patientSearch.length < 2) { this.patientResults.set([]); return; }
+    this.searchTimeout = setTimeout(() => {
+      this.patientService.getAll({ search: this.patientSearch, per_page: 8 }).subscribe(
+        res => this.patientResults.set(res.patients)
+      );
+    }, 300);
+  }
+
+  selectPatient(p: Patient): void {
+    this.selectedPatient.set(p);
+    this.patientResults.set([]);
+    this.patientSearch = '';
+    this.filters['patient_id'] = String(p.id);
+    this.onFilterChange();
+  }
+
+  clearPatientFilter(): void {
+    this.selectedPatient.set(null);
+    this.filters['patient_id'] = '';
+    this.onFilterChange();
   }
 
   loadAppointments(): void {
@@ -61,7 +95,12 @@ export class AppointmentsListComponent implements OnInit {
   }
 
   onFilterChange(): void { this.currentPage.set(1); this.loadAppointments(); }
-  clearFilters(): void { this.filters = { status: '', doctor_id: '', date_from: '', date_to: '' }; this.onFilterChange(); }
+  clearFilters(): void {
+    this.filters = { status: '', doctor_id: '', date_from: '', date_to: '' };
+    this.selectedPatient.set(null);
+    this.patientSearch = '';
+    this.onFilterChange();
+  }
   goToPage(p: number): void { this.currentPage.set(p); this.loadAppointments(); }
 
   updateStatus(appt: Appointment, status: string): void {

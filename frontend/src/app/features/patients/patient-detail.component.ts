@@ -1,13 +1,14 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
-import { PatientService, TreatmentService } from '../../core/services/api.service';
+import { PatientService, TreatmentService, AppointmentService } from '../../core/services/api.service';
 import { Patient, Appointment, Treatment, TreatmentPlan } from '../../core/models';
 import { OdontogramComponent } from './odontogram.component';
 import { TreatmentFormComponent } from '../treatments/treatment-form.component';
 import { TreatmentPlanFormComponent } from '../treatments/treatment-plan-form.component';
 import { TreatmentDetailComponent } from '../treatments/treatment-detail.component';
 import { MedicalHistoryComponent } from './medical-history.component';
+import { AppointmentFormComponent } from '../appointments/appointment-form.component';
 
 @Component({
   selector: 'app-patient-detail',
@@ -15,6 +16,7 @@ import { MedicalHistoryComponent } from './medical-history.component';
   imports: [
     CommonModule, RouterLink, OdontogramComponent,
     TreatmentFormComponent, TreatmentPlanFormComponent, TreatmentDetailComponent, MedicalHistoryComponent,
+    AppointmentFormComponent,
   ],
   templateUrl: './patient-detail.component.html',
   styleUrl: './patient-detail.component.css',
@@ -43,6 +45,10 @@ export class PatientDetailComponent implements OnInit {
   showTreatmentDetailModal = signal(false);
   selectedTreatmentId = signal<number | null>(null);
 
+  // Appointment edit modal (form delegated to <app-appointment-form embedded>)
+  showAppointmentModal = signal(false);
+  selectedAppointmentId = signal<number | null>(null);
+
   get tabs() {
     return [
       { key: 'odontogram', label: 'Odontograma' },
@@ -61,9 +67,13 @@ export class PatientDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private patientService: PatientService,
     private treatmentService: TreatmentService,
+    private apptService: AppointmentService,
   ) {}
 
   ngOnInit(): void {
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab) this.activeTab.set(tab);
+
     const id = +this.route.snapshot.paramMap.get('id')!;
     this.patientService.getHistory(id).subscribe({
       next: res => {
@@ -147,5 +157,24 @@ export class PatientDetailComponent implements OnInit {
     this.plans.update(list => [plan, ...list]);
     this.showPlanModal.set(false);
     this.activeTab.set('plans');
+  }
+
+  // ── Appointment status + edit modal ───────────────────────────────────────────
+  updateAppointmentStatus(appt: Appointment, status: string): void {
+    this.apptService.update(appt.id, { status: status as any }).subscribe({
+      next: res => {
+        this.appointments.update(list => list.map(a => a.id === appt.id ? res.appointment : a));
+      },
+    });
+  }
+
+  openAppointmentEdit(appt: Appointment): void {
+    this.selectedAppointmentId.set(appt.id);
+    this.showAppointmentModal.set(true);
+  }
+
+  onAppointmentSaved(appt: Appointment): void {
+    this.appointments.update(list => list.map(a => a.id === appt.id ? appt : a));
+    this.showAppointmentModal.set(false);
   }
 }

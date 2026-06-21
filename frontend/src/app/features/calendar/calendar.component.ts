@@ -1,6 +1,6 @@
 import { Component, OnInit, signal, computed, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   CalendarModule, CalendarView, CalendarEvent, DateAdapter,
   CalendarUtils, CalendarA11y, CalendarDateFormatter, CalendarEventTitleFormatter,
@@ -36,7 +36,7 @@ function toLocalIso(date: Date): string {
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [CommonModule, CalendarModule],
+  imports: [CommonModule, CalendarModule, RouterLink],
   providers: [
     { provide: DateAdapter, useFactory: adapterFactory },
     CalendarUtils,
@@ -51,7 +51,15 @@ export class CalendarComponent implements OnInit {
   /** When true: hides doctor legend, disables navigation to new-appointment page,
    *  and emits dateSelected instead of routing on slot click. */
   @Input() embedded = false;
+  /** When false, hides the internal page title/wrapper — for when a host page (e.g. the dashboard) already provides its own card chrome. Ignored when embedded. */
+  @Input() showHeader = true;
   @Output() dateSelected = new EventEmitter<string>();
+
+  /** Slot to highlight on the calendar as "currently being registered" (e.g. the appointment form's pending date/duration). */
+  @Input() set previewSlot(value: { start: Date; end: Date } | null) {
+    this.previewSlotSig.set(value);
+  }
+  private previewSlotSig = signal<{ start: Date; end: Date } | null>(null);
 
   CalendarView = CalendarView;
   view = signal<CalendarView>(CalendarView.Week);
@@ -69,7 +77,16 @@ export class CalendarComponent implements OnInit {
 
   filteredEvents = computed(() => {
     const selected = this.selectedDoctorIds();
-    return this.events().filter(e => selected.has(e.meta!.doctor_id));
+    const base = this.events().filter(e => selected.has(e.meta!.doctor_id));
+    const preview = this.previewSlotSig();
+    if (!preview) return base;
+    return [...base, {
+      start: preview.start,
+      end: preview.end,
+      title: 'Horario seleccionado',
+      color: { primary: '#38a169', secondary: '#c6f6d5' },
+      cssClass: 'appt-preview',
+    } as CalendarEvent<Appointment>];
   });
 
   rangeLabel = computed(() => {

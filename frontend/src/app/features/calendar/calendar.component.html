@@ -1,4 +1,20 @@
-<div class="calendar-card" [class.embedded]="embedded">
+<div [class.page]="!embedded && showHeader">
+  @if (!embedded && showHeader) {
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Calendario</h1>
+        <p class="page-subtitle">Agenda visual de citas por médico</p>
+      </div>
+      <a routerLink="/appointments/new" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nueva Cita
+      </a>
+    </div>
+  }
+
+  <div class="calendar-card" [class.embedded]="embedded" [class.bare]="!embedded && !showHeader">
   <div class="calendar-header">
     <div class="nav-controls">
       <button class="btn-icon" (click)="previous()" aria-label="Anterior">
@@ -32,7 +48,7 @@
     </div>
   }
 
-  <div class="calendar-body" [class.scrollable]="view() !== CalendarView.Month">
+  <div class="calendar-body scrollable">
     @switch (view()) {
       @case (CalendarView.Month) {
         <mwl-calendar-month-view
@@ -63,5 +79,6 @@
         </mwl-calendar-day-view>
       }
     }
+  </div>
   </div>
 </div>

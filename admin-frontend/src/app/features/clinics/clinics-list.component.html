@@ -1,0 +1,93 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Clínicas</h1>
+      <p class="page-subtitle">Clínicas (tenants) registradas en la plataforma</p>
+    </div>
+    <button class="btn btn-primary" (click)="toggleForm()">
+      {{ showForm() ? 'Cancelar' : '+ Nueva clínica' }}
+    </button>
+  </div>
+
+  @if (showForm()) {
+    <div class="card">
+      <h3 style="margin-bottom: 16px;">Crear clínica</h3>
+      @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
+      <form (ngSubmit)="onSubmit()">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre de la clínica</label>
+            <input type="text" name="name" [(ngModel)]="form.name" required />
+          </div>
+          <div class="form-group">
+            <label>Plan inicial</label>
+            <select name="tier" [(ngModel)]="form.subscription_tier_id">
+              <option [ngValue]="null">Sin asignar</option>
+              @for (t of tiers(); track t.id) {
+                <option [ngValue]="t.id">{{ t.name }} — {{ t.monthly_price }}/mes</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Email del administrador</label>
+            <input type="email" name="admin_email" [(ngModel)]="form.admin_email" required />
+          </div>
+          <div class="form-group">
+            <label>Contraseña del administrador</label>
+            <input type="password" name="admin_password" [(ngModel)]="form.admin_password" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre del administrador</label>
+            <input type="text" name="admin_first_name" [(ngModel)]="form.admin_first_name" />
+          </div>
+          <div class="form-group">
+            <label>Apellido del administrador</label>
+            <input type="text" name="admin_last_name" [(ngModel)]="form.admin_last_name" />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" [disabled]="saving()">
+          {{ saving() ? 'Creando...' : 'Crear clínica' }}
+        </button>
+      </form>
+    </div>
+  }
+
+  <div class="card">
+    @if (loading()) {
+      <p class="text-muted">Cargando...</p>
+    } @else if (clinics().length === 0) {
+      <div class="empty-state">No hay clínicas registradas.</div>
+    } @else {
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Clínica</th>
+              <th>Plan</th>
+              <th>Estado</th>
+              <th>Usuarios</th>
+              <th>Próximo pago</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of clinics(); track c.id) {
+              <tr>
+                <td>{{ c.name }}</td>
+                <td>{{ c.subscription_tier_name || '—' }}</td>
+                <td><span class="badge badge-{{ c.subscription_status }}">{{ c.subscription_status }}</span></td>
+                <td>{{ c.user_count }}</td>
+                <td>{{ formatDate(c.next_payment_due_at) }}</td>
+                <td><a [routerLink]="['/clinics', c.id]" class="btn btn-secondary">Ver</a></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

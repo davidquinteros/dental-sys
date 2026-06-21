@@ -1,14 +1,16 @@
-<div class="page">
-  <div class="page-header">
-    <div class="breadcrumb">
-      <a routerLink="/appointments" class="breadcrumb-link">Citas</a>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      <span>{{ isEdit() ? 'Editar Cita' : 'Nueva Cita' }}</span>
+<div [class.page]="!embedded">
+  @if (!embedded) {
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a routerLink="/appointments" class="breadcrumb-link">Citas</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        <span>{{ isEdit() ? 'Editar Cita' : 'Nueva Cita' }}</span>
+      </div>
+      <h1 class="page-title">{{ isEdit() ? 'Editar Cita' : 'Registrar Nueva Cita' }}</h1>
     </div>
-    <h1 class="page-title">{{ isEdit() ? 'Editar Cita' : 'Registrar Nueva Cita' }}</h1>
-  </div>
+  }
 
-  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-outer">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-outer" [class.embedded-form]="embedded">
 
     <!-- Left column: form -->
     <div class="form-col">
@@ -22,43 +24,45 @@
         </div>
         <div class="form-body">
 
-          <!-- Patient search + quick create -->
-          <div class="form-group">
-            <label>Paciente <span class="req">*</span></label>
-            <div class="patient-row">
-              <div class="search-select">
-                <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone: true}"
-                  (input)="onPatientSearch()" placeholder="Buscar paciente por nombre o C.I..."
-                  [disabled]="!!selectedPatient()"/>
-                @if (selectedPatient()) {
-                  <div class="selected-patient">
-                    <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
-                    <button type="button" (click)="clearPatient()">✕</button>
-                  </div>
-                }
-                @if (patientResults().length > 0 && !selectedPatient()) {
-                  <div class="dropdown">
-                    @for (p of patientResults(); track p.id) {
-                      <div class="dropdown-item" (click)="selectPatient(p)">
-                        <span class="drop-name">{{ p.full_name }}</span>
-                        <span class="drop-meta">{{ p.document_number }} · {{ p.phone }}</span>
-                      </div>
-                    }
-                  </div>
-                }
+          <!-- Patient search + quick create (hidden when embedded with a preset patient) -->
+          @if (!embedded) {
+            <div class="form-group">
+              <label>Paciente <span class="req">*</span></label>
+              <div class="patient-row">
+                <div class="search-select">
+                  <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone: true}"
+                    (input)="onPatientSearch()" placeholder="Buscar paciente por nombre o C.I..."
+                    [disabled]="!!selectedPatient()"/>
+                  @if (selectedPatient()) {
+                    <div class="selected-patient">
+                      <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
+                      <button type="button" (click)="clearPatient()">✕</button>
+                    </div>
+                  }
+                  @if (patientResults().length > 0 && !selectedPatient()) {
+                    <div class="dropdown">
+                      @for (p of patientResults(); track p.id) {
+                        <div class="dropdown-item" (click)="selectPatient(p)">
+                          <span class="drop-name">{{ p.full_name }}</span>
+                          <span class="drop-meta">{{ p.document_number }} · {{ p.phone }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+                <button type="button" class="btn-add-patient" (click)="openPatientModal()"
+                  title="Crear nuevo paciente rápidamente">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="19" y1="8" x2="19" y2="14"/>
+                    <line x1="16" y1="11" x2="22" y2="11"/>
+                  </svg>
+                  Nuevo
+                </button>
               </div>
-              <button type="button" class="btn-add-patient" (click)="openPatientModal()"
-                title="Crear nuevo paciente rápidamente">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <line x1="19" y1="8" x2="19" y2="14"/>
-                  <line x1="16" y1="11" x2="22" y2="11"/>
-                </svg>
-                Nuevo
-              </button>
             </div>
-          </div>
+          }
 
           <!-- Doctor + Consultorio row -->
           <div class="form-row">
@@ -169,7 +173,11 @@
       }
 
       <div class="form-actions">
-        <a routerLink="/appointments" class="btn btn-secondary">Cancelar</a>
+        @if (embedded) {
+          <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancelar</button>
+        } @else {
+          <a routerLink="/appointments" class="btn btn-secondary">Cancelar</a>
+        }
         <button type="submit" class="btn btn-primary" [disabled]="saving() || !selectedPatient()">
           @if (saving()) { <span class="spinner-sm"></span> }
           {{ isEdit() ? 'Actualizar Cita' : 'Registrar Cita' }}
@@ -177,20 +185,23 @@
       </div>
     </div>
 
-    <!-- Right column: embedded calendar -->
-    <div class="calendar-col">
-      <div class="calendar-col-header">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-          <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-        </svg>
-        Agenda del consultorio — haz clic en un horario para seleccionarlo
+    <!-- Right column: embedded calendar (hidden in modal/embedded mode) -->
+    @if (!embedded) {
+      <div class="calendar-col">
+        <div class="calendar-col-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Agenda del consultorio — haz clic en un horario para seleccionarlo
+        </div>
+        <app-calendar
+          [embedded]="true"
+          [previewSlot]="previewSlot()"
+          (dateSelected)="onCalendarDateSelected($event)">
+        </app-calendar>
       </div>
-      <app-calendar
-        [embedded]="true"
-        (dateSelected)="onCalendarDateSelected($event)">
-      </app-calendar>
-    </div>
+    }
 
   </form>
 </div>

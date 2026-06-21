@@ -1,0 +1,68 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle">Resumen general de la plataforma</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="text-muted">Cargando...</p>
+  } @else if (stats()) {
+    <div class="stat-cards">
+      <div class="stat-card">
+        <span class="stat-label">Clínicas totales</span>
+        <span class="stat-value">{{ stats()!.total_clinics }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Activas</span>
+        <span class="stat-value">{{ stats()!.clinics_by_status.active }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">En prueba</span>
+        <span class="stat-value">{{ stats()!.clinics_by_status.trial }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Vencidas / suspendidas</span>
+        <span class="stat-value">{{ stats()!.clinics_by_status.past_due + stats()!.clinics_by_status.suspended }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Usuarios totales</span>
+        <span class="stat-value">{{ stats()!.total_users }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Ingresos del mes</span>
+        <span class="stat-value">{{ formatCurrency(stats()!.revenue_this_month) }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Ingresos totales registrados</span>
+        <span class="stat-value">{{ formatCurrency(stats()!.total_revenue) }}</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 12px;">Clínicas con pago vencido</h3>
+      @if (stats()!.overdue_clinics.length === 0) {
+        <p class="text-muted">No hay clínicas con pagos vencidos.</p>
+      } @else {
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr><th>Clínica</th><th>Estado</th><th>Vencimiento</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (c of stats()!.overdue_clinics; track c.id) {
+                <tr>
+                  <td>{{ c.name }}</td>
+                  <td><span class="badge badge-{{ c.subscription_status }}">{{ c.subscription_status }}</span></td>
+                  <td>{{ formatDate(c.next_payment_due_at) }}</td>
+                  <td><a [routerLink]="['/clinics', c.id]" class="btn btn-secondary">Ver</a></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+</div>

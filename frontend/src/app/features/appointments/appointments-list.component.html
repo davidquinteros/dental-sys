@@ -15,6 +15,30 @@
   <!-- Filters -->
   <div class="filters-bar">
     <div class="filter-group">
+      <label>Paciente</label>
+      <div class="patient-search-box">
+        @if (selectedPatient()) {
+          <div class="selected-chip">
+            <span>{{ selectedPatient()!.full_name }}</span>
+            <button type="button" (click)="clearPatientFilter()">✕</button>
+          </div>
+        } @else {
+          <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone: true}"
+            (input)="onPatientSearch()" placeholder="Buscar por nombre o C.I..."/>
+          @if (patientResults().length > 0) {
+            <div class="dropdown">
+              @for (p of patientResults(); track p.id) {
+                <div class="dropdown-item" (click)="selectPatient(p)">
+                  <span class="drop-name">{{ p.full_name }}</span>
+                  <span class="drop-meta">{{ p.document_number }}</span>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+    </div>
+    <div class="filter-group">
       <label>Estado</label>
       <select [(ngModel)]="filters.status" (ngModelChange)="onFilterChange()">
         <option value="">Todos</option>
@@ -136,7 +160,7 @@
               </td>
               <td>
                 <div class="row-actions">
-                  <a [routerLink]="['/appointments', appt.id]" class="action-btn" title="Ver detalle">
+                  <a [routerLink]="['/patients', appt.patient_id]" [queryParams]="{ tab: 'appointments' }" class="action-btn" title="Ver citas del paciente">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                       <circle cx="12" cy="12" r="3"/>

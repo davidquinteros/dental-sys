@@ -429,11 +429,14 @@ def seed_demo_clinic_b():
 
 
 def create_clinic(name: str, admin_email: str, admin_password: str,
-                   admin_first_name: str, admin_last_name: str) -> "Clinic":
+                   admin_first_name: str, admin_last_name: str,
+                   subscription_tier_id: int | None = None) -> "Clinic":
     """Onboard a new clinic: the clinic row, its pages/permissions/appointment
     types (same defaults as any clinic), and its first admin user. No demo
     data — that's only for the bundled seed clinic."""
     from app.models.clinic import Clinic
+    from app.models.subscription import SubscriptionStatus
+    from datetime import datetime, timedelta
     import re
 
     _bypass_rls()
@@ -444,7 +447,12 @@ def create_clinic(name: str, admin_email: str, admin_password: str,
         n += 1
         slug = f"{base_slug}-{n}"
 
-    clinic = Clinic(name=name, slug=slug)
+    clinic = Clinic(
+        name=name, slug=slug,
+        subscription_tier_id=subscription_tier_id,
+        subscription_status=SubscriptionStatus.TRIAL,
+        trial_ends_at=datetime.utcnow() + timedelta(days=14),
+    )
     db.session.add(clinic)
     db.session.flush()  # get clinic.id
 
@@ -469,6 +477,48 @@ def create_clinic(name: str, admin_email: str, admin_password: str,
     return clinic
 
 
+def create_platform_admin(email: str, password: str, first_name: str, last_name: str) -> "User":
+    """Bootstrap a platform-admin user (the SaaS operator, not a clinic admin).
+    Not clinic-scoped: clinic_id stays None, same as how resolve_request_clinic
+    recognizes is_platform_admin users at request time."""
+    _bypass_rls()
+    email = email.strip().lower()
+    if User.query.filter_by(email=email).execution_options(skip_clinic_filter=True).first():
+        raise ValueError(f"El email '{email}' ya está registrado")
+
+    admin = User(
+        clinic_id=None,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        role=UserRole.ADMIN,
+        is_platform_admin=True,
+    )
+    admin.set_password(password)
+    db.session.add(admin)
+    db.session.commit()
+    return admin
+
+
+def seed_subscription_tiers():
+    """Idempotent: default SaaS plan tiers, looked up by `code`."""
+    from app.models.subscription import SubscriptionTier
+
+    _bypass_rls()
+    defaults = [
+        dict(name="Básico", code="basico", monthly_price=29, max_users=3,
+             description="Hasta 3 usuarios. Ideal para consultorios pequeños."),
+        dict(name="Profesional", code="profesional", monthly_price=59, max_users=10,
+             description="Hasta 10 usuarios. Incluye calendario y odontograma."),
+        dict(name="Premium", code="premium", monthly_price=99, max_users=None,
+             description="Usuarios ilimitados y soporte prioritario."),
+    ]
+    for tier in defaults:
+        if not SubscriptionTier.query.filter_by(code=tier["code"]).first():
+            db.session.add(SubscriptionTier(**tier))
+    db.session.commit()
+
+
 def register_seed_command(app):
     @app.cli.command("seed")
     def seed_command():
@@ -476,6 +526,22 @@ def register_seed_command(app):
         with app.app_context():
             seed_db()
             seed_demo_clinic_b()
+            seed_subscription_tiers()
+
+    @app.cli.command("create-platform-admin")
+    @click.option("--email", required=True, help="Platform admin's email")
+    @click.option("--password", required=True, help="Platform admin's password")
+    @click.option("--first-name", default="Admin", help="Platform admin's first name")
+    @click.option("--last-name", default="Plataforma", help="Platform admin's last name")
+    def create_platform_admin_command(email, password, first_name, last_name):
+        """Bootstrap a platform-admin user (the SaaS operator)"""
+        with app.app_context():
+            try:
+                admin = create_platform_admin(email, password, first_name, last_name)
+            except ValueError as e:
+                print(f"  ✗ {e}")
+                return
+            print(f"  ✓ Platform admin created: {admin.email}")
 
     @app.cli.command("create-clinic")
     @click.option("--name", required=True, help="Clinic display name")

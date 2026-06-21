@@ -364,7 +364,7 @@ def update_appointment(appt_id):
       - Citas
     security:
       - BearerAuth: []
-    description: No se puede modificar una cita que ya está completada o cancelada.
+    description: El estado siempre puede modificarse; los demás campos no son editables si la cita ya está completada o cancelada.
     parameters:
       - in: path
         name: appt_id
@@ -405,7 +405,7 @@ def update_appointment(appt_id):
             message:
               type: string
       400:
-        description: Cita completada/cancelada no modificable, fecha o estado inválido
+        description: Campo no editable en cita completada/cancelada, fecha o estado inválido
         schema:
           $ref: '#/definitions/Error'
       401:
@@ -429,7 +429,11 @@ def update_appointment(appt_id):
     appt = Appointment.query.get_or_404(appt_id, description="Cita no encontrada")
     data = request.get_json()
 
-    if appt.status in [AppointmentStatus.COMPLETED, AppointmentStatus.CANCELLED]:
+    # El estado (y su motivo de cancelación) siempre puede cambiarse; el resto de
+    # los campos quedan congelados una vez que la cita está completada/cancelada.
+    locked = appt.status in [AppointmentStatus.COMPLETED, AppointmentStatus.CANCELLED]
+    editable_fields = {"scheduled_at", "consultorio_id", "duration_minutes", "reason", "notes", "session_number"}
+    if locked and editable_fields.intersection(data.keys()):
         return jsonify({"error": "No se puede modificar una cita completada o cancelada"}), 400
 
     if "scheduled_at" in data:
@@ -456,8 +460,7 @@ def update_appointment(appt_id):
         try:
             new_status = AppointmentStatus(data["status"])
             appt.status = new_status
-            if new_status == AppointmentStatus.COMPLETED:
-                appt.completed_at = local_now()
+            appt.completed_at = local_now() if new_status == AppointmentStatus.COMPLETED else None
         except ValueError:
             return jsonify({"error": "Estado inválido"}), 400
 

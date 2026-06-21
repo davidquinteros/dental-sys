@@ -65,16 +65,18 @@
 .col-date { width: 100px; }
 .cell-date { display: block; font-weight: 500; color: #2d3748; }
 .cell-doctor { display: block; font-size: 11px; color: #a0aec0; margin-top: 2px; }
-.col-actions { width: 48px; text-align: center; }
+.col-actions { width: 80px; text-align: center; }
+.row-actions { display: flex; gap: 6px; align-items: center; justify-content: center; }
 .icon-btn {
   width: 30px; height: 30px; border-radius: 8px; border: none; background: #f7fafc;
   color: #718096; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
+  transition: all 0.15s; text-decoration: none;
 }
 .icon-btn svg { width: 15px; height: 15px; }
 .icon-btn:hover { background: #ebf8ff; color: #2b6cb0; }
 
 .status-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+.status-select { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; border: none; cursor: pointer; outline: none; }
 .status-scheduled { background: #ebf8ff; color: #2b6cb0; }
 .status-confirmed { background: #e6fffa; color: #319795; }
 .status-completed { background: #f0fff4; color: #276749; }

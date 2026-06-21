@@ -12,6 +12,7 @@
   gap: 24px;
   align-items: start;
 }
+.form-outer.embedded-form { grid-template-columns: 1fr; }
 
 /* Left column */
 .form-col { display: flex; flex-direction: column; gap: 16px; }

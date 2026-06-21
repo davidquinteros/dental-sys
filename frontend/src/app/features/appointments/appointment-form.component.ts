@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
@@ -7,7 +7,7 @@ import {
   ConsultorioService, AppointmentTypeService,
 } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Patient, User, Consultorio, AppointmentTypeItem } from '../../core/models';
+import { Appointment, Patient, User, Consultorio, AppointmentTypeItem } from '../../core/models';
 import { CalendarComponent } from '../calendar/calendar.component';
 
 @Component({
@@ -18,6 +18,15 @@ import { CalendarComponent } from '../calendar/calendar.component';
   styleUrl: './appointment-form.component.css',
 })
 export class AppointmentFormComponent implements OnInit {
+  /** When true, renders without page chrome (and calendar picker) and emits (saved)/(cancelled) instead of navigating. */
+  @Input() embedded = false;
+  /** Pre-selected patient for embedded mode (skips the patient search card). */
+  @Input() presetPatient: Patient | null = null;
+  /** Appointment to edit in embedded mode (omit for creating a new one). */
+  @Input() appointmentId: number | null = null;
+  @Output() saved = new EventEmitter<Appointment>();
+  @Output() cancelled = new EventEmitter<void>();
+
   form: FormGroup;
   isEdit = signal(false);
   saving = signal(false);
@@ -34,6 +43,9 @@ export class AppointmentFormComponent implements OnInit {
   isAvailable         = signal(true);
   consultorioAvailabilityChecked = signal(false);
   isConsultorioAvailable         = signal(true);
+
+  /** Mirrors the form's current date/duration so the embedded calendar can highlight it. */
+  previewSlot = signal<{ start: Date; end: Date } | null>(null);
 
   // Patient quick-create modal
   showPatientModal   = signal(false);
@@ -73,6 +85,20 @@ export class AppointmentFormComponent implements OnInit {
     this.consultorioService.getAll().subscribe(res => this.consultorios.set(res.consultorios));
     this.apptTypeService.getAll().subscribe(res => this.appointmentTypes.set(res.appointment_types));
 
+    if (this.embedded) {
+      if (this.presetPatient) this.selectedPatient.set(this.presetPatient);
+      if (this.appointmentId) {
+        this.isEdit.set(true);
+        this.apptId = this.appointmentId;
+        this.loadAppointment(this.apptId);
+      }
+      if (this.auth.isDoctor()) {
+        const me = this.auth.currentUser();
+        if (me) this.form.patchValue({ doctor_id: me.id });
+      }
+      return;
+    }
+
     const patientId = this.route.snapshot.queryParamMap.get('patient_id');
     if (patientId) {
       this.patientService.getById(+patientId).subscribe(res => this.selectedPatient.set(res.patient));
@@ -87,27 +113,34 @@ export class AppointmentFormComponent implements OnInit {
     if (id && id !== 'new') {
       this.isEdit.set(true);
       this.apptId = +id;
-      this.apptService.getById(this.apptId).subscribe({
-        next: res => {
-          const a = res.appointment;
-          this.form.patchValue({
-            doctor_id:        a.doctor_id,
-            consultorio_id:   a.consultorio_id ?? '',
-            scheduled_at:     a.scheduled_at.substring(0, 16),
-            duration_minutes: a.duration_minutes,
-            appointment_type: a.appointment_type,
-            reason:           a.reason,
-            notes:            a.notes,
-          });
-          this.patientService.getById(a.patient_id).subscribe(pr => this.selectedPatient.set(pr.patient));
-        },
-      });
+      this.loadAppointment(this.apptId, true);
     }
 
     if (this.auth.isDoctor()) {
       const me = this.auth.currentUser();
       if (me) this.form.patchValue({ doctor_id: me.id });
     }
+  }
+
+  private loadAppointment(id: number, fetchPatient = false): void {
+    this.apptService.getById(id).subscribe({
+      next: res => {
+        const a = res.appointment;
+        this.form.patchValue({
+          doctor_id:        a.doctor_id,
+          consultorio_id:   a.consultorio_id ?? '',
+          scheduled_at:     a.scheduled_at.substring(0, 16),
+          duration_minutes: a.duration_minutes,
+          appointment_type: a.appointment_type,
+          reason:           a.reason,
+          notes:            a.notes,
+        });
+        if (fetchPatient) {
+          this.patientService.getById(a.patient_id).subscribe(pr => this.selectedPatient.set(pr.patient));
+        }
+        this.updatePreviewSlot();
+      },
+    });
   }
 
   // ── Patient search ───────────────────────────────────────────────────────────
@@ -173,7 +206,17 @@ export class AppointmentFormComponent implements OnInit {
   onDateChange(): void   { this.checkAvailability(); }
   onConsultorioChange(): void { this.checkConsultorioAvailability(); }
 
+  /** Updates the highlighted slot on the embedded calendar to match the form's current date/duration. */
+  updatePreviewSlot(): void {
+    const date = this.form.get('scheduled_at')?.value;
+    if (!date) { this.previewSlot.set(null); return; }
+    const start = new Date(date);
+    const duration = this.form.get('duration_minutes')?.value || 30;
+    this.previewSlot.set({ start, end: new Date(start.getTime() + duration * 60000) });
+  }
+
   checkAvailability(): void {
+    this.updatePreviewSlot();
     const doctorId = this.form.get('doctor_id')?.value;
     const date     = this.form.get('scheduled_at')?.value;
     if (!doctorId || !date) { this.availabilityChecked.set(false); return; }
@@ -249,11 +292,22 @@ export class AppointmentFormComponent implements OnInit {
       ? this.apptService.update(this.apptId!, payload)
       : this.apptService.create(payload);
     req.subscribe({
-      next: () => this.router.navigate(['/appointments']),
+      next: res => {
+        if (this.embedded) {
+          this.saving.set(false);
+          this.saved.emit(res.appointment);
+        } else {
+          this.router.navigate(['/appointments']);
+        }
+      },
       error: err => {
         this.errorMsg.set(err.error?.error || 'Error al guardar la cita');
         this.saving.set(false);
       },
     });
+  }
+
+  onCancel(): void {
+    if (this.embedded) this.cancelled.emit();
   }
 }

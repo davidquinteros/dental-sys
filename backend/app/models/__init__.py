@@ -1,3 +1,4 @@
+from app.models.subscription import SubscriptionTier, SubscriptionPayment, SubscriptionStatus
 from app.models.clinic import Clinic
 from app.models.user import User, UserRole
 from app.models.patient import Patient, BloodType
@@ -9,6 +10,7 @@ from app.models.billing import Invoice, InvoiceItem, Payment, PaymentPlan, Invoi
 from app.models.permission import Page, RolePermission
 
 __all__ = [
+    "SubscriptionTier", "SubscriptionPayment", "SubscriptionStatus",
     "Clinic",
     "User", "UserRole",
     "Patient", "BloodType",
