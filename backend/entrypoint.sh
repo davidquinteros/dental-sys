@@ -18,9 +18,6 @@ echo "Aplicando migraciones..."
 # safe to deploy before the migrations role exists elsewhere.
 DATABASE_URL="${MIGRATIONS_DATABASE_URL:-$DATABASE_URL}" flask db upgrade
 
-echo "Cargando datos iniciales (seed)..."
-flask seed
-
 echo "Iniciando servidor con gunicorn..."
 # gthread workers: each worker keeps its own SQLAlchemy connection pool, and
 # threads within a worker share it, so total Postgres connections used here

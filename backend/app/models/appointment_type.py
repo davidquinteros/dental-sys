@@ -2,17 +2,11 @@ from app import db
 from datetime import datetime
 
 BUILTIN_TYPES = [
-    {'key': 'consultation', 'label': 'Consulta General',          'color': '#4299e1', 'sort_order': 10},
-    {'key': 'cleaning',     'label': 'Limpieza Dental',           'color': '#319795', 'sort_order': 20},
-    {'key': 'extraction',   'label': 'Extracción',                'color': '#e53e3e', 'sort_order': 30},
-    {'key': 'filling',      'label': 'Empaste / Obturación',      'color': '#dd6b20', 'sort_order': 40},
-    {'key': 'endodontics',  'label': 'Endodoncia',                'color': '#805ad5', 'sort_order': 50},
-    {'key': 'orthodontics', 'label': 'Ortodoncia',                'color': '#38a169', 'sort_order': 60},
-    {'key': 'implant',      'label': 'Implante',                  'color': '#2b6cb0', 'sort_order': 70},
-    {'key': 'whitening',    'label': 'Blanqueamiento',            'color': '#d69e2e', 'sort_order': 80},
-    {'key': 'crown',        'label': 'Corona',                    'color': '#b7791f', 'sort_order': 90},
-    {'key': 'followup',     'label': 'Seguimiento de Tratamiento','color': '#718096', 'sort_order': 100},
-    {'key': 'other',        'label': 'Otro',                      'color': '#a0aec0', 'sort_order': 110},
+    {'key': 'consulta_general', 'label': 'Consulta General', 'color': '#4299e1', 'sort_order': 10},
+    {'key': 'limpieza_dental',  'label': 'Limpieza Dental',  'color': '#319795', 'sort_order': 20},
+    {'key': 'extraccion',       'label': 'Extracción',       'color': '#e53e3e', 'sort_order': 30},
+    {'key': 'blanqueamiento',   'label': 'Blanqueamiento',   'color': '#d69e2e', 'sort_order': 40},
+    {'key': 'corona',           'label': 'Corona',           'color': '#b7791f', 'sort_order': 50},
 ]
 
 

@@ -79,11 +79,11 @@ export class DashboardComponent implements OnInit {
 
   appointmentTypeLabel(type: string): string {
     const labels: Record<string, string> = {
-      consultation: 'Consulta general', cleaning: 'Limpieza dental',
-      extraction: 'Extracción', filling: 'Empaste',
+      consulta_general: 'Consulta general', limpieza_dental: 'Limpieza dental',
+      extraccion: 'Extracción', filling: 'Empaste',
       endodontics: 'Endodoncia', orthodontics: 'Ortodoncia',
-      implant: 'Implante', whitening: 'Blanqueamiento',
-      crown: 'Corona', followup: 'Seguimiento', other: 'Otro',
+      implant: 'Implante', blanqueamiento: 'Blanqueamiento',
+      corona: 'Corona', followup: 'Seguimiento', other: 'Otro',
     };
     return labels[type] ?? type;
   }

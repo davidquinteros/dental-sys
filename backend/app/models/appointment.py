@@ -38,7 +38,7 @@ class Appointment(db.Model):
     # Scheduling
     scheduled_at = db.Column(db.DateTime, nullable=False, index=True)
     duration_minutes = db.Column(db.Integer, default=30, nullable=False)
-    appointment_type = db.Column(db.String(100), nullable=False, default="consultation")
+    appointment_type = db.Column(db.String(100), nullable=False, default="consulta_general")
     status = db.Column(db.Enum(AppointmentStatus), nullable=False, default=AppointmentStatus.SCHEDULED, index=True)
 
     # Consultorio (room) where the appointment takes place

@@ -129,9 +129,9 @@ export class AppointmentsListComponent implements OnInit {
 
   typeLabel(t: string): string {
     const m: Record<string, string> = {
-      consultation: 'Consulta', cleaning: 'Limpieza', extraction: 'Extracción',
+      consulta_general: 'Consulta', limpieza_dental: 'Limpieza', extraccion: 'Extracción',
       filling: 'Empaste', endodontics: 'Endodoncia', orthodontics: 'Ortodoncia',
-      implant: 'Implante', whitening: 'Blanqueamiento', crown: 'Corona',
+      implant: 'Implante', blanqueamiento: 'Blanqueamiento', corona: 'Corona',
       followup: 'Seguimiento', other: 'Otro',
     };
     return m[t] ?? t;

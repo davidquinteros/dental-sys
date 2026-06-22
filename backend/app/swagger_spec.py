@@ -133,12 +133,8 @@ SWAGGER_TEMPLATE = {
                 "duration_minutes": {"type": "integer", "example": 30},
                 "appointment_type": {
                     "type": "string",
-                    "enum": [
-                        "consultation", "cleaning", "extraction", "filling",
-                        "endodontics", "orthodontics", "implant", "whitening",
-                        "crown", "followup", "other",
-                    ],
-                    "example": "consultation",
+                    "description": "Key del catálogo de tipos de cita de la clínica (administrable, ver /api/appointment-types)",
+                    "example": "consulta_general",
                 },
                 "status": {
                     "type": "string",

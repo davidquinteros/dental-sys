@@ -70,11 +70,6 @@ export type AppointmentStatus =
   | 'scheduled' | 'confirmed' | 'in_progress'
   | 'completed' | 'cancelled' | 'no_show';
 
-export type AppointmentType =
-  | 'consultation' | 'cleaning' | 'extraction' | 'filling'
-  | 'endodontics' | 'orthodontics' | 'implant' | 'whitening'
-  | 'crown' | 'followup' | 'other';
-
 // ─── Appointment Type Catalog ──────────────────────────────────────────────────
 export interface AppointmentTypeItem {
   id: number;
@@ -105,7 +100,7 @@ export interface Appointment {
   created_by_id: number;
   scheduled_at: string;
   duration_minutes: number;
-  appointment_type: AppointmentType;
+  appointment_type: string;
   status: AppointmentStatus;
   treatment_plan_id?: number;
   session_number?: number;
