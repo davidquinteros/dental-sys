@@ -21,4 +21,14 @@ export const BILLING_ROUTES: Routes = [
     loadComponent: () =>
       import('./payment-plan-form.component').then(m => m.PaymentPlanFormComponent),
   },
+  {
+    path: 'payment-plans/:id',
+    loadComponent: () =>
+      import('./payment-plan-detail.component').then(m => m.PaymentPlanDetailComponent),
+  },
+  {
+    path: 'payment-plans/:id/edit',
+    loadComponent: () =>
+      import('./payment-plan-form.component').then(m => m.PaymentPlanFormComponent),
+  },
 ];

@@ -49,10 +49,20 @@ function toLocalIso(date: Date): string {
 })
 export class CalendarComponent implements OnInit {
   /** When true: hides doctor legend, disables navigation to new-appointment page,
-   *  and emits dateSelected instead of routing on slot click. */
-  @Input() embedded = false;
-  /** When false, hides the internal page title/wrapper — for when a host page (e.g. the dashboard) already provides its own card chrome. Ignored when embedded. */
-  @Input() showHeader = true;
+   *  and emits dateSelected instead of routing on slot click.
+   *  Setter falls back to the default on `undefined`/`null` because this component is also
+   *  routed directly (the `/calendar` page) — Angular's `withComponentInputBinding` calls
+   *  `setInput()` with `undefined` for every declared @Input with no matching route
+   *  data/param/queryParam, which would otherwise clobber the field initializer below. */
+  private _embedded = false;
+  @Input() set embedded(value: boolean) { this._embedded = value ?? false; }
+  get embedded(): boolean { return this._embedded; }
+
+  /** When false, hides the internal page title/wrapper — for when a host page (e.g. the dashboard) already provides its own card chrome. Ignored when embedded. Same undefined-fallback reason as `embedded` above. */
+  private _showHeader = true;
+  @Input() set showHeader(value: boolean) { this._showHeader = value ?? true; }
+  get showHeader(): boolean { return this._showHeader; }
+
   @Output() dateSelected = new EventEmitter<string>();
 
   /** Slot to highlight on the calendar as "currently being registered" (e.g. the appointment form's pending date/duration). */

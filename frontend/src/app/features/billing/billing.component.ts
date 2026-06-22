@@ -1,14 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { BillingService } from '../../core/services/api.service';
 import { Invoice, PaymentPlan } from '../../core/models';
 
 @Component({
   selector: 'app-billing',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './billing.component.html',
   styleUrl: './billing.component.css',
 })
@@ -25,7 +24,7 @@ export class BillingComponent implements OnInit {
     { value: '', label: 'Todas' },
     { value: 'pending', label: 'Pendientes' },
     { value: 'paid', label: 'Pagadas' },
-    { value: 'overdue', label: 'Vencidas' },
+    { value: 'cancelled', label: 'Cancelada' },
   ];
 
   constructor(private billingService: BillingService) {}
@@ -56,15 +55,6 @@ export class BillingComponent implements OnInit {
   filteredInvoices() { return this.invoices(); }
 
   activePlans(): number { return this.paymentPlans().filter(p => p.status === 'active').length; }
-
-  registerInstallment(plan: PaymentPlan): void {
-    this.billingService.registerInstallment(plan.id).subscribe({
-      next: res => {
-        this.paymentPlans.update(list => list.map(p => p.id === plan.id ? res.payment_plan : p));
-        this.billingService.getSummary().subscribe(s => this.summary.set(s));
-      },
-    });
-  }
 
   formatMoney(val?: number | null): string {
     if (val === undefined || val === null) return '0';

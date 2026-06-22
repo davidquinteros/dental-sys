@@ -166,7 +166,8 @@ export interface TreatmentPlan {
 
 // ─── Billing Models ────────────────────────────────────────────────────────────
 export type InvoiceStatus = 'pending' | 'paid' | 'cancelled' | 'overdue';
-export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'other';
+// card/transfer/other are legacy values on existing payments; new payments only offer cash/qr.
+export type PaymentMethod = 'cash' | 'qr' | 'card' | 'transfer' | 'other';
 
 export interface InvoiceItem {
   id?: number;
@@ -194,6 +195,15 @@ export interface Invoice {
   created_at: string;
 }
 
+export interface PaymentPlanInstallment {
+  id: number | null;
+  payment_plan_id: number;
+  amount: number;
+  notes?: string;
+  payment_date: string;
+  received_by?: string;
+}
+
 export interface Payment {
   id: number;
   invoice_id: number;
@@ -210,6 +220,7 @@ export interface PaymentPlan {
   patient_id: number;
   patient_name: string;
   treatment_plan_id: number;
+  treatment_plan_name?: string;
   name: string;
   total_amount: number;
   down_payment: number;

@@ -153,7 +153,7 @@
                 @if (appt.has_invoice) {
                   <span class="pill green">Facturada</span>
                 } @else if (appt.status === 'completed') {
-                  <a [routerLink]="['/billing/invoices/new']" [queryParams]="{ appointment_id: appt.id }" class="pill blue clickable">+ Cobrar</a>
+                  <a [routerLink]="['/billing/invoices/new']" [queryParams]="{ appointment_id: appt.id, patient_id: appt.patient_id }" class="pill blue clickable">+ Cobrar</a>
                 } @else {
                   <span class="text-muted">—</span>
                 }

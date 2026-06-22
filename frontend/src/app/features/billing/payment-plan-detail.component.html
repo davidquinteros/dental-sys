@@ -1,0 +1,136 @@
+<div class="page">
+  @if (loading()) {
+    <div class="loading-center"><div class="spinner-lg"></div></div>
+  } @else if (plan()) {
+    <div class="breadcrumb">
+      <a routerLink="/billing" class="breadcrumb-link">Cobros</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span>{{ plan()!.name }}</span>
+    </div>
+
+    <div class="header-row">
+      <div>
+        <h1 class="page-title">{{ plan()!.name }}</h1>
+        <p class="sub">Paciente: {{ plan()!.patient_name }} · {{ formatDate(plan()!.created_at) }}</p>
+      </div>
+      <div class="header-actions">
+        @if (plan()!.status === 'active') {
+          <a [routerLink]="['/billing/payment-plans', plan()!.id, 'edit']" class="btn-edit-plan">Editar</a>
+        }
+        <span class="status-badge big" [class]="'pstatus-' + plan()!.status">{{ statusLabel(plan()!.status) }}</span>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="main-col">
+        <div class="card">
+          <div class="card-header"><h3>Detalle del Plan</h3></div>
+          <div class="info-body">
+            <div class="m-row">
+              <span class="ml">Paciente</span>
+              <a [routerLink]="['/patients', plan()!.patient_id]" class="link">{{ plan()!.patient_name }}</a>
+            </div>
+            <div class="m-row">
+              <span class="ml">Plan de Tratamiento</span>
+              <a [routerLink]="['/treatments/plans', plan()!.treatment_plan_id]" class="link">{{ plan()!.treatment_plan_name || ('#' + plan()!.treatment_plan_id) }}</a>
+            </div>
+            <div class="m-row">
+              <span class="ml">Fecha de Inicio</span>
+              <span>{{ formatDate(plan()!.start_date) }}</span>
+            </div>
+            @if (plan()!.notes) {
+              <div class="m-row col">
+                <span class="ml">Notas</span>
+                <span class="note-txt">{{ plan()!.notes }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="amounts-row">
+            <div class="amount-item">
+              <span class="a-label">Total</span>
+              <span class="a-val">Bs {{ formatMoney(plan()!.total_amount) }}</span>
+            </div>
+            <div class="amount-item">
+              <span class="a-label">Pago Inicial</span>
+              <span class="a-val">Bs {{ formatMoney(plan()!.down_payment) }}</span>
+            </div>
+            <div class="amount-item">
+              <span class="a-label">Cuota de Referencia</span>
+              <span class="a-val">Bs {{ formatMoney(plan()!.installment_amount) }}</span>
+            </div>
+          </div>
+
+          <div class="totals">
+            <div class="t-row"><span>Pagado</span><span class="green">Bs {{ formatMoney(plan()!.total_paid) }}</span></div>
+            <div class="t-row balance" [class.has-balance]="plan()!.balance > 0">
+              <span>Saldo Pendiente</span><span [class.red]="plan()!.balance > 0">Bs {{ formatMoney(plan()!.balance) }}</span>
+            </div>
+          </div>
+
+          <div class="progress-section">
+            <div class="progress-bar"><div class="progress-fill" [style.width]="plan()!.progress_percentage + '%'"></div></div>
+            <span class="prog-txt">{{ plan()!.paid_installments }}/{{ plan()!.installments }} cuotas registradas · {{ plan()!.progress_percentage }}%</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Historial de Pagos</h3></div>
+          @if (loadingInstallments()) {
+            <div class="loading-center small"><div class="spinner-lg"></div></div>
+          } @else if (installments().length === 0) {
+            <div class="empty-history">Aún no se registraron pagos.</div>
+          } @else {
+            <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr><th>Fecha</th><th>Monto</th><th>Registrado por</th><th>Notas</th></tr>
+              </thead>
+              <tbody>
+                @for (item of installments(); track item.id) {
+                  <tr>
+                    <td>{{ formatDate(item.payment_date) }}</td>
+                    <td class="money">Bs {{ formatMoney(item.amount) }}</td>
+                    <td>{{ item.received_by || '—' }}</td>
+                    <td class="text-muted">{{ item.notes || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="side-col">
+        @if (plan()!.balance > 0 && plan()!.status === 'active') {
+          <div class="payment-panel">
+            <h4>Registrar Pago de Cuota</h4>
+            <div class="pay-form">
+              <div class="form-group">
+                <label>Monto a Pagar (Bs)</label>
+                <input type="number" min="0.01" [max]="plan()!.balance" step="0.01" [(ngModel)]="payAmount"/>
+                <span class="hint">El paciente puede pagar el monto que desee, hasta el saldo pendiente (Bs {{ formatMoney(plan()!.balance) }}).</span>
+              </div>
+              <button class="pay-btn" (click)="registerPayment()" [disabled]="paying() || !payAmount || payAmount <= 0">
+                @if (paying()) { <span class="spinner-sm"></span> }
+                Registrar Pago
+              </button>
+              @if (payError()) { <p class="pay-error">{{ payError() }}</p> }
+            </div>
+          </div>
+        }
+
+        @if (plan()!.status === 'completed') {
+          <div class="paid-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span>Plan de pago completado</span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

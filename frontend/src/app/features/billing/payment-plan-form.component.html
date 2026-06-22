@@ -3,61 +3,75 @@
     <div class="breadcrumb">
       <a routerLink="/billing" class="breadcrumb-link">Cobros</a>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      <span>Nuevo Plan de Pago</span>
+      <span>{{ isEditMode() ? 'Editar Plan de Pago' : 'Nuevo Plan de Pago' }}</span>
     </div>
-    <h1 class="page-title">Crear Plan de Pago</h1>
+    <h1 class="page-title">{{ isEditMode() ? 'Editar Plan de Pago' : 'Crear Plan de Pago' }}</h1>
   </div>
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
     <div class="form-card">
       <div class="form-card-header">Paciente y Tratamiento</div>
       <div class="form-body">
-        <!-- Patient search -->
-        <div class="form-group">
-          <label>Paciente <span class="req">*</span></label>
-          <div class="search-select">
-            <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone:true}"
-              (input)="onPatientSearch()" placeholder="Buscar paciente..." [disabled]="!!selectedPatient()"/>
-            @if (selectedPatient()) {
-              <div class="selected-item">
-                <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
-                <button type="button" (click)="clearPatient()">✕</button>
-              </div>
-            }
-            @if (patientResults().length > 0 && !selectedPatient()) {
-              <div class="dropdown">
-                @for (p of patientResults(); track p.id) {
-                  <div class="dropdown-item" (click)="selectPatient(p)">
-                    <span class="dn">{{ p.full_name }}</span>
-                    <span class="dm">{{ p.document_number }}</span>
-                  </div>
-                }
-              </div>
-            }
+        @if (isEditMode()) {
+          <!-- Patient and treatment plan are fixed once the plan exists -->
+          <div class="form-row">
+            <div class="form-group">
+              <label>Paciente</label>
+              <div class="locked-field">{{ selectedPatient()?.full_name || '—' }}</div>
+            </div>
+            <div class="form-group">
+              <label>Plan de Tratamiento Asociado</label>
+              <div class="locked-field">{{ planTreatmentLabel() }}</div>
+            </div>
           </div>
-        </div>
-
-        <!-- Treatment plan -->
-        @if (selectedPatient() && treatmentPlans().length > 0) {
+        } @else {
+          <!-- Patient search -->
           <div class="form-group">
-            <label>Plan de Tratamiento Asociado <span class="req">*</span></label>
-            <select formControlName="treatment_plan_id" [class.error]="hasError('treatment_plan_id')">
-              <option value="">Seleccionar plan...</option>
-              @for (plan of treatmentPlans(); track plan.id) {
-                <option [value]="plan.id">{{ plan.name }} ({{ plan.treatment_type }})</option>
+            <label>Paciente <span class="req">*</span></label>
+            <div class="search-select">
+              <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone:true}"
+                (input)="onPatientSearch()" placeholder="Buscar paciente..." [disabled]="!!selectedPatient()"/>
+              @if (selectedPatient()) {
+                <div class="selected-item">
+                  <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
+                  <button type="button" (click)="clearPatient()">✕</button>
+                </div>
               }
-            </select>
-            @if (hasError('treatment_plan_id')) { <span class="field-error">Requerido</span> }
+              @if (patientResults().length > 0 && !selectedPatient()) {
+                <div class="dropdown">
+                  @for (p of patientResults(); track p.id) {
+                    <div class="dropdown-item" (click)="selectPatient(p)">
+                      <span class="dn">{{ p.full_name }}</span>
+                      <span class="dm">{{ p.document_number }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
           </div>
-        } @else if (selectedPatient() && treatmentPlans().length === 0) {
-          <div class="info-msg">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            Este paciente no tiene planes de tratamiento activos.
-            <a [routerLink]="['/treatments/plans/new']" [queryParams]="{ patient_id: selectedPatient()!.id }">Crear plan</a>
-          </div>
+
+          <!-- Treatment plan -->
+          @if (selectedPatient() && treatmentPlans().length > 0) {
+            <div class="form-group">
+              <label>Plan de Tratamiento Asociado <span class="req">*</span></label>
+              <select formControlName="treatment_plan_id" [class.error]="hasError('treatment_plan_id')">
+                <option value="">Seleccionar plan...</option>
+                @for (plan of treatmentPlans(); track plan.id) {
+                  <option [value]="plan.id">{{ plan.name }} ({{ plan.treatment_type }})</option>
+                }
+              </select>
+              @if (hasError('treatment_plan_id')) { <span class="field-error">Requerido</span> }
+            </div>
+          } @else if (selectedPatient() && treatmentPlans().length === 0) {
+            <div class="info-msg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Este paciente no tiene planes de tratamiento activos.
+              <a [routerLink]="['/treatments/plans/new']" [queryParams]="{ patient_id: selectedPatient()!.id }">Crear plan</a>
+            </div>
+          }
         }
       </div>
     </div>
@@ -140,7 +154,7 @@
       <button type="submit" class="btn btn-primary"
         [disabled]="saving() || !selectedPatient() || !form.get('treatment_plan_id')?.value">
         @if (saving()) { <span class="spinner-sm"></span> }
-        Crear Plan de Pago
+        {{ isEditMode() ? 'Guardar Cambios' : 'Crear Plan de Pago' }}
       </button>
     </div>
   </form>

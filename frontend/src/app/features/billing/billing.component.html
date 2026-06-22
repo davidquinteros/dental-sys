@@ -176,11 +176,15 @@
               <div class="progress-bar"><div class="progress-fill" [style.width]="plan.progress_percentage + '%'"></div></div>
               <span class="prog-txt">{{ plan.paid_installments }}/{{ plan.installments }} cuotas · {{ plan.progress_percentage }}%</span>
             </div>
-            @if (plan.status === 'active') {
-              <button class="register-btn" (click)="registerInstallment(plan)">
-                Registrar Cuota (Bs {{ formatMoney(plan.installment_amount) }})
-              </button>
+            @if (plan.status === 'active' && plan.balance > 0) {
+              <a [routerLink]="['/billing/payment-plans', plan.id]" class="register-btn">Registrar Pago</a>
             }
+            <div class="plan-actions">
+              <a [routerLink]="['/billing/payment-plans', plan.id]" class="plan-action-link">Ver</a>
+              @if (plan.status === 'active') {
+                <a [routerLink]="['/billing/payment-plans', plan.id, 'edit']" class="plan-action-link">Editar</a>
+              }
+            </div>
           </div>
         }
       }

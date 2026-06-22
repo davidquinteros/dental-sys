@@ -156,6 +156,7 @@ def get_dashboard():
     if current.role in [UserRole.ADMIN, UserRole.RECEPTIONIST]:
         rev_result = db.session.query(func.sum(Invoice.amount_paid)).filter(
             Invoice.created_at >= datetime.combine(month_start, datetime.min.time()),
+            Invoice.status != InvoiceStatus.CANCELLED,
         ).scalar()
         monthly_revenue = float(rev_result or 0)
 

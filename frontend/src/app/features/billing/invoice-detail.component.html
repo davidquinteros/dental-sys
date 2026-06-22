@@ -13,42 +13,95 @@
         <h1 class="page-title">{{ invoice()!.invoice_number }}</h1>
         <p class="sub">Paciente: {{ invoice()!.patient_name }} · {{ formatDate(invoice()!.created_at) }}</p>
       </div>
-      <span class="status-badge big" [class]="'inv-' + invoice()!.status">{{ invStatusLabel(invoice()!.status) }}</span>
+      <div class="header-actions">
+        @if (invoice()!.status === 'pending') {
+          <button type="button" class="btn-cancel-invoice" (click)="cancelInvoice()" [disabled]="cancelling()">
+            @if (cancelling()) { <span class="spinner-sm"></span> }
+            Cancelar Factura
+          </button>
+        }
+        <span class="status-badge big" [class]="'inv-' + invoice()!.status">{{ invStatusLabel(invoice()!.status) }}</span>
+      </div>
     </div>
+    @if (cancelError()) { <p class="pay-error cancel-error">{{ cancelError() }}</p> }
 
     <div class="detail-grid">
       <!-- Items table -->
       <div class="main-col">
         <div class="card">
-          <div class="card-header"><h3>Ítems</h3></div>
-          <div class="table-wrapper">
-          <table class="table">
-            <thead>
-              <tr><th>Descripción</th><th class="r">Cant.</th><th class="r">P. Unit.</th><th class="r">Total</th></tr>
-            </thead>
-            <tbody>
-              @for (item of invoice()!.items; track item.id) {
-                <tr>
-                  <td>{{ item.description }}</td>
-                  <td class="r">{{ item.quantity }}</td>
-                  <td class="r">Bs {{ formatMoney(item.unit_price) }}</td>
-                  <td class="r"><strong>Bs {{ formatMoney(item.total) }}</strong></td>
-                </tr>
-              }
-            </tbody>
-          </table>
-          </div>
-          <div class="totals">
-            <div class="t-row"><span>Subtotal</span><span>Bs {{ formatMoney(invoice()!.subtotal) }}</span></div>
-            @if (invoice()!.discount > 0) {
-              <div class="t-row discount"><span>Descuento</span><span>-Bs {{ formatMoney(invoice()!.discount) }}</span></div>
+          <div class="card-header items-header-row">
+            <h3>Ítems</h3>
+            @if (!editingItems() && invoice()!.status === 'pending') {
+              <button type="button" class="edit-items-btn" (click)="startEditItems()">Editar</button>
             }
-            <div class="t-row grand"><span>Total</span><span>Bs {{ formatMoney(invoice()!.total) }}</span></div>
-            <div class="t-row paid"><span>Pagado</span><span class="green">Bs {{ formatMoney(invoice()!.amount_paid) }}</span></div>
-            <div class="t-row balance" [class.has-balance]="invoice()!.balance > 0">
-              <span>Saldo Pendiente</span><span [class.red]="invoice()!.balance > 0">Bs {{ formatMoney(invoice()!.balance) }}</span>
-            </div>
           </div>
+
+          @if (!editingItems()) {
+            <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr><th>Descripción</th><th class="r">Cant.</th><th class="r">P. Unit.</th><th class="r">Total</th></tr>
+              </thead>
+              <tbody>
+                @for (item of invoice()!.items; track item.id) {
+                  <tr>
+                    <td>{{ item.description }}</td>
+                    <td class="r">{{ item.quantity }}</td>
+                    <td class="r">Bs {{ formatMoney(item.unit_price) }}</td>
+                    <td class="r"><strong>Bs {{ formatMoney(item.total) }}</strong></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            </div>
+            <div class="totals">
+              <div class="t-row"><span>Subtotal</span><span>Bs {{ formatMoney(invoice()!.subtotal) }}</span></div>
+              @if (invoice()!.discount > 0) {
+                <div class="t-row discount"><span>Descuento</span><span>-Bs {{ formatMoney(invoice()!.discount) }}</span></div>
+              }
+              <div class="t-row grand"><span>Total</span><span>Bs {{ formatMoney(invoice()!.total) }}</span></div>
+              <div class="t-row paid"><span>Pagado</span><span class="green">Bs {{ formatMoney(invoice()!.amount_paid) }}</span></div>
+              <div class="t-row balance" [class.has-balance]="invoice()!.balance > 0">
+                <span>Saldo Pendiente</span><span [class.red]="invoice()!.balance > 0">Bs {{ formatMoney(invoice()!.balance) }}</span>
+              </div>
+            </div>
+          } @else {
+            <form [formGroup]="itemsForm" class="items-edit-body">
+              <div class="items-header">
+                <span class="ih desc">Descripción</span>
+                <span class="ih qty">Cantidad</span>
+                <span class="ih price">Precio Unit.</span>
+                <span class="ih total">Total</span>
+                <span class="ih del"></span>
+              </div>
+              <div formArrayName="items" class="items-list">
+                @for (item of itemsArray.controls; track $index; let i = $index) {
+                  <div [formGroupName]="i" class="item-row">
+                    <input formControlName="description" type="text" placeholder="Descripción del servicio/producto" class="item-desc"/>
+                    <input formControlName="quantity" type="number" min="1" placeholder="1" class="item-qty"/>
+                    <input formControlName="unit_price" type="number" min="0" step="0.01" placeholder="0.00" class="item-price"/>
+                    <span class="item-total">Bs {{ formatMoney(editItemTotal(i)) }}</span>
+                    <button type="button" class="del-btn" (click)="removeEditItem(i)" [disabled]="itemsArray.length === 1">✕</button>
+                  </div>
+                }
+              </div>
+              <button type="button" class="add-item-btn" (click)="addEditItem()">+ Agregar ítem</button>
+
+              <div class="totals">
+                <div class="t-row grand"><span>Nuevo Subtotal</span><span>Bs {{ formatMoney(editSubtotal()) }}</span></div>
+              </div>
+
+              @if (itemsError()) { <p class="pay-error">{{ itemsError() }}</p> }
+
+              <div class="items-edit-actions">
+                <button type="button" class="btn btn-secondary" (click)="cancelEditItems()">Cancelar</button>
+                <button type="button" class="btn btn-primary" (click)="saveItems()" [disabled]="itemsSaving() || itemsForm.invalid">
+                  @if (itemsSaving()) { <span class="spinner-sm"></span> }
+                  Guardar ítems
+                </button>
+              </div>
+            </form>
+          }
         </div>
       </div>
 
@@ -66,9 +119,7 @@
                 <label>Método de Pago</label>
                 <select [(ngModel)]="payMethod">
                   <option value="cash">Efectivo</option>
-                  <option value="card">Tarjeta</option>
-                  <option value="transfer">Transferencia</option>
-                  <option value="other">Otro</option>
+                  <option value="qr">QR</option>
                 </select>
               </div>
               <div class="form-group">

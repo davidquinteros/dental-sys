@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   Patient, Appointment, Treatment, TreatmentPlan,
-  Invoice, Payment, PaymentPlan, DashboardData, User, Consultorio, AppointmentTypeItem
+  Invoice, Payment, PaymentPlan, PaymentPlanInstallment, DashboardData, User, Consultorio, AppointmentTypeItem
 } from '../models';
 
 const API = environment.apiUrl;
@@ -167,6 +167,10 @@ export class BillingService {
     return this.http.post<{ invoice: Invoice }>(`${API}/billing/invoices`, data);
   }
 
+  updateInvoice(id: number, data: any): Observable<{ invoice: Invoice }> {
+    return this.http.put<{ invoice: Invoice }>(`${API}/billing/invoices/${id}`, data);
+  }
+
   addPayment(invoiceId: number, data: {
     amount: number; method: string; reference?: string; notes?: string
   }): Observable<any> {
@@ -181,12 +185,24 @@ export class BillingService {
     return this.http.get(`${API}/billing/payment-plans`, { params: httpParams });
   }
 
+  getPaymentPlan(id: number): Observable<{ payment_plan: PaymentPlan }> {
+    return this.http.get<{ payment_plan: PaymentPlan }>(`${API}/billing/payment-plans/${id}`);
+  }
+
   createPaymentPlan(data: any): Observable<{ payment_plan: PaymentPlan }> {
     return this.http.post<{ payment_plan: PaymentPlan }>(`${API}/billing/payment-plans`, data);
   }
 
+  updatePaymentPlan(id: number, data: any): Observable<{ payment_plan: PaymentPlan }> {
+    return this.http.put<{ payment_plan: PaymentPlan }>(`${API}/billing/payment-plans/${id}`, data);
+  }
+
   registerInstallment(planId: number, amount?: number): Observable<any> {
     return this.http.post(`${API}/billing/payment-plans/${planId}/installment`, { amount });
+  }
+
+  getPlanInstallments(planId: number): Observable<{ installments: PaymentPlanInstallment[] }> {
+    return this.http.get<{ installments: PaymentPlanInstallment[] }>(`${API}/billing/payment-plans/${planId}/installments`);
   }
 
   getSummary(): Observable<any> {

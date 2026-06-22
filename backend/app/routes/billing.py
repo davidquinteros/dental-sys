@@ -1,12 +1,19 @@
 from flask import Blueprint, request, jsonify
 from app import db
-from app.models.billing import Invoice, InvoiceItem, Payment, PaymentPlan, InvoiceStatus, PaymentMethod
+from app.models.billing import (
+    Invoice, InvoiceItem, Payment, PaymentPlan, PaymentPlanInstallment,
+    InvoiceStatus, PaymentMethod, PaymentPlanStatus,
+)
 from app.middleware.auth import clinical_access_required, admin_required, get_current_user
 from app.models.user import UserRole
 from app.utils.clinic_time import local_now
 from datetime import datetime, date
 
 billing_bp = Blueprint("billing", __name__)
+
+# Only these are offered for new payments in this deliverable; other
+# PaymentMethod members are legacy values kept for existing rows (see model).
+ALLOWED_PAYMENT_METHODS = [PaymentMethod.CASH, PaymentMethod.QR]
 
 
 def generate_invoice_number() -> str:
@@ -276,7 +283,9 @@ def update_invoice(invoice_id):
       - Facturación
     security:
       - BearerAuth: []
-    description: No se puede modificar una factura ya pagada o cancelada.
+    description: >
+      No se puede modificar una factura ya pagada o cancelada. Si se envían `items`,
+      reemplaza por completo los ítems existentes (solo posible mientras está pendiente).
     parameters:
       - in: path
         name: invoice_id
@@ -297,6 +306,25 @@ def update_invoice(invoice_id):
               type: string
               enum: [cancelled]
               description: Único valor aceptado para cambiar manualmente el estado
+            items:
+              type: array
+              minItems: 1
+              description: Reemplaza todos los ítems de la factura
+              items:
+                type: object
+                required: [description, unit_price]
+                properties:
+                  description:
+                    type: string
+                    example: Consulta general
+                  quantity:
+                    type: integer
+                    default: 1
+                    example: 1
+                  unit_price:
+                    type: number
+                    format: float
+                    example: 150.0
     responses:
       200:
         description: Factura actualizada (recalcula totales)
@@ -308,7 +336,7 @@ def update_invoice(invoice_id):
             message:
               type: string
       400:
-        description: La factura ya está pagada o cancelada
+        description: La factura ya está pagada o cancelada, o ítem inválido
         schema:
           $ref: '#/definitions/Error'
       401:
@@ -336,6 +364,31 @@ def update_invoice(invoice_id):
         invoice.notes = data["notes"]
     if "status" in data and data["status"] == "cancelled":
         invoice.status = InvoiceStatus.CANCELLED
+
+    if "items" in data:
+        items_data = data["items"]
+        if not items_data:
+            return jsonify({"error": "Se requiere al menos un ítem"}), 400
+        for item_data in items_data:
+            if not item_data.get("description") or not item_data.get("unit_price"):
+                return jsonify({"error": "Cada ítem requiere descripción y precio unitario"}), 400
+
+        # Mutate the relationship collection itself (not raw session.delete/add
+        # with a manual invoice_id) so `invoice.items` is correct in memory —
+        # recalculate() below sums that same collection right after.
+        invoice.items.clear()
+        db.session.flush()
+
+        for item_data in items_data:
+            qty = item_data.get("quantity", 1)
+            unit_price = float(item_data["unit_price"])
+            invoice.items.append(InvoiceItem(
+                description=item_data["description"],
+                quantity=qty,
+                unit_price=unit_price,
+                total=qty * unit_price,
+            ))
+        db.session.flush()
 
     invoice.recalculate()
     db.session.commit()
@@ -376,7 +429,7 @@ def add_payment(invoice_id):
               description: Debe ser positivo y no exceder el saldo pendiente
             method:
               type: string
-              enum: [cash, card, transfer, other]
+              enum: [cash, qr]
               default: cash
               example: cash
             reference:
@@ -441,7 +494,10 @@ def add_payment(invoice_id):
     try:
         method = PaymentMethod(data.get("method", "cash"))
     except ValueError:
-        method = PaymentMethod.CASH
+        method = None
+    if method not in ALLOWED_PAYMENT_METHODS:
+        valid = [m.value for m in ALLOWED_PAYMENT_METHODS]
+        return jsonify({"error": f"Método de pago inválido. Válidos: {valid}"}), 400
 
     payment = Payment(
         invoice_id=invoice.id,
@@ -663,24 +719,37 @@ def create_payment_plan():
             return jsonify({"error": "Formato de fecha inválido"}), 400
 
     db.session.add(plan)
+    db.session.flush()  # get plan.id
+
+    if down > 0:
+        db.session.add(PaymentPlanInstallment(
+            clinic_id=current.clinic_id,
+            payment_plan_id=plan.id,
+            received_by_id=current.id,
+            amount=down,
+            notes="Pago inicial / enganche",
+        ))
+
     db.session.commit()
 
     return jsonify({"payment_plan": plan.to_dict(), "message": "Plan de pago creado"}), 201
 
 
-@billing_bp.route("/payment-plans/<int:plan_id>/installment", methods=["POST"])
+@billing_bp.route("/payment-plans/<int:plan_id>", methods=["PUT"])
 @clinical_access_required
-def register_installment(plan_id):
+def update_payment_plan(plan_id):
     """
-    Registrar pago de cuota
+    Actualizar plan de pago
     ---
     tags:
       - Facturación
     security:
       - BearerAuth: []
     description: >
-      Incrementa `paid_installments` y suma el monto a `total_paid`. Si se completan
-      todas las cuotas, el plan pasa a estado `completed`.
+      Solo se pueden editar planes en estado `active`. El paciente y el plan de tratamiento
+      asociado no se pueden cambiar. Si se envía `total_amount`, `down_payment` o
+      `installments`, recalcula `installment_amount`; no afecta `total_paid`/`paid_installments`
+      ya registrados.
     parameters:
       - in: path
         name: plan_id
@@ -688,17 +757,28 @@ def register_installment(plan_id):
         required: true
       - in: body
         name: body
-        required: false
+        required: true
         schema:
           type: object
           properties:
-            amount:
+            name:
+              type: string
+            total_amount:
               type: number
               format: float
-              description: Por defecto, el valor de `installment_amount` del plan
+            down_payment:
+              type: number
+              format: float
+            installments:
+              type: integer
+            start_date:
+              type: string
+              format: date
+            notes:
+              type: string
     responses:
       200:
-        description: Cuota registrada
+        description: Plan de pago actualizado
         schema:
           type: object
           properties:
@@ -707,7 +787,7 @@ def register_installment(plan_id):
             message:
               type: string
       400:
-        description: Todas las cuotas ya fueron pagadas
+        description: Plan no activo, cuotas inválidas o fecha inválida
         schema:
           $ref: '#/definitions/Error'
       401:
@@ -723,22 +803,191 @@ def register_installment(plan_id):
         schema:
           $ref: '#/definitions/Error'
     """
+    plan = PaymentPlan.query.get_or_404(plan_id, description="Plan de pago no encontrado")
+    if plan.status != PaymentPlanStatus.ACTIVE:
+        return jsonify({"error": "Solo se pueden editar planes de pago activos"}), 400
+
+    data = request.get_json() or {}
+    if "name" in data:
+        plan.name = data["name"]
+    if "notes" in data:
+        plan.notes = data["notes"]
+    if "start_date" in data:
+        if data["start_date"]:
+            try:
+                plan.start_date = date.fromisoformat(data["start_date"])
+            except ValueError:
+                return jsonify({"error": "Formato de fecha inválido"}), 400
+        else:
+            plan.start_date = None
+
+    if any(f in data for f in ("total_amount", "down_payment", "installments")):
+        total = float(data.get("total_amount", plan.total_amount))
+        down = float(data.get("down_payment", plan.down_payment))
+        installments = int(data.get("installments", plan.installments))
+        if installments < 1:
+            return jsonify({"error": "Las cuotas deben ser al menos 1"}), 400
+        plan.total_amount = total
+        plan.down_payment = down
+        plan.installments = installments
+        plan.installment_amount = round((total - down) / installments, 2)
+
+    db.session.commit()
+    return jsonify({"payment_plan": plan.to_dict(), "message": "Plan de pago actualizado"}), 200
+
+
+@billing_bp.route("/payment-plans/<int:plan_id>/installment", methods=["POST"])
+@clinical_access_required
+def register_installment(plan_id):
+    """
+    Registrar pago de cuota
+    ---
+    tags:
+      - Facturación
+    security:
+      - BearerAuth: []
+    description: >
+      El paciente puede pagar el monto que desee (no tiene que ser exactamente
+      `installment_amount`). Incrementa `paid_installments` y suma el monto a `total_paid`.
+      Cuando `total_paid` alcanza `total_amount`, el plan pasa a estado `completed`,
+      sin importar cuántos pagos se hayan registrado.
+    parameters:
+      - in: path
+        name: plan_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: false
+        schema:
+          type: object
+          properties:
+            amount:
+              type: number
+              format: float
+              description: Por defecto, el valor de `installment_amount` del plan. Debe ser positivo y no exceder el saldo pendiente.
+            notes:
+              type: string
+    responses:
+      200:
+        description: Cuota registrada
+        schema:
+          type: object
+          properties:
+            payment_plan:
+              $ref: '#/definitions/PaymentPlan'
+            message:
+              type: string
+      400:
+        description: El plan ya está completamente pagado, o el monto es inválido/excede el saldo
+        schema:
+          $ref: '#/definitions/Error'
+      401:
+        description: Token requerido o inválido
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Acceso denegado
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Plan de pago no encontrado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    current = get_current_user()
     plan = PaymentPlan.query.get_or_404(plan_id)
     data = request.get_json() or {}
 
-    if plan.paid_installments >= plan.installments:
-        return jsonify({"error": "Todas las cuotas ya fueron pagadas"}), 400
+    if plan.balance <= 0:
+        return jsonify({"error": "El plan ya está completamente pagado"}), 400
 
     amount = float(data.get("amount", plan.installment_amount))
+    if amount <= 0:
+        return jsonify({"error": "El monto debe ser positivo"}), 400
+    if amount > float(plan.balance):
+        return jsonify({"error": f"El monto excede el saldo pendiente ({plan.balance})"}), 400
+
     plan.paid_installments += 1
     plan.total_paid = float(plan.total_paid) + amount
 
-    if plan.paid_installments >= plan.installments:
-        from app.models.billing import PaymentPlanStatus
+    db.session.add(PaymentPlanInstallment(
+        clinic_id=plan.clinic_id,
+        payment_plan_id=plan.id,
+        received_by_id=current.id,
+        amount=amount,
+        notes=data.get("notes"),
+    ))
+
+    if plan.balance <= 0:
         plan.status = PaymentPlanStatus.COMPLETED
 
     db.session.commit()
     return jsonify({"payment_plan": plan.to_dict(), "message": "Cuota registrada"}), 200
+
+
+@billing_bp.route("/payment-plans/<int:plan_id>/installments", methods=["GET"])
+@clinical_access_required
+def list_plan_installments(plan_id):
+    """
+    Historial de pagos de un plan de pago
+    ---
+    tags:
+      - Facturación
+    security:
+      - BearerAuth: []
+    description: >
+      Pagos individuales registrados contra el plan (enganche + cada cuota), del más
+      reciente al más antiguo. Si `total_paid` es mayor que la suma de estos registros
+      (planes creados antes de que existiera este historial), se antepone un ítem
+      "Pagos registrados antes de este historial" con la diferencia, para que la suma
+      siempre coincida con `total_paid`.
+    parameters:
+      - in: path
+        name: plan_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de pagos
+        schema:
+          type: object
+          properties:
+            installments:
+              type: array
+              items:
+                $ref: '#/definitions/PaymentPlanInstallment'
+      401:
+        description: Token requerido o inválido
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Acceso denegado
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Plan de pago no encontrado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    plan = PaymentPlan.query.get_or_404(plan_id, description="Plan de pago no encontrado")
+    logged = PaymentPlanInstallment.query.filter_by(payment_plan_id=plan_id) \
+        .order_by(PaymentPlanInstallment.payment_date.desc()).all()
+    items = [p.to_dict() for p in logged]
+
+    logged_total = sum(float(p.amount) for p in logged)
+    gap = float(plan.total_paid) - logged_total
+    if gap > 0.01:
+        items.append({
+            "id": None,
+            "payment_plan_id": plan.id,
+            "amount": round(gap, 2),
+            "notes": "Pagos registrados antes de este historial",
+            "payment_date": plan.created_at.isoformat() if plan.created_at else None,
+            "received_by": None,
+        })
+
+    return jsonify({"installments": items}), 200
 
 
 @billing_bp.route("/summary", methods=["GET"])
@@ -751,7 +1000,9 @@ def billing_summary():
       - Facturación
     security:
       - BearerAuth: []
-    description: Totales generales de facturación (histórico completo, sin filtro de fechas).
+    description: >
+      Totales generales de facturación (histórico completo, sin filtro de fechas).
+      Las facturas canceladas no se contabilizan.
     responses:
       200:
         description: Resumen financiero general
@@ -780,8 +1031,12 @@ def billing_summary():
           $ref: '#/definitions/Error'
     """
     from sqlalchemy import func
-    total_invoiced = db.session.query(func.sum(Invoice.total)).scalar() or 0
-    total_collected = db.session.query(func.sum(Invoice.amount_paid)).scalar() or 0
+    total_invoiced = db.session.query(func.sum(Invoice.total)).filter(
+        Invoice.status != InvoiceStatus.CANCELLED
+    ).scalar() or 0
+    total_collected = db.session.query(func.sum(Invoice.amount_paid)).filter(
+        Invoice.status != InvoiceStatus.CANCELLED
+    ).scalar() or 0
     pending = db.session.query(func.sum(Invoice.balance)).filter(
         Invoice.status == InvoiceStatus.PENDING
     ).scalar() or 0

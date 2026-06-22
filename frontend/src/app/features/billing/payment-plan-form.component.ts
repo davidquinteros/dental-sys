@@ -22,6 +22,10 @@ export class PaymentPlanFormComponent implements OnInit {
   patientSearch = '';
   private searchTimeout: any;
 
+  isEditMode = signal(false);
+  planTreatmentLabel = signal('');
+  private planId: number | null = null;
+
   constructor(
     private fb: FormBuilder,
     private router: Router,
@@ -42,6 +46,31 @@ export class PaymentPlanFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    const idParam = this.route.snapshot.paramMap.get('id');
+    if (idParam) {
+      this.isEditMode.set(true);
+      this.planId = +idParam;
+      // Patient and treatment plan are fixed once a payment plan exists.
+      this.form.get('treatment_plan_id')?.clearValidators();
+      this.form.get('treatment_plan_id')?.updateValueAndValidity();
+
+      this.billingService.getPaymentPlan(this.planId).subscribe(res => {
+        const plan = res.payment_plan;
+        this.planTreatmentLabel.set(plan.treatment_plan_name || `Plan #${plan.treatment_plan_id}`);
+        this.patientService.getById(plan.patient_id).subscribe(pres => this.selectedPatient.set(pres.patient));
+        this.form.patchValue({
+          name: plan.name,
+          treatment_plan_id: plan.treatment_plan_id,
+          total_amount: plan.total_amount,
+          down_payment: plan.down_payment,
+          installments: plan.installments,
+          start_date: plan.start_date,
+          notes: plan.notes,
+        });
+      });
+      return;
+    }
+
     const patientId = this.route.snapshot.queryParamMap.get('patient_id');
     if (patientId) {
       this.patientService.getById(+patientId).subscribe(res => {
@@ -101,6 +130,23 @@ export class PaymentPlanFormComponent implements OnInit {
     if (this.form.invalid || !this.selectedPatient()) { this.form.markAllAsTouched(); return; }
     this.saving.set(true);
     const val = this.form.value;
+
+    if (this.isEditMode()) {
+      const payload = {
+        name: val.name,
+        total_amount: parseFloat(val.total_amount),
+        down_payment: parseFloat(val.down_payment) || 0,
+        installments: +val.installments,
+        start_date: val.start_date || null,
+        notes: val.notes || null,
+      };
+      this.billingService.updatePaymentPlan(this.planId!, payload).subscribe({
+        next: () => this.router.navigate(['/billing/payment-plans', this.planId]),
+        error: err => { this.errorMsg.set(err.error?.error || 'Error al guardar'); this.saving.set(false); },
+      });
+      return;
+    }
+
     const payload = {
       patient_id: this.selectedPatient()!.id,
       treatment_plan_id: +val.treatment_plan_id,

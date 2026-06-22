@@ -13,6 +13,9 @@ class InvoiceStatus(str, enum.Enum):
 
 class PaymentMethod(str, enum.Enum):
     CASH = "cash"
+    QR = "qr"
+    # Legacy: kept so existing payment rows still load. No longer offered for
+    # new payments — see ALLOWED_PAYMENT_METHODS in routes/billing.py.
     CARD = "card"
     TRANSFER = "transfer"
     OTHER = "other"
@@ -64,6 +67,11 @@ class Invoice(db.Model):
         self.subtotal = sum(float(item.total) for item in self.items)
         self.total = max(0, float(self.subtotal) - float(self.discount))
         self.balance = max(0, float(self.total) - float(self.amount_paid))
+        # A cancelled invoice stays cancelled — don't let the balance-derived
+        # status below flip it back to pending/paid (recalculate() is also
+        # called for unrelated edits, e.g. items, on an already-cancelled row).
+        if self.status == InvoiceStatus.CANCELLED:
+            return
         if float(self.balance) == 0:
             self.status = InvoiceStatus.PAID
         else:
@@ -145,6 +153,34 @@ class Payment(db.Model):
         }
 
 
+class PaymentPlanInstallment(db.Model):
+    """One recorded cuota payment against a PaymentPlan. Amounts are variable —
+    the patient can pay whatever they want, not necessarily installment_amount."""
+    __tablename__ = "payment_plan_installments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinic_id = db.Column(db.Integer, db.ForeignKey("clinics.id"), nullable=False, index=True)
+    payment_plan_id = db.Column(db.Integer, db.ForeignKey("payment_plans.id"), nullable=False, index=True)
+    received_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    notes = db.Column(db.String(255), nullable=True)
+    payment_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    payment_plan = db.relationship("PaymentPlan", back_populates="installment_payments")
+    received_by = db.relationship("User", foreign_keys=[received_by_id])
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "payment_plan_id": self.payment_plan_id,
+            "amount": float(self.amount),
+            "notes": self.notes,
+            "payment_date": self.payment_date.isoformat() if self.payment_date else None,
+            "received_by": self.received_by.full_name if self.received_by else None,
+        }
+
+
 class PaymentPlan(db.Model):
     """Payment plan for long treatments (orthodontics, implants, etc.)"""
     __tablename__ = "payment_plans"
@@ -174,6 +210,10 @@ class PaymentPlan(db.Model):
     patient = db.relationship("Patient")
     treatment_plan = db.relationship("TreatmentPlan", back_populates="payment_plan")
     created_by = db.relationship("User", foreign_keys=[created_by_id])
+    installment_payments = db.relationship(
+        "PaymentPlanInstallment", back_populates="payment_plan",
+        cascade="all, delete-orphan", order_by="PaymentPlanInstallment.payment_date.desc()",
+    )
 
     @property
     def balance(self) -> float:
@@ -192,6 +232,7 @@ class PaymentPlan(db.Model):
             "patient_id": self.patient_id,
             "patient_name": self.patient.full_name if self.patient else None,
             "treatment_plan_id": self.treatment_plan_id,
+            "treatment_plan_name": self.treatment_plan.name if self.treatment_plan else None,
             "name": self.name,
             "total_amount": float(self.total_amount),
             "down_payment": float(self.down_payment),

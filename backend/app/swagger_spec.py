@@ -253,7 +253,8 @@ SWAGGER_TEMPLATE = {
                 "amount": {"type": "number", "format": "float", "example": 150.0},
                 "method": {
                     "type": "string",
-                    "enum": ["cash", "card", "transfer", "other"],
+                    "enum": ["cash", "qr", "card", "transfer", "other"],
+                    "description": "card/transfer/other are legacy values on existing payments; new payments only accept cash/qr.",
                     "example": "cash",
                 },
                 "reference": {"type": "string", "nullable": True},
@@ -269,6 +270,7 @@ SWAGGER_TEMPLATE = {
                 "patient_id": {"type": "integer"},
                 "patient_name": {"type": "string"},
                 "treatment_plan_id": {"type": "integer"},
+                "treatment_plan_name": {"type": "string", "nullable": True},
                 "name": {"type": "string", "example": "Plan de pago - Ortodoncia"},
                 "total_amount": {"type": "number", "format": "float", "example": 4500.0},
                 "down_payment": {"type": "number", "format": "float", "example": 900.0},
@@ -286,6 +288,17 @@ SWAGGER_TEMPLATE = {
                 "start_date": {"type": "string", "format": "date", "nullable": True},
                 "notes": {"type": "string", "nullable": True},
                 "created_at": {"type": "string", "format": "date-time"},
+            },
+        },
+        "PaymentPlanInstallment": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer", "nullable": True, "description": "null para el ítem sintético de reconciliación de planes antiguos"},
+                "payment_plan_id": {"type": "integer"},
+                "amount": {"type": "number", "format": "float", "example": 300.0},
+                "notes": {"type": "string", "nullable": True},
+                "payment_date": {"type": "string", "format": "date-time"},
+                "received_by": {"type": "string", "nullable": True, "example": "Lucía Fernández"},
             },
         },
         "Clinic": {
