@@ -123,6 +123,12 @@ def create_app(config=None):
                   example: 1.0.0
         """
         from flask import jsonify
-        return jsonify({"status": "ok", "version": "1.0.0"})
+        from sqlalchemy import text
+        try:
+            db.session.execute(text("SELECT 1"))
+            db_status = "ok"
+        except Exception:
+            db_status = "error"
+        return jsonify({"status": "ok", "version": "1.0.0", "database": db_status})
 
     return app
