@@ -169,7 +169,7 @@ export class UsersComponent implements OnInit {
       },
     });
   }
-  initials(u: User): string { return `${u.first_name[0]}${u.last_name[0]}`.toUpperCase(); }
+  initials(u: User): string { return `${u.first_name?.[0] || ''}${u.last_name?.[0] || ''}`.toUpperCase(); }
   roleLabel(r: string): string {
     const m: Record<string, string> = { admin: 'Administrador', doctor: 'Médico', receptionist: 'Recepcionista', assistant: 'Asistente' };
     return m[r] ?? r;

@@ -48,7 +48,7 @@ class User(db.Model):
 
     @property
     def full_name(self) -> str:
-        return f"{self.first_name} {self.last_name}"
+        return f"{self.first_name} {self.last_name}".strip()
 
     def has_role(self, *roles) -> bool:
         return self.role in roles

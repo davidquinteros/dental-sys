@@ -26,6 +26,6 @@ export class LayoutComponent {
   userInitials(): string {
     const user = this.auth.currentUser();
     if (!user) return '';
-    return `${user.first_name[0] || ''}${user.last_name[0] || ''}`.toUpperCase();
+    return `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase();
   }
 }

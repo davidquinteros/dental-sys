@@ -61,7 +61,7 @@ export class LayoutComponent {
   userInitials = computed(() => {
     const user = this.auth.currentUser();
     if (!user) return '?';
-    return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
+    return `${user.first_name[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase();
   });
 
   roleLabel = computed(() => {
