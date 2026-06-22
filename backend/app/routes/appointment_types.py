@@ -78,6 +78,9 @@ def update_type(tid):
         return jsonify({"error": "Solo el administrador puede modificar tipos de cita"}), 403
 
     t = AppointmentTypeCatalog.query.get_or_404(tid, description="Tipo no encontrado")
+    if not t.is_active:
+        return jsonify({"error": "No se puede modificar un tipo de cita inactivo. Reactívelo primero."}), 400
+
     data = request.get_json() or {}
     for field in ["label", "color", "sort_order"]:
         if field in data:
@@ -97,3 +100,16 @@ def delete_type(tid):
     t.is_active = False
     db.session.commit()
     return jsonify({"message": "Tipo desactivado"}), 200
+
+
+@appointment_types_bp.route("/<int:tid>/activate", methods=["PUT"])
+@clinical_access_required
+def activate_type(tid):
+    current = get_current_user()
+    if current.role != UserRole.ADMIN:
+        return jsonify({"error": "Solo el administrador puede reactivar tipos de cita"}), 403
+
+    t = AppointmentTypeCatalog.query.get_or_404(tid, description="Tipo no encontrado")
+    t.is_active = True
+    db.session.commit()
+    return jsonify({"appointment_type": t.to_dict(), "message": "Tipo reactivado"}), 200

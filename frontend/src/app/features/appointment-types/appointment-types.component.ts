@@ -87,6 +87,13 @@ export class AppointmentTypesComponent implements OnInit {
     });
   }
 
+  activate(t: AppointmentTypeItem): void {
+    this.service.activate(t.id).subscribe({
+      next: () => { this.flash('Tipo reactivado'); this.load(); },
+      error: err => this.errorMsg.set(err.error?.error || 'Error al reactivar'),
+    });
+  }
+
   private flash(msg: string): void {
     this.successMsg.set(msg);
     setTimeout(() => this.successMsg.set(''), 3000);

@@ -63,6 +63,7 @@
 .type-table tr:last-child td { border-bottom: none; }
 .type-table tbody tr:hover td { background: #fafbfc; }
 .type-table tr.inactive td { opacity: 0.5; }
+.type-table tr.inactive td:last-child { opacity: 1; }
 
 .type-label-cell { display: flex; align-items: center; gap: 10px; }
 .type-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
@@ -90,6 +91,8 @@
 .icon-btn.save:hover   { background: #c6f6d5; }
 .icon-btn.cancel { background: #f7fafc; color: #718096; }
 .icon-btn.cancel:hover { background: #e2e8f0; }
+.icon-btn.activate { background: #f0fff4; color: #276749; }
+.icon-btn.activate:hover { background: #c6f6d5; }
 
 @media (max-width: 768px) {
   .page { padding: 16px; }

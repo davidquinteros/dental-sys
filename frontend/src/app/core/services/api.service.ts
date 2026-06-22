@@ -275,6 +275,10 @@ export class AppointmentTypeService {
   delete(id: number): Observable<any> {
     return this.http.delete(`${API}/appointment-types/${id}`);
   }
+
+  activate(id: number): Observable<{ appointment_type: AppointmentTypeItem }> {
+    return this.http.put<{ appointment_type: AppointmentTypeItem }>(`${API}/appointment-types/${id}/activate`, {});
+  }
 }
 
 // ─── Consultorios ──────────────────────────────────────────────────────────────
