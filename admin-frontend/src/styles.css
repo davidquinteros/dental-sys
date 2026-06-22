@@ -66,6 +66,8 @@ a { color: inherit; text-decoration: none; }
 .table td { padding: 12px; border-bottom: 1px solid #edf2f7; }
 .table tbody tr:hover { background: #f9fafb; }
 .text-muted { color: #a0aec0; }
+.text-danger { color: #c53030; font-weight: 600; }
+.text-warning { color: #c05621; font-weight: 600; }
 
 .btn {
   display: inline-flex;

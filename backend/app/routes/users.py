@@ -2,6 +2,7 @@ import re
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.user import User, UserRole
+from app.models.clinic import Clinic
 from app.middleware.auth import require_auth, admin_required, get_current_user
 from app.middleware.tenancy import platform_wide_lookup
 
@@ -173,7 +174,7 @@ def create_user():
         schema:
           $ref: '#/definitions/Error'
       403:
-        description: Acceso denegado (no es administrador)
+        description: Acceso denegado (no es administrador), o se alcanzó el límite de usuarios del plan
         schema:
           $ref: '#/definitions/Error'
       409:
@@ -187,6 +188,14 @@ def create_user():
     for field in required:
         if not data.get(field):
             return jsonify({"error": f"Campo requerido: {field}"}), 400
+
+    clinic = Clinic.query.get(current.clinic_id)
+    max_users = clinic.subscription_tier.max_users if clinic and clinic.subscription_tier else None
+    if max_users is not None and User.query.filter_by(is_active=True).count() >= max_users:
+        return jsonify({
+            "error": f"Se alcanzó el límite de {max_users} usuarios de su plan. "
+                     "Desactive un usuario existente o contacte al administrador de la plataforma para ampliar su plan."
+        }), 403
 
     email = data["email"].strip().lower()
     # Email is unique platform-wide (not per clinic), so this check must see every clinic.
@@ -313,7 +322,16 @@ def update_user(user_id):
             except ValueError:
                 return jsonify({"error": "Rol inválido"}), 400
         if "is_active" in data:
-            user.is_active = bool(data["is_active"])
+            new_active = bool(data["is_active"])
+            if new_active and not user.is_active:
+                clinic = Clinic.query.get(current.clinic_id)
+                max_users = clinic.subscription_tier.max_users if clinic and clinic.subscription_tier else None
+                if max_users is not None and User.query.filter_by(is_active=True).count() >= max_users:
+                    return jsonify({
+                        "error": f"Se alcanzó el límite de {max_users} usuarios de su plan. "
+                                 "Desactive otro usuario o contacte al administrador de la plataforma para ampliar su plan."
+                    }), 403
+            user.is_active = new_active
 
     db.session.commit()
     return jsonify({"user": user.to_dict(), "message": "Usuario actualizado"}), 200

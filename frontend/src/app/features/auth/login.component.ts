@@ -1,6 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -11,7 +11,7 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   isLoading = signal(false);
   showPassword = signal(false);
@@ -30,11 +30,21 @@ export class LoginComponent {
     { role: 'Admin', email: 'admin@clinicab.com', password: 'AdminB2025!' },
   ];
 
-  constructor(private fb: FormBuilder, private auth: AuthService, private router: Router) {
+  constructor(
+    private fb: FormBuilder,
+    private auth: AuthService,
+    private router: Router,
+    private route: ActivatedRoute,
+  ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
     });
+  }
+
+  ngOnInit(): void {
+    const blocked = this.route.snapshot.queryParamMap.get('blocked');
+    if (blocked) this.errorMessage.set(blocked);
   }
 
   toggleShowPassword(): void {

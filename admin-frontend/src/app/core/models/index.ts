@@ -47,6 +47,8 @@ export interface Clinic {
   trial_ends_at: string | null;
   next_payment_due_at: string | null;
   suspended_at: string | null;
+  plan_started_at: string | null;
+  plan_expires_at: string | null;
   notes: string | null;
   created_at: string;
   user_count?: number;

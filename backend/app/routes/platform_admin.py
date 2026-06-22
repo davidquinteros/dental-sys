@@ -138,7 +138,11 @@ def create_clinic_route():
       - Plataforma
     security:
       - BearerAuth: []
-    description: Crea una clínica nueva (tenant) con su primer usuario administrador. Queda en periodo de prueba (trial) de 14 días.
+    description: >
+      Crea una clínica nueva (tenant) con su primer usuario administrador. Queda en
+      periodo de prueba (trial) de 30 días asignada al plan "Trial" (10 usuarios,
+      mismas funciones que Profesional) salvo que se indique otro subscription_tier_id
+      explícitamente.
     parameters:
       - in: body
         name: body
@@ -294,6 +298,16 @@ def update_clinic(clinic_id):
               enum: [trial, active, past_due, suspended, cancelled]
             notes:
               type: string
+            plan_started_at:
+              type: string
+              format: date
+              nullable: true
+              description: Fecha de inicio del plan actual
+            plan_expires_at:
+              type: string
+              format: date
+              nullable: true
+              description: Fecha de vencimiento del plan actual. Pasada esta fecha, la clínica queda bloqueada (cualquier plan, no solo trial).
     responses:
       200:
         description: Clínica actualizada
@@ -333,6 +347,20 @@ def update_clinic(clinic_id):
         new_status = SubscriptionStatus(data["subscription_status"])
         clinic.subscription_status = new_status
         clinic.suspended_at = datetime.utcnow() if new_status == SubscriptionStatus.SUSPENDED else None
+
+    try:
+        if "plan_started_at" in data:
+            clinic.plan_started_at = (
+                datetime.combine(date.fromisoformat(data["plan_started_at"]), datetime.min.time())
+                if data["plan_started_at"] else None
+            )
+        if "plan_expires_at" in data:
+            clinic.plan_expires_at = (
+                datetime.combine(date.fromisoformat(data["plan_expires_at"]), datetime.min.time())
+                if data["plan_expires_at"] else None
+            )
+    except ValueError:
+        return jsonify({"error": "Formato de fecha inválido, use YYYY-MM-DD"}), 400
 
     db.session.commit()
     return jsonify({"clinic": clinic.to_dict(), "message": "Clínica actualizada"}), 200
@@ -704,6 +732,14 @@ def record_payment(clinic_id):
         datetime.combine(period_end, datetime.min.time()) if period_end
         else datetime.utcnow() + timedelta(days=30)
     )
+    # A payment renews the current plan period — keep the CRUD-facing dates
+    # in sync with it so plan_expires_at (which access_blocked() enforces)
+    # actually reflects what was just paid for.
+    clinic.plan_started_at = (
+        datetime.combine(period_start, datetime.min.time()) if period_start
+        else datetime.combine(payment_date, datetime.min.time())
+    )
+    clinic.plan_expires_at = clinic.next_payment_due_at
     if clinic.subscription_status in (SubscriptionStatus.PAST_DUE, SubscriptionStatus.SUSPENDED, SubscriptionStatus.TRIAL):
         clinic.subscription_status = SubscriptionStatus.ACTIVE
         clinic.suspended_at = None

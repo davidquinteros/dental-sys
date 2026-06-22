@@ -151,6 +151,17 @@ def resolve_request_clinic():
 
         g.clinic_id = user.clinic_id if user.clinic_id is not None else NO_MATCH_CLINIC_ID
         g.rls_bypass = False
+
+        # Defense-in-depth: login() already rejects a blocked clinic up
+        # front, but a token issued *before* the trial expired (or before a
+        # platform admin suspended the clinic) is still valid JWT-wise — this
+        # catches that already-logged-in case on every subsequent request.
+        if user.clinic_id is not None:
+            from app.models.clinic import Clinic
+            clinic = Clinic.query.get(user.clinic_id)
+            if clinic and clinic.access_blocked():
+                from flask import jsonify
+                return jsonify({"error": clinic.access_blocked_message(), "code": "clinic_access_blocked"}), 403
     except Exception:
         g.clinic_id = NO_MATCH_CLINIC_ID
         g.rls_bypass = False

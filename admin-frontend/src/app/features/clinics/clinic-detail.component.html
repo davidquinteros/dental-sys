@@ -10,51 +10,111 @@
     <p class="text-muted">Cargando...</p>
   } @else if (detail()) {
     <div class="card">
-      <h3 style="margin-bottom: 16px;">Datos y suscripción</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;">Datos y suscripción</h3>
+        @if (!editMode()) {
+          <button type="button" class="btn btn-secondary" (click)="startEdit()">Editar</button>
+        }
+      </div>
       @if (editMessage()) { <div class="alert alert-success">{{ editMessage() }}</div> }
-      <form (ngSubmit)="saveEdit()">
+
+      @if (!editMode()) {
+        <!-- View-only mode -->
         <div class="form-row">
-          <div class="form-group">
-            <label>Nombre</label>
-            <input type="text" name="name" [(ngModel)]="editForm.name" required />
-          </div>
-          <div class="form-group">
-            <label>Plan</label>
-            <select name="tier" [(ngModel)]="editForm.subscription_tier_id">
-              <option [ngValue]="null">Sin asignar</option>
-              @for (t of tiers(); track t.id) {
-                <option [ngValue]="t.id">{{ t.name }} — {{ t.monthly_price }}/mes</option>
-              }
-            </select>
-          </div>
+          <div class="form-group"><label>Nombre</label><p>{{ detail()!.clinic.name }}</p></div>
+          <div class="form-group"><label>Plan</label><p>{{ detail()!.clinic.subscription_tier_name || 'Sin asignar' }}</p></div>
         </div>
         <div class="form-row">
+          <div class="form-group"><label>Estado de suscripción</label><p>{{ detail()!.clinic.subscription_status }}</p></div>
+          <div class="form-group"><label>Clínica activa (acceso al sistema)</label><p>{{ detail()!.clinic.is_active ? 'Sí' : 'No' }}</p></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Fecha de registro</label><p>{{ formatDate(detail()!.clinic.created_at) }}</p></div>
+          <div class="form-group"><label>Fecha de inicio del plan actual</label><p>{{ formatDate(detail()!.clinic.plan_started_at) }}</p></div>
           <div class="form-group">
-            <label>Estado de suscripción</label>
-            <select name="status" [(ngModel)]="editForm.subscription_status">
-              <option value="trial">trial</option>
-              <option value="active">active</option>
-              <option value="past_due">past_due</option>
-              <option value="suspended">suspended</option>
-              <option value="cancelled">cancelled</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Clínica activa (acceso al sistema)</label>
-            <select name="is_active" [(ngModel)]="editForm.is_active">
-              <option [ngValue]="true">Sí</option>
-              <option [ngValue]="false">No</option>
-            </select>
+            <label>Fecha de vencimiento del plan</label>
+            <p>
+              {{ formatDate(detail()!.clinic.plan_expires_at) }}
+              <span [class]="daysRemaining(detail()!.clinic.plan_expires_at).cssClass">
+                ({{ daysRemaining(detail()!.clinic.plan_expires_at).label }})
+              </span>
+            </p>
           </div>
         </div>
         <div class="form-group">
           <label>Notas internas</label>
-          <textarea name="notes" rows="3" [(ngModel)]="editForm.notes"></textarea>
+          <p>{{ detail()!.clinic.notes || '—' }}</p>
         </div>
-        <button type="submit" class="btn btn-primary" [disabled]="savingEdit()">
-          {{ savingEdit() ? 'Guardando...' : 'Guardar cambios' }}
-        </button>
-      </form>
+      } @else {
+        <!-- Edit mode -->
+        <form (ngSubmit)="saveEdit()">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre</label>
+              <input type="text" name="name" [(ngModel)]="editForm.name" required />
+            </div>
+            <div class="form-group">
+              <label>Plan</label>
+              <select name="tier" [(ngModel)]="editForm.subscription_tier_id">
+                <option [ngValue]="null">Sin asignar</option>
+                @for (t of tiers(); track t.id) {
+                  <option [ngValue]="t.id">{{ t.name }} — {{ t.monthly_price }}/mes</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Estado de suscripción</label>
+              <select name="status" [(ngModel)]="editForm.subscription_status">
+                <option value="trial">trial</option>
+                <option value="active">active</option>
+                <option value="past_due">past_due</option>
+                <option value="suspended">suspended</option>
+                <option value="cancelled">cancelled</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Clínica activa (acceso al sistema)</label>
+              <select name="is_active" [(ngModel)]="editForm.is_active">
+                <option [ngValue]="true">Sí</option>
+                <option [ngValue]="false">No</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Fecha de registro</label>
+            <p class="text-muted">{{ formatDate(detail()!.clinic.created_at) }} (no editable)</p>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha de inicio del plan actual</label>
+              <input type="date" name="plan_started_at" [(ngModel)]="editForm.plan_started_at" />
+            </div>
+            <div class="form-group">
+              <label>Fecha de vencimiento del plan</label>
+              <input type="date" name="plan_expires_at" [(ngModel)]="editForm.plan_expires_at" />
+              @if (editForm.plan_expires_at) {
+                <small [class]="daysRemaining(editForm.plan_expires_at).cssClass">
+                  {{ daysRemaining(editForm.plan_expires_at).label }}
+                </small>
+              }
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Notas internas</label>
+            <textarea name="notes" rows="3" [(ngModel)]="editForm.notes"></textarea>
+          </div>
+          <div class="form-row">
+            <button type="submit" class="btn btn-primary" [disabled]="savingEdit()">
+              {{ savingEdit() ? 'Guardando...' : 'Guardar cambios' }}
+            </button>
+            <button type="button" class="btn btn-secondary" [disabled]="savingEdit()" (click)="cancelEdit()">
+              Cancelar
+            </button>
+          </div>
+        </form>
+      }
     </div>
 
     <div class="card">

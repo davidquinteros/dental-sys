@@ -23,7 +23,40 @@ class Clinic(db.Model):
     suspended_at = db.Column(db.DateTime, nullable=True)
     notes = db.Column(db.Text, nullable=True)
 
+    # When the clinic's *current* plan (trial or paid) started/expires.
+    # plan_expires_at is the authoritative date access_blocked() checks for
+    # any status, not just trial — editable by the platform admin to
+    # extend/shorten access regardless of which plan is assigned.
+    plan_started_at = db.Column(db.DateTime, nullable=True)
+    plan_expires_at = db.Column(db.DateTime, nullable=True)
+
     subscription_tier = db.relationship("SubscriptionTier")
+
+    def access_blocked(self) -> bool:
+        """True if this clinic's staff should be locked out of the app —
+        manually deactivated/suspended/cancelled by the platform admin, or
+        an expired trial that was never converted to a paid plan. PAST_DUE
+        is deliberately not blocking: it's a grace-period warning state."""
+        if not self.is_active:
+            return True
+        if self.subscription_status in (SubscriptionStatus.SUSPENDED, SubscriptionStatus.CANCELLED):
+            return True
+        if self.plan_expires_at and datetime.utcnow() > self.plan_expires_at:
+            return True
+        if self.subscription_status == SubscriptionStatus.TRIAL and self.trial_ends_at:
+            return datetime.utcnow() > self.trial_ends_at
+        return False
+
+    def access_blocked_message(self) -> str:
+        if not self.is_active:
+            return "Su clínica fue desactivada por el administrador de la plataforma."
+        if self.subscription_status == SubscriptionStatus.SUSPENDED:
+            return "Su clínica fue suspendida. Contacte al administrador de la plataforma."
+        if self.subscription_status == SubscriptionStatus.CANCELLED:
+            return "La suscripción de su clínica fue cancelada. Contacte al administrador de la plataforma."
+        if self.subscription_status == SubscriptionStatus.TRIAL:
+            return "Su período de prueba de 30 días ha finalizado. Contacte al administrador de la plataforma para activar su plan."
+        return "Su plan venció. Contacte al administrador de la plataforma para renovarlo."
 
     def to_dict(self) -> dict:
         return {
@@ -37,6 +70,8 @@ class Clinic(db.Model):
             "trial_ends_at": self.trial_ends_at.isoformat() if self.trial_ends_at else None,
             "next_payment_due_at": self.next_payment_due_at.isoformat() if self.next_payment_due_at else None,
             "suspended_at": self.suspended_at.isoformat() if self.suspended_at else None,
+            "plan_started_at": self.plan_started_at.isoformat() if self.plan_started_at else None,
+            "plan_expires_at": self.plan_expires_at.isoformat() if self.plan_expires_at else None,
             "notes": self.notes,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

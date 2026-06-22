@@ -66,4 +66,13 @@ export class ClinicsListComponent implements OnInit {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
   }
+
+  daysRemaining(iso: string | null): { label: string; cssClass: string } {
+    if (!iso) return { label: '—', cssClass: 'text-muted' };
+    const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+    if (days < 0) return { label: `Vencido (${-days}d)`, cssClass: 'text-danger' };
+    if (days === 0) return { label: 'Vence hoy', cssClass: 'text-danger' };
+    if (days <= 7) return { label: `${days} día${days === 1 ? '' : 's'}`, cssClass: 'text-warning' };
+    return { label: `${days} días`, cssClass: '' };
+  }
 }

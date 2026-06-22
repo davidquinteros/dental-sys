@@ -17,7 +17,11 @@ export class ClinicDetailComponent implements OnInit {
   tiers = signal<SubscriptionTier[]>([]);
   loading = signal(true);
 
-  editForm = { name: '', is_active: true, subscription_tier_id: null as number | null, subscription_status: '', notes: '' };
+  editMode = signal(false);
+  editForm = {
+    name: '', is_active: true, subscription_tier_id: null as number | null, subscription_status: '',
+    plan_started_at: '', plan_expires_at: '', notes: '',
+  };
   savingEdit = signal(false);
   editMessage = signal('');
 
@@ -48,6 +52,8 @@ export class ClinicDetailComponent implements OnInit {
           is_active: d.clinic.is_active,
           subscription_tier_id: d.clinic.subscription_tier_id,
           subscription_status: d.clinic.subscription_status,
+          plan_started_at: this.toDateInput(d.clinic.plan_started_at),
+          plan_expires_at: this.toDateInput(d.clinic.plan_expires_at),
           notes: d.clinic.notes || '',
         };
         this.loading.set(false);
@@ -56,17 +62,37 @@ export class ClinicDetailComponent implements OnInit {
     });
   }
 
+  startEdit(): void {
+    this.editMessage.set('');
+    this.editMode.set(true);
+  }
+
+  cancelEdit(): void {
+    this.editMode.set(false);
+    this.load();
+  }
+
   saveEdit(): void {
     this.savingEdit.set(true);
     this.editMessage.set('');
-    this.platform.updateClinic(this.clinicId, this.editForm).subscribe({
+    this.platform.updateClinic(this.clinicId, {
+      ...this.editForm,
+      plan_started_at: this.editForm.plan_started_at || null,
+      plan_expires_at: this.editForm.plan_expires_at || null,
+    }).subscribe({
       next: () => {
         this.savingEdit.set(false);
         this.editMessage.set('Cambios guardados');
+        this.editMode.set(false);
         this.load();
       },
       error: () => this.savingEdit.set(false),
     });
+  }
+
+  /** ISO datetime (or null) -> yyyy-MM-dd for an <input type="date">. */
+  private toDateInput(iso: string | null): string {
+    return iso ? iso.substring(0, 10) : '';
   }
 
   recordPayment(): void {
@@ -111,5 +137,14 @@ export class ClinicDetailComponent implements OnInit {
   formatDate(iso: string | null): string {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  daysRemaining(iso: string | null): { label: string; cssClass: string } {
+    if (!iso) return { label: '—', cssClass: 'text-muted' };
+    const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+    if (days < 0) return { label: `Vencido hace ${-days} día${-days === 1 ? '' : 's'}`, cssClass: 'text-danger' };
+    if (days === 0) return { label: 'Vence hoy', cssClass: 'text-danger' };
+    if (days <= 7) return { label: `${days} día${days === 1 ? '' : 's'}`, cssClass: 'text-warning' };
+    return { label: `${days} días`, cssClass: '' };
   }
 }

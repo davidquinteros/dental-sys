@@ -56,13 +56,13 @@ export class AuthService {
     }
   }
 
-  logout(): void {
+  logout(message?: string): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.REFRESH_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.currentUser.set(null);
     this.permissionService.clear();
-    this.router.navigate(['/auth/login']);
+    this.router.navigate(['/auth/login'], message ? { queryParams: { blocked: message } } : {});
   }
 
   getToken(): string | null {

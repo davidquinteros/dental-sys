@@ -71,6 +71,7 @@
               <th>Estado</th>
               <th>Usuarios</th>
               <th>Próximo pago</th>
+              <th>Vencimiento del plan</th>
               <th></th>
             </tr>
           </thead>
@@ -82,6 +83,10 @@
                 <td><span class="badge badge-{{ c.subscription_status }}">{{ c.subscription_status }}</span></td>
                 <td>{{ c.user_count }}</td>
                 <td>{{ formatDate(c.next_payment_due_at) }}</td>
+                <td>
+                  {{ formatDate(c.plan_expires_at) }}
+                  <span [class]="daysRemaining(c.plan_expires_at).cssClass">({{ daysRemaining(c.plan_expires_at).label }})</span>
+                </td>
                 <td><a [routerLink]="['/clinics', c.id]" class="btn btn-secondary">Ver</a></td>
               </tr>
             }

@@ -447,11 +447,23 @@ def create_clinic(name: str, admin_email: str, admin_password: str,
         n += 1
         slug = f"{base_slug}-{n}"
 
+    if subscription_tier_id is None:
+        # New clinics start on the "trial" tier (same limits/features as
+        # Profesional, $0) until a platform admin assigns a real paid tier
+        # when converting them — the create-clinic form can still override
+        # this by picking a tier up front.
+        from app.models.subscription import SubscriptionTier
+        trial_tier = SubscriptionTier.query.filter_by(code="trial").first()
+        subscription_tier_id = trial_tier.id if trial_tier else None
+
+    now = datetime.utcnow()
     clinic = Clinic(
         name=name, slug=slug,
         subscription_tier_id=subscription_tier_id,
         subscription_status=SubscriptionStatus.TRIAL,
-        trial_ends_at=datetime.utcnow() + timedelta(days=14),
+        trial_ends_at=now + timedelta(days=30),
+        plan_started_at=now,
+        plan_expires_at=now + timedelta(days=30),
     )
     db.session.add(clinic)
     db.session.flush()  # get clinic.id
@@ -506,6 +518,8 @@ def seed_subscription_tiers():
 
     _bypass_rls()
     defaults = [
+        dict(name="Trial", code="trial", monthly_price=0, max_users=10,
+             description="Período de prueba gratuito de 30 días, con las mismas funciones y el mismo límite de usuarios que el plan Profesional."),
         dict(name="Básico", code="basico", monthly_price=29, max_users=3,
              description="Hasta 3 usuarios. Ideal para consultorios pequeños."),
         dict(name="Profesional", code="profesional", monthly_price=59, max_users=10,

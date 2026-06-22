@@ -4,6 +4,7 @@ from flask_jwt_extended import (
     jwt_required, get_jwt_identity
 )
 from app.models.user import User
+from app.models.clinic import Clinic
 from app.middleware.auth import require_auth, get_current_user
 from app.middleware.tenancy import platform_wide_lookup
 
@@ -52,7 +53,7 @@ def login():
         schema:
           $ref: '#/definitions/Error'
       403:
-        description: Usuario inactivo
+        description: Usuario inactivo, o clínica bloqueada (prueba vencida, suspendida o cancelada)
         schema:
           $ref: '#/definitions/Error'
     """
@@ -75,6 +76,11 @@ def login():
 
     if not user.is_active:
         return jsonify({"error": "Usuario inactivo. Contacte al administrador"}), 403
+
+    if user.clinic_id is not None:
+        clinic = Clinic.query.get(user.clinic_id)
+        if clinic and clinic.access_blocked():
+            return jsonify({"error": clinic.access_blocked_message(), "code": "clinic_access_blocked"}), 403
 
     access_token = create_access_token(identity=str(user.id))
     refresh_token = create_refresh_token(identity=str(user.id))
