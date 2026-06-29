@@ -26,6 +26,17 @@ const DOCTOR_COLORS: { primary: string; secondary: string }[] = [
   { primary: '#e53e3e', secondary: '#fff5f5' },
 ];
 
+const STATUS_LABELS: Record<string, string> = {
+  scheduled: 'Programada',
+  confirmed: 'Confirmada',
+  in_progress: 'En curso',
+  completed: 'Completada',
+  cancelled: 'Cancelada',
+  no_show: 'No se presentó',
+};
+
+const COMPLETED_COLOR = { primary: '#a0aec0', secondary: '#edf2f7' };
+
 /** Converts a Date to a naive ISO string (no timezone), matching how `scheduled_at` is stored. */
 function toLocalIso(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -196,13 +207,15 @@ export class CalendarComponent implements OnInit {
           const eventStart = new Date(a.scheduled_at);
           const eventEnd = new Date(eventStart.getTime() + a.duration_minutes * 60000);
           const inactive = a.status === 'cancelled' || a.status === 'no_show';
+          const completed = a.status === 'completed';
+          const statusLabel = STATUS_LABELS[a.status] ?? a.status;
           return {
             id: a.id,
             start: eventStart,
             end: eventEnd,
-            title: `${a.patient_name} · Dr. ${a.doctor_name}${a.consultorio_name ? ' · ' + a.consultorio_name : ''}`,
-            color: colorMap.get(a.doctor_id) ?? DOCTOR_COLORS[0],
-            cssClass: inactive ? 'appt-inactive' : undefined,
+            title: `${a.patient_name} · Dr. ${a.doctor_name}${a.consultorio_name ? ' · ' + a.consultorio_name : ''} · ${statusLabel}`,
+            color: completed ? COMPLETED_COLOR : (colorMap.get(a.doctor_id) ?? DOCTOR_COLORS[0]),
+            cssClass: inactive ? 'appt-inactive' : (completed ? 'appt-completed' : undefined),
             meta: a,
           };
         });

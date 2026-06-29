@@ -222,22 +222,36 @@ export class AppointmentFormComponent implements OnInit {
     if (!doctorId || !date) { this.availabilityChecked.set(false); return; }
     clearTimeout(this.availabilityTimeout);
     this.availabilityTimeout = setTimeout(() => {
-      this.apptService.checkAvailability(+doctorId, date).subscribe({
+      const duration     = this.form.get('duration_minutes')?.value || 30;
+      const selectedTime = new Date(date).getTime();
+      const end          = selectedTime + duration * 60000;
+      const INACTIVE     = ['cancelled', 'no_show', 'completed'];
+
+      this.apptService.getAll({
+        date_from: date.substring(0, 10) + 'T00:00:00',
+        date_to:   date.substring(0, 10) + 'T23:59:59',
+        all: true, per_page: 200,
+      }).subscribe({
         next: res => {
-          const selectedTime = new Date(date).getTime();
-          const duration     = this.form.get('duration_minutes')?.value || 30;
-          const end          = selectedTime + duration * 60000;
-          const conflict     = res.booked_slots.some((slot: any) => {
-            const slotStart = new Date(slot.start).getTime();
-            const slotEnd   = new Date(slot.end).getTime();
-            return !(end <= slotStart || selectedTime >= slotEnd) &&
-              (!this.apptId || slot.appointment_id !== this.apptId);
-          });
-          this.isAvailable.set(!conflict);
+          const appts: any[] = res.appointments;
+          const overlaps = (a: any): boolean => {
+            if (this.apptId && a.id === this.apptId) return false;
+            if (INACTIVE.includes(a.status)) return false;
+            const aStart = new Date(a.scheduled_at).getTime();
+            const aEnd   = aStart + a.duration_minutes * 60000;
+            return !(end <= aStart || selectedTime >= aEnd);
+          };
+
+          this.isAvailable.set(!appts.some(a => a.doctor_id === +doctorId && overlaps(a)));
           this.availabilityChecked.set(true);
+
+          const consultorioId = this.form.get('consultorio_id')?.value;
+          if (consultorioId) {
+            this.isConsultorioAvailable.set(!appts.some(a => a.consultorio_id === +consultorioId && overlaps(a)));
+            this.consultorioAvailabilityChecked.set(true);
+          }
         },
       });
-      this.checkConsultorioAvailability();
     }, 500);
   }
 
@@ -248,6 +262,7 @@ export class AppointmentFormComponent implements OnInit {
     const duration     = this.form.get('duration_minutes')?.value || 30;
     const selectedTime = new Date(date).getTime();
     const end          = selectedTime + duration * 60000;
+    const INACTIVE     = ['cancelled', 'no_show', 'completed'];
 
     this.apptService.getAll({
       date_from: date.substring(0, 10) + 'T00:00:00',
@@ -255,10 +270,10 @@ export class AppointmentFormComponent implements OnInit {
       all: true, per_page: 200,
     }).subscribe({
       next: res => {
-        const conflict = res.appointments.some((a: any) => {
+        const conflict = (res.appointments as any[]).some(a => {
           if (a.consultorio_id !== +consultorioId) return false;
           if (this.apptId && a.id === this.apptId) return false;
-          if (a.status === 'cancelled' || a.status === 'no_show') return false;
+          if (INACTIVE.includes(a.status)) return false;
           const aStart = new Date(a.scheduled_at).getTime();
           const aEnd   = aStart + a.duration_minutes * 60000;
           return !(end <= aStart || selectedTime >= aEnd);

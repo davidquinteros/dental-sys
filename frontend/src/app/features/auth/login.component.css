@@ -164,27 +164,31 @@ input.error { border-color: #fc8181; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.demo-credentials {
-  margin-top: 28px;
-  padding: 16px;
-  background: #ebf8ff;
-  border-radius: 12px;
-  border: 1px solid #bee3f8;
-}
-.demo-title { font-size: 12px; font-weight: 600; color: #2b6cb0; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-.demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.demo-chip {
-  padding: 8px 10px;
-  background: white;
-  border: 1px solid #bee3f8;
-  border-radius: 8px;
+.brand-link {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
   cursor: pointer;
-  text-align: left;
-  transition: background 0.15s;
+  transition: opacity 0.2s;
 }
-.demo-chip:hover { background: #ebf8ff; }
-.demo-role { display: block; font-size: 11px; font-weight: 600; color: #2b6cb0; text-transform: capitalize; }
-.demo-email { display: block; font-size: 11px; color: #718096; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-link:hover { opacity: 0.85; }
+.brand-link .brand-title { margin-bottom: 0; }
+
+.login-footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #718096;
+}
+.planes-link {
+  color: #2b6cb0;
+  font-weight: 600;
+  text-decoration: none;
+}
+.planes-link:hover { text-decoration: underline; }
 
 @media (max-width: 1024px) {
   .login-left { display: none; }

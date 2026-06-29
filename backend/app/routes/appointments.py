@@ -20,7 +20,7 @@ def check_consultorio_availability(consultorio_id: int, scheduled_at: datetime, 
 
     query = Appointment.query.filter(
         Appointment.consultorio_id == consultorio_id,
-        Appointment.status.not_in([AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW]),
+        Appointment.status.not_in([AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW, AppointmentStatus.COMPLETED]),
         Appointment.scheduled_at >= day_start,
         Appointment.scheduled_at <= day_end,
     )
@@ -42,7 +42,7 @@ def check_doctor_availability(doctor_id: int, scheduled_at: datetime, duration: 
 
     query = Appointment.query.filter(
         Appointment.doctor_id == doctor_id,
-        Appointment.status.not_in([AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW]),
+        Appointment.status.not_in([AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW, AppointmentStatus.COMPLETED]),
         Appointment.scheduled_at >= day_start,
         Appointment.scheduled_at <= day_end,
     )
@@ -611,7 +611,7 @@ def check_availability():
         Appointment.doctor_id == doctor_id,
         Appointment.scheduled_at >= day_start,
         Appointment.scheduled_at <= day_end,
-        Appointment.status.not_in([AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW]),
+        Appointment.status.not_in([AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW, AppointmentStatus.COMPLETED]),
     ).order_by(Appointment.scheduled_at).all()
 
     return jsonify({

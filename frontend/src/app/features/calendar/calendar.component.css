@@ -165,6 +165,14 @@
   text-decoration: line-through;
 }
 
+/* Completed appointments: gray and slightly dimmed, but not struck through */
+:host ::ng-deep .appt-completed {
+  opacity: 0.6;
+}
+:host ::ng-deep .appt-completed .cal-event-title {
+  font-style: italic;
+}
+
 /* Highlight the slot currently being chosen in the appointment form */
 :host ::ng-deep .appt-preview {
   border: 2px dashed #2b6cb0 !important;

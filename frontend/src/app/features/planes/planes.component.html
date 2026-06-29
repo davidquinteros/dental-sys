@@ -1,0 +1,129 @@
+<div class="planes-page">
+  <header class="planes-header">
+    <div class="header-inner">
+      <a routerLink="/auth/login" class="brand">
+        <div class="brand-logo">
+          <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
+            <path d="M24 4C15 4 8 11 8 20c0 5.5 2 10 5 13.5L24 44l11-10.5C38 30 40 25.5 40 20c0-9-7-16-16-16z"
+              fill="white" opacity="0.95"/>
+            <path d="M17 18 Q24 13 31 18 Q24 23 17 18Z" fill="#2b6cb0" opacity="0.5"/>
+          </svg>
+        </div>
+        <span class="brand-name">DentalSys</span>
+      </a>
+      <a routerLink="/auth/login" class="login-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+          <polyline points="10 17 15 12 10 7"/>
+          <line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+        Iniciar sesión
+      </a>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-badge">Planes y precios</div>
+    <h1>El sistema completo para tu clínica dental</h1>
+    <p>Gestiona pacientes, citas, tratamientos y facturación en un solo lugar. Elige el plan que mejor se adapta a tu equipo.</p>
+  </section>
+
+  <section class="planes-grid-section">
+    <div class="planes-grid">
+
+      <div class="plan-card">
+        <div class="plan-header">
+          <span class="plan-badge free">Gratis</span>
+          <h2 class="plan-name">Trial</h2>
+          <div class="plan-price">
+            <span class="price-amount">$0</span>
+            <span class="price-period">/ 30 días</span>
+          </div>
+          <p class="plan-desc">Prueba todas las funcionalidades sin compromiso. Sin tarjeta de crédito.</p>
+        </div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> Hasta 10 usuarios</li>
+          <li><span class="check">✓</span> Gestión de pacientes</li>
+          <li><span class="check">✓</span> Gestión de citas y agenda</li>
+          <li><span class="check">✓</span> Historial clínico y odontograma</li>
+          <li><span class="check">✓</span> Facturación y planes de pago</li>
+          <li><span class="check">✓</span> Calendario visual</li>
+          <li><span class="check">✓</span> Dashboard de métricas</li>
+        </ul>
+        <a routerLink="/auth/login" class="plan-cta cta-outline">Empezar gratis</a>
+      </div>
+
+      <div class="plan-card">
+        <div class="plan-header">
+          <h2 class="plan-name">Básico</h2>
+          <div class="plan-price">
+            <span class="price-amount">$29</span>
+            <span class="price-period">/ mes</span>
+          </div>
+          <p class="plan-desc">Ideal para consultorios pequeños con un equipo reducido.</p>
+        </div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> Hasta 3 usuarios</li>
+          <li><span class="check">✓</span> Gestión de pacientes</li>
+          <li><span class="check">✓</span> Gestión de citas y agenda</li>
+          <li><span class="check">✓</span> Historial clínico</li>
+          <li><span class="check">✓</span> Facturación básica</li>
+          <li><span class="check">✓</span> Dashboard de métricas</li>
+          <li class="feature-off"><span class="cross">✗</span> Calendario visual</li>
+          <li class="feature-off"><span class="cross">✗</span> Odontograma</li>
+          <li class="feature-off"><span class="cross">✗</span> Planes de pago</li>
+        </ul>
+        <a routerLink="/auth/login" class="plan-cta cta-outline">Solicitar plan</a>
+      </div>
+
+      <div class="plan-card featured">
+        <div class="popular-badge">Más popular</div>
+        <div class="plan-header">
+          <h2 class="plan-name">Profesional</h2>
+          <div class="plan-price">
+            <span class="price-amount">$59</span>
+            <span class="price-period">/ mes</span>
+          </div>
+          <p class="plan-desc">Para clínicas en crecimiento que necesitan todas las herramientas.</p>
+        </div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> Hasta 10 usuarios</li>
+          <li><span class="check">✓</span> Gestión de pacientes</li>
+          <li><span class="check">✓</span> Gestión de citas y agenda</li>
+          <li><span class="check">✓</span> Historial clínico completo</li>
+          <li><span class="check">✓</span> Facturación y planes de pago</li>
+          <li><span class="check">✓</span> Calendario visual</li>
+          <li><span class="check">✓</span> Odontograma interactivo</li>
+          <li><span class="check">✓</span> Dashboard de métricas</li>
+          <li><span class="check">✓</span> Múltiples consultorios</li>
+        </ul>
+        <a routerLink="/auth/login" class="plan-cta cta-primary">Solicitar plan</a>
+      </div>
+
+      <div class="plan-card">
+        <div class="plan-header">
+          <h2 class="plan-name">Premium</h2>
+          <div class="plan-price">
+            <span class="price-amount">$99</span>
+            <span class="price-period">/ mes</span>
+          </div>
+          <p class="plan-desc">Para clínicas grandes con equipos sin límite y soporte dedicado.</p>
+        </div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> Usuarios ilimitados</li>
+          <li><span class="check">✓</span> Todo lo del plan Profesional</li>
+          <li><span class="check">✓</span> Múltiples consultorios</li>
+          <li><span class="check">✓</span> Soporte prioritario</li>
+          <li><span class="check">✓</span> Acceso anticipado a nuevas funciones</li>
+        </ul>
+        <a routerLink="/auth/login" class="plan-cta cta-outline">Solicitar plan</a>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="contact-section">
+    <p>¿Tienes preguntas? Contáctanos y te ayudamos a elegir el plan ideal para tu clínica.</p>
+    <a href="mailto:contacto@dentalsys.com" class="contact-link">contacto&#64;dentalsys.com</a>
+  </section>
+</div>

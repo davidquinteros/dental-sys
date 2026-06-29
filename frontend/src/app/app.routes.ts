@@ -9,6 +9,11 @@ export const routes: Routes = [
       import('./features/auth/auth.routes').then(m => m.AUTH_ROUTES),
   },
   {
+    path: 'planes',
+    loadComponent: () =>
+      import('./features/planes/planes.component').then(m => m.PlanesComponent),
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./shared/components/layout/layout.component').then(m => m.LayoutComponent),
