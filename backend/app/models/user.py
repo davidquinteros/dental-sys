@@ -26,7 +26,7 @@ class User(db.Model):
     license_number = db.Column(db.String(50), nullable=True)  # For doctors
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     # Platform staff (us, the SaaS operator) — separate from clinic role, not exposed in the roles UI
-    is_platform_admin = db.Column(db.Boolean, default=False, nullable=False)
+    is_platform_admin = db.Column(db.Boolean, default=False, nullable=False, server_default=db.false())
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

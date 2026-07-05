@@ -286,10 +286,10 @@ def my_permissions():
         viewable = all_keys
 
     pages = Page.query.order_by(Page.sort_order).all()
-    page_map = {p.key: p.to_dict() for p in pages}
+    viewable_set = set(viewable)
 
     return jsonify({
         "role": user.role.value,
         "viewable_pages": viewable,
-        "pages": [page_map[k] for k in viewable if k in page_map],
+        "pages": [p.to_dict() for p in pages if p.key in viewable_set],
     }), 200

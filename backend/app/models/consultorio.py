@@ -10,7 +10,7 @@ class Consultorio(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(255), nullable=True)
     color = db.Column(db.String(7), nullable=True, default="#4299e1")
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False, server_default=db.true())
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     clinic = db.relationship("Clinic")

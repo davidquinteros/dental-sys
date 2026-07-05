@@ -10,13 +10,14 @@ class Clinic(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
     slug = db.Column(db.String(80), unique=True, nullable=False, index=True)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False, server_default=db.true())
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # SaaS subscription tracking (platform-admin managed, manual billing — no payment gateway).
     subscription_tier_id = db.Column(db.Integer, db.ForeignKey("subscription_tiers.id"), nullable=True)
     subscription_status = db.Column(
         db.Enum(SubscriptionStatus), nullable=False, default=SubscriptionStatus.TRIAL,
+        server_default="TRIAL",
     )
     trial_ends_at = db.Column(db.DateTime, nullable=True)
     next_payment_due_at = db.Column(db.DateTime, nullable=True)

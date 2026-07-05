@@ -4,16 +4,37 @@
       <div class="breadcrumb">
         <a routerLink="/treatments" class="breadcrumb-link">Atenciones</a>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-        <span>Nueva Atención</span>
+        <span>{{ isEdit() ? 'Editar Atención' : 'Nueva Atención' }}</span>
       </div>
-      <h1 class="page-title">Registrar Atención Clínica</h1>
+      <h1 class="page-title">{{ isEdit() ? 'Editar Atención Clínica' : 'Registrar Atención Clínica' }}</h1>
     </div>
   }
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
 
-    <!-- Patient search (hidden when embedded with a preset patient) -->
-    @if (!embedded) {
+    <!-- Read-only patient info when editing (patient can't be reassigned) -->
+    @if (isEdit() && editingTreatment()) {
+      <div class="form-card">
+        <div class="form-card-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+          </svg>
+          Datos del Paciente
+        </div>
+        <div class="form-body">
+          <div class="selected-item">
+            <div class="selected-info">
+              <span class="sel-name">{{ editingTreatment()!.patient_name }}</span>
+              <span class="sel-meta">Dr(a). {{ editingTreatment()!.doctor_name }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Patient search (hidden when embedded with a preset patient, or when editing) -->
+    @if (!embedded && !isEdit()) {
       <div class="form-card">
         <div class="form-card-header">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -123,7 +144,8 @@
             placeholder="Indicaciones post-tratamiento, cuidados, próxima cita..."></textarea>
         </div>
 
-        <!-- Optional links -->
+        <!-- Optional links (not editable once created) -->
+        @if (!isEdit()) {
         <div class="form-row">
           <div class="form-group">
             <label>Cita Asociada</label>
@@ -158,6 +180,7 @@
             </select>
           </div>
         </div>
+        }
       </div>
     </div>
 
@@ -168,12 +191,14 @@
     <div class="form-actions">
       @if (embedded) {
         <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancelar</button>
+      } @else if (isEdit()) {
+        <a [routerLink]="['/treatments', editingTreatment()!.id]" class="btn btn-secondary">Cancelar</a>
       } @else {
         <a routerLink="/treatments" class="btn btn-secondary">Cancelar</a>
       }
-      <button type="submit" class="btn btn-primary" [disabled]="saving() || !selectedPatient()">
+      <button type="submit" class="btn btn-primary" [disabled]="saving() || (!isEdit() && !selectedPatient())">
         @if (saving()) { <span class="spinner-sm"></span> }
-        Registrar Atención
+        {{ isEdit() ? 'Guardar Cambios' : 'Registrar Atención' }}
       </button>
     </div>
   </form>

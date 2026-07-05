@@ -26,6 +26,8 @@ export class TreatmentFormComponent implements OnInit {
   form: FormGroup;
   saving = signal(false);
   errorMsg = signal('');
+  isEdit = signal(false);
+  editingTreatment = signal<Treatment | null>(null);
   selectedPatient = signal<Patient | null>(null);
   patientResults = signal<Patient[]>([]);
   patientSearch = '';
@@ -67,6 +69,27 @@ export class TreatmentFormComponent implements OnInit {
       }
       return;
     }
+
+    const editId = this.route.snapshot.paramMap.get('id');
+    if (editId) {
+      this.isEdit.set(true);
+      this.treatmentService.getById(+editId).subscribe(res => {
+        const t = res.treatment;
+        this.editingTreatment.set(t);
+        this.form.patchValue({
+          procedure: t.procedure,
+          tooth_number: t.tooth_number ?? '',
+          tooth_surface: t.tooth_surface ?? '',
+          diagnosis: t.diagnosis ?? '',
+          description: t.description ?? '',
+          clinical_notes: t.clinical_notes ?? '',
+          prescriptions: t.prescriptions ?? '',
+          next_steps: t.next_steps ?? '',
+        });
+      });
+      return;
+    }
+
     const patientId = this.route.snapshot.queryParamMap.get('patient_id');
     const appointmentId = this.route.snapshot.queryParamMap.get('appointment_id');
     const planId = this.route.snapshot.queryParamMap.get('plan_id');
@@ -168,16 +191,15 @@ export class TreatmentFormComponent implements OnInit {
   hasError(f: string): boolean { const c = this.form.get(f); return !!(c?.invalid && c?.touched); }
 
   onSubmit(): void {
-    if (this.form.invalid || !this.selectedPatient()) {
+    if (this.form.invalid || (!this.isEdit() && !this.selectedPatient())) {
       this.form.markAllAsTouched();
-      if (!this.selectedPatient()) this.errorMsg.set('Seleccione un paciente');
+      if (!this.isEdit() && !this.selectedPatient()) this.errorMsg.set('Seleccione un paciente');
       return;
     }
     this.saving.set(true);
     this.errorMsg.set('');
     const val = this.form.value;
-    const payload: any = {
-      patient_id: this.selectedPatient()!.id,
+    const clinicalFields = {
       procedure: val.procedure,
       tooth_number: val.tooth_number || null,
       tooth_surface: val.tooth_surface || null,
@@ -187,6 +209,17 @@ export class TreatmentFormComponent implements OnInit {
       prescriptions: val.prescriptions || null,
       next_steps: val.next_steps || null,
     };
+
+    if (this.isEdit()) {
+      const id = this.editingTreatment()!.id;
+      this.treatmentService.update(id, clinicalFields).subscribe({
+        next: () => { this.saving.set(false); this.router.navigate(['/treatments', id]); },
+        error: err => { this.errorMsg.set(err.error?.error || 'Error al actualizar'); this.saving.set(false); },
+      });
+      return;
+    }
+
+    const payload: any = { ...clinicalFields, patient_id: this.selectedPatient()!.id };
     if (val.appointment_id) payload.appointment_id = +val.appointment_id;
     if (val.treatment_plan_id) payload.treatment_plan_id = +val.treatment_plan_id;
 

@@ -98,6 +98,9 @@ export class AuthService {
   canManageTreatments = computed(() =>
     this.hasRole('admin', 'doctor', 'assistant')
   );
+  canEditTreatments = computed(() =>
+    this.hasRole('admin', 'doctor')
+  );
   canManageUsers = computed(() => this.isAdmin());
   canViewAll = computed(() => this.hasRole('admin', 'receptionist'));
 

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { roleGuard } from '../../core/guards/auth.guard';
 
 export const TREATMENTS_ROUTES: Routes = [
   {
@@ -10,6 +11,13 @@ export const TREATMENTS_ROUTES: Routes = [
     path: 'new',
     loadComponent: () =>
       import('./treatment-form.component').then(m => m.TreatmentFormComponent),
+  },
+  {
+    path: ':id/edit',
+    loadComponent: () =>
+      import('./treatment-form.component').then(m => m.TreatmentFormComponent),
+    canActivate: [roleGuard],
+    data: { roles: ['admin', 'doctor'] },
   },
   {
     path: ':id',

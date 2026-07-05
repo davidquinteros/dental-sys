@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, Response
 from app import db
 from app.models.treatment import Treatment, TreatmentPlan, TreatmentPlanStatus
 from app.models.treatment_image import TreatmentImage
-from app.middleware.auth import medical_staff_required, clinical_access_required, get_current_user
+from app.middleware.auth import medical_staff_required, clinical_access_required, doctor_or_admin_required, get_current_user
 from app.utils import storage
 from datetime import date
 import uuid
@@ -243,7 +243,7 @@ def create_treatment():
 
 
 @treatments_bp.route("/<int:treatment_id>", methods=["PUT"])
-@medical_staff_required
+@doctor_or_admin_required
 def update_treatment(treatment_id):
     """
     Actualizar atención
@@ -252,7 +252,7 @@ def update_treatment(treatment_id):
       - Atenciones
     security:
       - BearerAuth: []
-    description: Solo personal médico (admin, médico, asistente).
+    description: Solo administrador y médico.
     parameters:
       - in: path
         name: treatment_id

@@ -20,6 +20,9 @@
           <a [routerLink]="['/treatments/plans', treatment()!.treatment_plan_id]" class="btn btn-secondary">Ver Plan</a>
         }
         @if (!embedded) {
+          @if (auth.canEditTreatments()) {
+            <a [routerLink]="['/treatments', treatment()!.id, 'edit']" class="btn btn-secondary">Editar</a>
+          }
           <a [routerLink]="['/patients', treatment()!.patient_id]" class="btn btn-primary">Ver Paciente</a>
         } @else {
           <button type="button" class="btn btn-secondary" (click)="closed.emit()">Cerrar</button>

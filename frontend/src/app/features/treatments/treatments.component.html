@@ -66,13 +66,20 @@
                     <a [routerLink]="['/treatments/plans', t.treatment_plan_id]" class="pill purple">Plan #{{ t.treatment_plan_id }}</a>
                   } @else { <span class="text-muted">—</span> }
                 </td>
-                <td>
-                  <a [routerLink]="['/treatments', t.id]" class="action-btn">
+                <td class="actions-cell">
+                  <a [routerLink]="['/treatments', t.id]" class="action-btn" title="Ver">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                       <circle cx="12" cy="12" r="3"/>
                     </svg>
                   </a>
+                  @if (auth.canEditTreatments()) {
+                    <a [routerLink]="['/treatments', t.id, 'edit']" class="action-btn" title="Editar">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>
+                      </svg>
+                    </a>
+                  }
                 </td>
               </tr>
             }

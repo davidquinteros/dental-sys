@@ -44,6 +44,7 @@
 .link:hover { text-decoration: underline; }
 .pill { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; text-decoration: none; }
 .pill.purple { background: #faf5ff; color: #805ad5; }
+.actions-cell { display: flex; align-items: center; gap: 4px; }
 .action-btn { display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 6px; color: #718096; text-decoration: none; transition: all 0.15s; }
 .action-btn svg { width: 16px; height: 16px; }
