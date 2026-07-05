@@ -46,6 +46,19 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "testing": {
+              "budgets": [
+                { "type": "initial", "maximumWarning": "500kb", "maximumError": "1mb" },
+                { "type": "anyComponentStyle", "maximumWarning": "6kb", "maximumError": "12kb" }
+              ],
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.testing.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -54,7 +67,8 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": { "buildTarget": "dental-clinic-frontend:build:production" },
-            "development": { "buildTarget": "dental-clinic-frontend:build:development" }
+            "development": { "buildTarget": "dental-clinic-frontend:build:development" },
+            "testing": { "buildTarget": "dental-clinic-frontend:build:testing" }
           },
           "defaultConfiguration": "development"
         }

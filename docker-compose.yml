@@ -1,54 +1,35 @@
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: dental_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: dental_clinic_db
-      POSTGRES_USER: dental_user
-      POSTGRES_PASSWORD: dental_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dental_user -d dental_clinic_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   backend:
     build: ./backend
     container_name: dental_backend
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
       FLASK_APP: run.py
       FLASK_ENV: development
       FLASK_DEBUG: "1"
       SECRET_KEY: dev-secret-change-in-prod
-      # Runtime traffic uses a restricted, non-superuser role so Row Level
-      # Security (see migration a3f9c2d81e47) actually applies to it.
-      DATABASE_URL: postgresql://dental_app:dental_app_password@db:5432/dental_clinic_db
-      # Migrations need DDL/ownership privileges, so they run as the
-      # superuser role instead — see entrypoint.sh.
-      MIGRATIONS_DATABASE_URL: postgresql://dental_user:dental_password@db:5432/dental_clinic_db
+      # Ambiente de testing compartido en Supabase — NO el Postgres local.
+      # Los valores reales van en un archivo .env en la RAÍZ del repo
+      # (gitignored, ver .env.example) — NO hardcodear acá: docker-compose.yml
+      # está en el repo público. Se setean UNA vez; después "docker compose up"
+      # ya migra y corre solo contra esa base cada vez.
+      DATABASE_URL: ${DATABASE_URL}
+      MIGRATIONS_DATABASE_URL: ${MIGRATIONS_DATABASE_URL}
       JWT_SECRET_KEY: jwt-secret-change-in-prod
       JWT_ACCESS_TOKEN_EXPIRES: "3600"
       JWT_REFRESH_TOKEN_EXPIRES: "2592000"
       CORS_ORIGINS: http://localhost:4200,http://localhost:4300
-      # Supabase Storage para fotos clínicas (FCLI-10). Los valores reales van
-      # en un archivo .env en la RAÍZ del repo (gitignored) — NO hardcodear la
-      # service_role key acá: docker-compose.yml está en el repo público.
-      # Si no están seteadas, los endpoints de imágenes responden 503.
+      # Supabase Storage para fotos clínicas (FCLI-10). Si no están seteadas,
+      # los endpoints de imágenes responden 503.
       SUPABASE_URL: ${SUPABASE_URL:-}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
       SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-treatment-images}
-      POSTGRES_HOST: db
-      POSTGRES_PORT: "5432"
-      POSTGRES_USER: dental_user
+      # Usados solo por el wait-loop de entrypoint.sh (pg_isready) antes de
+      # migrar — deben apuntar al mismo host/puerto/usuario del pooler que
+      # MIGRATIONS_DATABASE_URL.
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER}
     ports:
       - "5000:5000"
     volumes:
@@ -79,6 +60,5 @@ services:
       - admin_frontend_node_modules:/app/node_modules
 
 volumes:
-  postgres_data:
   frontend_node_modules:
   admin_frontend_node_modules:
