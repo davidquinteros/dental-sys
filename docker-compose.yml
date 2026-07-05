@@ -39,6 +39,13 @@ services:
       JWT_ACCESS_TOKEN_EXPIRES: "3600"
       JWT_REFRESH_TOKEN_EXPIRES: "2592000"
       CORS_ORIGINS: http://localhost:4200,http://localhost:4300
+      # Supabase Storage para fotos clínicas (FCLI-10). Los valores reales van
+      # en un archivo .env en la RAÍZ del repo (gitignored) — NO hardcodear la
+      # service_role key acá: docker-compose.yml está en el repo público.
+      # Si no están seteadas, los endpoints de imágenes responden 503.
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-treatment-images}
       POSTGRES_HOST: db
       POSTGRES_PORT: "5432"
       POSTGRES_USER: dental_user

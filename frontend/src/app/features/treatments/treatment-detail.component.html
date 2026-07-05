@@ -99,5 +99,10 @@
         </div>
       </div>
     </div>
+
+    <app-treatment-images
+      [treatmentId]="treatment()!.id"
+      [canEdit]="auth.canManageTreatments()">
+    </app-treatment-images>
   }
 </div>

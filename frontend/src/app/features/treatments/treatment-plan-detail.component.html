@@ -116,5 +116,12 @@
         }
       </div>
     </div>
+
+    <div class="plan-images-card">
+      <app-treatment-images
+        [planId]="plan()!.id"
+        [canEdit]="auth.canManageTreatments()">
+      </app-treatment-images>
+    </div>
   }
 </div>

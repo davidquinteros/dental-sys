@@ -1,10 +1,21 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 from app import db
 from app.models.treatment import Treatment, TreatmentPlan, TreatmentPlanStatus
+from app.models.treatment_image import TreatmentImage
 from app.middleware.auth import medical_staff_required, clinical_access_required, get_current_user
+from app.utils import storage
 from datetime import date
+import uuid
 
 treatments_bp = Blueprint("treatments", __name__)
+
+# ─── Clinical images (photos per appointment / treatment plan) ───────────────
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+# Hard server-side ceiling. The frontend compresses before upload (canvas →
+# JPEG), so real payloads are ~150-400KB; this is just a backstop against an
+# uncompressed or malicious upload, not the expected size.
+MAX_IMAGE_BYTES = 8 * 1024 * 1024  # 8 MB
+_EXT_BY_TYPE = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 
 
 # ─── TREATMENTS (Single sessions) ────────────────────────────────────────────
@@ -626,3 +637,328 @@ def update_treatment_plan(plan_id):
 
     db.session.commit()
     return jsonify({"treatment_plan": plan.to_dict(), "message": "Plan actualizado"}), 200
+
+
+# ─── CLINICAL IMAGES ─────────────────────────────────────────────────────────
+#
+# Photos taken during an appointment (Treatment) or across a whole
+# TreatmentPlan. Bytes live in a private Supabase Storage bucket; only metadata
+# is stored in `treatment_images`. Every read of the bytes goes through
+# get_treatment_image_file() below, which loads the row under the current
+# clinic's scope first — so tenant isolation for the image content rides on the
+# same ORM-filter + RLS layers as everything else (bucket is never public).
+
+def _read_upload_or_error():
+    """Validate the multipart 'file' part; return (bytes, content_type) or an
+    (error_response, status) tuple."""
+    if not storage.is_configured():
+        return None, (jsonify({
+            "error": "Almacenamiento de imágenes no configurado (SUPABASE_URL / SUPABASE_SERVICE_KEY)."
+        }), 503)
+
+    file = request.files.get("file")
+    if file is None or file.filename == "":
+        return None, (jsonify({"error": "No se envió ninguna imagen (campo 'file')"}), 400)
+
+    content_type = (file.mimetype or "").lower()
+    if content_type not in ALLOWED_IMAGE_TYPES:
+        return None, (jsonify({"error": "Formato no permitido. Use JPEG, PNG o WEBP."}), 400)
+
+    data = file.read()
+    if not data:
+        return None, (jsonify({"error": "El archivo está vacío"}), 400)
+    if len(data) > MAX_IMAGE_BYTES:
+        return None, (jsonify({"error": "La imagen supera el tamaño máximo permitido (8 MB)"}), 400)
+
+    return (data, content_type), None
+
+
+def _persist_image(*, clinic_id, patient_id, treatment_id, treatment_plan_id,
+                   uploaded_by_id, data, content_type, path_prefix, caption):
+    """Upload the bytes to storage and create the TreatmentImage row."""
+    ext = _EXT_BY_TYPE.get(content_type, "jpg")
+    storage_path = f"clinic_{clinic_id}/{path_prefix}/{uuid.uuid4().hex}.{ext}"
+    storage.upload_object(storage_path, data, content_type)
+
+    image = TreatmentImage(
+        clinic_id=clinic_id,
+        patient_id=patient_id,
+        treatment_id=treatment_id,
+        treatment_plan_id=treatment_plan_id,
+        uploaded_by_id=uploaded_by_id,
+        storage_path=storage_path,
+        content_type=content_type,
+        file_size=len(data),
+        caption=caption,
+    )
+    db.session.add(image)
+    db.session.commit()
+    return image
+
+
+@treatments_bp.route("/<int:treatment_id>/images", methods=["POST"])
+@medical_staff_required
+def upload_treatment_image(treatment_id):
+    """
+    Subir una foto a una atención
+    ---
+    tags:
+      - Atenciones
+    security:
+      - BearerAuth: []
+    consumes:
+      - multipart/form-data
+    description: Solo personal médico. La imagen se guarda en almacenamiento privado y solo es accesible para la clínica dueña del paciente.
+    parameters:
+      - in: path
+        name: treatment_id
+        type: integer
+        required: true
+      - in: formData
+        name: file
+        type: file
+        required: true
+        description: Imagen JPEG, PNG o WEBP (comprimida en el cliente).
+      - in: formData
+        name: caption
+        type: string
+        required: false
+    responses:
+      201:
+        description: Imagen subida
+      400:
+        description: Archivo inválido
+      403:
+        description: Acceso denegado
+      404:
+        description: Atención no encontrada
+      503:
+        description: Almacenamiento no configurado
+    """
+    current = get_current_user()
+    treatment = Treatment.query.get_or_404(treatment_id, description="Atención no encontrada")
+
+    result, error = _read_upload_or_error()
+    if error:
+        return error
+    data, content_type = result
+
+    image = _persist_image(
+        clinic_id=treatment.clinic_id,
+        patient_id=treatment.patient_id,
+        treatment_id=treatment.id,
+        treatment_plan_id=treatment.treatment_plan_id,
+        uploaded_by_id=current.id,
+        data=data,
+        content_type=content_type,
+        path_prefix=f"treatment_{treatment.id}",
+        caption=(request.form.get("caption") or None),
+    )
+    return jsonify({"image": image.to_dict(), "message": "Imagen subida"}), 201
+
+
+@treatments_bp.route("/plans/<int:plan_id>/images", methods=["POST"])
+@medical_staff_required
+def upload_plan_image(plan_id):
+    """
+    Subir una foto a un plan de tratamiento
+    ---
+    tags:
+      - Atenciones
+    security:
+      - BearerAuth: []
+    consumes:
+      - multipart/form-data
+    description: Solo personal médico. Foto asociada al plan completo (no a una sesión puntual).
+    parameters:
+      - in: path
+        name: plan_id
+        type: integer
+        required: true
+      - in: formData
+        name: file
+        type: file
+        required: true
+      - in: formData
+        name: caption
+        type: string
+        required: false
+    responses:
+      201:
+        description: Imagen subida
+      400:
+        description: Archivo inválido
+      403:
+        description: Acceso denegado
+      404:
+        description: Plan no encontrado
+      503:
+        description: Almacenamiento no configurado
+    """
+    current = get_current_user()
+    plan = TreatmentPlan.query.get_or_404(plan_id, description="Plan no encontrado")
+
+    result, error = _read_upload_or_error()
+    if error:
+        return error
+    data, content_type = result
+
+    image = _persist_image(
+        clinic_id=plan.clinic_id,
+        patient_id=plan.patient_id,
+        treatment_id=None,
+        treatment_plan_id=plan.id,
+        uploaded_by_id=current.id,
+        data=data,
+        content_type=content_type,
+        path_prefix=f"plan_{plan.id}",
+        caption=(request.form.get("caption") or None),
+    )
+    return jsonify({"image": image.to_dict(), "message": "Imagen subida"}), 201
+
+
+@treatments_bp.route("/<int:treatment_id>/images", methods=["GET"])
+@clinical_access_required
+def list_treatment_images(treatment_id):
+    """
+    Listar fotos de una atención
+    ---
+    tags:
+      - Atenciones
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: treatment_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de imágenes (más recientes primero)
+      403:
+        description: Acceso denegado
+    """
+    images = (TreatmentImage.query
+              .filter_by(treatment_id=treatment_id)
+              .order_by(TreatmentImage.created_at.desc())
+              .all())
+    return jsonify({"images": [img.to_dict() for img in images]}), 200
+
+
+@treatments_bp.route("/plans/<int:plan_id>/images", methods=["GET"])
+@clinical_access_required
+def list_plan_images(plan_id):
+    """
+    Listar fotos de un plan de tratamiento (galería completa)
+    ---
+    tags:
+      - Atenciones
+    security:
+      - BearerAuth: []
+    description: >
+      Incluye tanto las fotos subidas directamente al plan como las de cada
+      sesión del plan (toda foto tomada en una atención vinculada al plan
+      hereda su treatment_plan_id).
+    parameters:
+      - in: path
+        name: plan_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de imágenes del plan (más recientes primero)
+      403:
+        description: Acceso denegado
+    """
+    images = (TreatmentImage.query
+              .filter_by(treatment_plan_id=plan_id)
+              .order_by(TreatmentImage.created_at.desc())
+              .all())
+    return jsonify({"images": [img.to_dict() for img in images]}), 200
+
+
+@treatments_bp.route("/images/<int:image_id>/file", methods=["GET"])
+@clinical_access_required
+def get_treatment_image_file(image_id):
+    """
+    Descargar/visualizar los bytes de una imagen clínica
+    ---
+    tags:
+      - Atenciones
+    security:
+      - BearerAuth: []
+    description: >
+      Sirve la imagen desde el almacenamiento privado. La fila se carga bajo el
+      scope de la clínica actual (ORM + RLS), así que una clínica nunca puede
+      acceder a las fotos de otra aunque adivine el id.
+    produces:
+      - image/jpeg
+      - image/png
+      - image/webp
+    parameters:
+      - in: path
+        name: image_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Bytes de la imagen
+      404:
+        description: Imagen no encontrada
+      503:
+        description: Almacenamiento no configurado
+    """
+    if not storage.is_configured():
+        return jsonify({"error": "Almacenamiento de imágenes no configurado."}), 503
+
+    image = TreatmentImage.query.get_or_404(image_id, description="Imagen no encontrada")
+    try:
+        data = storage.download_object(image.storage_path)
+    except storage.StorageError:
+        return jsonify({"error": "No se pudo recuperar la imagen del almacenamiento"}), 502
+
+    return Response(
+        data,
+        mimetype=image.content_type or "application/octet-stream",
+        headers={"Cache-Control": "private, max-age=3600"},
+    )
+
+
+@treatments_bp.route("/images/<int:image_id>", methods=["DELETE"])
+@medical_staff_required
+def delete_treatment_image(image_id):
+    """
+    Eliminar una imagen clínica
+    ---
+    tags:
+      - Atenciones
+    security:
+      - BearerAuth: []
+    description: Solo personal médico. Elimina el objeto del almacenamiento y su registro.
+    parameters:
+      - in: path
+        name: image_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Imagen eliminada
+      403:
+        description: Acceso denegado
+      404:
+        description: Imagen no encontrada
+    """
+    image = TreatmentImage.query.get_or_404(image_id, description="Imagen no encontrada")
+
+    # Best-effort remove from the bucket first; a 404 there is treated as
+    # success. If storage is unreachable we keep the row so we don't orphan the
+    # object silently.
+    if storage.is_configured():
+        try:
+            storage.delete_object(image.storage_path)
+        except storage.StorageError:
+            return jsonify({"error": "No se pudo eliminar la imagen del almacenamiento"}), 502
+
+    db.session.delete(image)
+    db.session.commit()
+    return jsonify({"message": "Imagen eliminada"}), 200

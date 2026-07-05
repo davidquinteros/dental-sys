@@ -136,6 +136,22 @@ export interface Treatment {
   created_at: string;
 }
 
+/** Clinical photo attached to an appointment (Treatment) or a TreatmentPlan. */
+export interface TreatmentImage {
+  id: number;
+  patient_id: number;
+  treatment_id?: number;
+  treatment_plan_id?: number;
+  uploaded_by_id?: number;
+  uploaded_by_name?: string;
+  content_type?: string;
+  file_size?: number;
+  caption?: string;
+  /** Relative to environment.apiUrl. Must be fetched with the auth token (bytes are served through an authenticated endpoint, not a public URL). */
+  file_url: string;
+  created_at: string;
+}
+
 export interface TreatmentPlan {
   id: number;
   patient_id: number;

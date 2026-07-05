@@ -1,0 +1,62 @@
+<div class="images-section">
+  <div class="images-header">
+    <h4>📷 Fotografías clínicas</h4>
+    @if (canEdit) {
+      <label class="btn-upload" [class.disabled]="uploading()">
+        @if (uploading()) { <span class="spinner-sm"></span> Subiendo… }
+        @else { + Agregar foto }
+        <input type="file" accept="image/*" multiple hidden
+               (change)="onFileSelected($event)" [disabled]="uploading()" />
+      </label>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="images-error">{{ error() }}</div>
+  }
+
+  @if (loading()) {
+    <div class="images-loading"><span class="spinner-sm"></span></div>
+  } @else if (images().length === 0) {
+    <div class="images-empty">
+      Sin fotografías aún.@if (canEdit) { Usá “Agregar foto” para documentar la atención. }
+    </div>
+  } @else {
+    <div class="images-grid">
+      @for (img of images(); track img.id) {
+        <button type="button" class="thumb" (click)="open(img)"
+                [attr.aria-label]="'Ver fotografía del ' + (img.created_at | date:'short')">
+          @if (thumbUrls()[img.id]) {
+            <img [src]="thumbUrls()[img.id]" alt="Fotografía clínica" />
+          } @else {
+            <span class="thumb-loading"><span class="spinner-sm"></span></span>
+          }
+        </button>
+      }
+    </div>
+  }
+</div>
+
+<!-- Lightbox / maximize -->
+@if (active(); as img) {
+  <div class="lightbox" (click)="close()">
+    <div class="lightbox-inner" (click)="$event.stopPropagation()">
+      <div class="lightbox-bar">
+        <span class="lightbox-meta">
+          {{ img.created_at | date:'medium' }}
+          @if (img.uploaded_by_name) { · {{ img.uploaded_by_name }} }
+        </span>
+        <div class="lightbox-actions">
+          @if (canEdit) {
+            <button type="button" class="btn-icon danger" (click)="remove(img)" title="Eliminar">🗑</button>
+          }
+          <button type="button" class="btn-icon" (click)="close()" title="Cerrar">✕</button>
+        </div>
+      </div>
+      @if (thumbUrls()[img.id]) {
+        <img class="lightbox-img" [src]="thumbUrls()[img.id]" alt="Fotografía clínica" />
+      }
+      @if (img.caption) { <div class="lightbox-caption">{{ img.caption }}</div> }
+    </div>
+  </div>
+}

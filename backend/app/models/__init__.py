@@ -6,6 +6,7 @@ from app.models.consultorio import Consultorio
 from app.models.appointment import Appointment, AppointmentStatus, AppointmentType
 from app.models.appointment_type import AppointmentTypeCatalog
 from app.models.treatment import Treatment, TreatmentPlan, TreatmentPlanStatus
+from app.models.treatment_image import TreatmentImage
 from app.models.billing import (
     Invoice, InvoiceItem, Payment, PaymentPlan, PaymentPlanInstallment,
     InvoiceStatus, PaymentMethod, PaymentPlanStatus,
@@ -20,6 +21,7 @@ __all__ = [
     "Consultorio",
     "Appointment", "AppointmentStatus", "AppointmentType",
     "Treatment", "TreatmentPlan", "TreatmentPlanStatus",
+    "TreatmentImage",
     "Invoice", "InvoiceItem", "Payment", "PaymentPlan", "PaymentPlanInstallment",
     "InvoiceStatus", "PaymentMethod", "PaymentPlanStatus",
     "Page", "RolePermission",

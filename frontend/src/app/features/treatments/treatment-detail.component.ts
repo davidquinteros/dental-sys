@@ -2,12 +2,14 @@ import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { TreatmentService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Treatment } from '../../core/models';
+import { TreatmentImagesComponent } from './treatment-images.component';
 
 @Component({
   selector: 'app-treatment-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, TreatmentImagesComponent],
   templateUrl: './treatment-detail.component.html',
   styleUrl: './treatment-detail.component.css',
 })
@@ -21,7 +23,11 @@ export class TreatmentDetailComponent implements OnInit {
   treatment = signal<Treatment | null>(null);
   loading = signal(true);
 
-  constructor(private route: ActivatedRoute, private treatmentService: TreatmentService) {}
+  constructor(
+    private route: ActivatedRoute,
+    private treatmentService: TreatmentService,
+    public auth: AuthService,
+  ) {}
 
   ngOnInit(): void {
     const id = this.embedded ? this.treatmentId! : +this.route.snapshot.paramMap.get('id')!;

@@ -93,12 +93,12 @@ def _stamp_tenant_guc_on_checkout(dbapi_connection, connection_record, connectio
 
 def _scoped_models():
     from app.models import (
-        User, Patient, Appointment, Treatment, TreatmentPlan,
+        User, Patient, Appointment, Treatment, TreatmentPlan, TreatmentImage,
         Invoice, PaymentPlan, PaymentPlanInstallment, Consultorio, AppointmentTypeCatalog, RolePermission,
         SubscriptionPayment,
     )
     return (
-        User, Patient, Appointment, Treatment, TreatmentPlan,
+        User, Patient, Appointment, Treatment, TreatmentPlan, TreatmentImage,
         Invoice, PaymentPlan, PaymentPlanInstallment, Consultorio, AppointmentTypeCatalog, RolePermission,
         SubscriptionPayment,
     )

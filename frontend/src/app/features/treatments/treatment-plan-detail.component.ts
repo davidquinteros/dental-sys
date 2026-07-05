@@ -2,12 +2,14 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { TreatmentService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { TreatmentPlan } from '../../core/models';
+import { TreatmentImagesComponent } from './treatment-images.component';
 
 @Component({
   selector: 'app-treatment-plan-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, TreatmentImagesComponent],
   templateUrl: './treatment-plan-detail.component.html',
   styleUrl: './treatment-plan-detail.component.css',
 })
@@ -15,7 +17,11 @@ export class TreatmentPlanDetailComponent implements OnInit {
   plan = signal<TreatmentPlan | null>(null);
   loading = signal(true);
 
-  constructor(private route: ActivatedRoute, private treatmentService: TreatmentService) {}
+  constructor(
+    private route: ActivatedRoute,
+    private treatmentService: TreatmentService,
+    public auth: AuthService,
+  ) {}
 
   ngOnInit(): void {
     const id = +this.route.snapshot.paramMap.get('id')!;

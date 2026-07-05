@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
-  Patient, Appointment, Treatment, TreatmentPlan,
+  Patient, Appointment, Treatment, TreatmentPlan, TreatmentImage,
   Invoice, Payment, PaymentPlan, PaymentPlanInstallment, DashboardData, User, Consultorio, AppointmentTypeItem
 } from '../models';
 
@@ -143,6 +143,38 @@ export class TreatmentService {
 
   updatePlan(id: number, data: Partial<TreatmentPlan>): Observable<{ treatment_plan: TreatmentPlan }> {
     return this.http.put<{ treatment_plan: TreatmentPlan }>(`${API}/treatments/plans/${id}`, data);
+  }
+
+  // ── Clinical images (photos per appointment / plan) ──
+  listImages(treatmentId: number): Observable<{ images: TreatmentImage[] }> {
+    return this.http.get<{ images: TreatmentImage[] }>(`${API}/treatments/${treatmentId}/images`);
+  }
+
+  listPlanImages(planId: number): Observable<{ images: TreatmentImage[] }> {
+    return this.http.get<{ images: TreatmentImage[] }>(`${API}/treatments/plans/${planId}/images`);
+  }
+
+  uploadImage(treatmentId: number, blob: Blob, filename: string, caption?: string): Observable<{ image: TreatmentImage }> {
+    const form = new FormData();
+    form.append('file', blob, filename);
+    if (caption) form.append('caption', caption);
+    return this.http.post<{ image: TreatmentImage }>(`${API}/treatments/${treatmentId}/images`, form);
+  }
+
+  uploadPlanImage(planId: number, blob: Blob, filename: string, caption?: string): Observable<{ image: TreatmentImage }> {
+    const form = new FormData();
+    form.append('file', blob, filename);
+    if (caption) form.append('caption', caption);
+    return this.http.post<{ image: TreatmentImage }>(`${API}/treatments/plans/${planId}/images`, form);
+  }
+
+  deleteImage(imageId: number): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${API}/treatments/images/${imageId}`);
+  }
+
+  /** Fetch the raw bytes of an image (through the authenticated endpoint) as a Blob. */
+  getImageBlob(fileUrl: string): Observable<Blob> {
+    return this.http.get(`${API}${fileUrl}`, { responseType: 'blob' });
   }
 }
 
