@@ -675,10 +675,18 @@ def _read_upload_or_error():
 
 def _persist_image(*, clinic_id, patient_id, treatment_id, treatment_plan_id,
                    uploaded_by_id, data, content_type, path_prefix, caption):
-    """Upload the bytes to storage and create the TreatmentImage row."""
+    """Upload the bytes to storage and create the TreatmentImage row.
+
+    Returns (image, error_response_tuple) — mirrors _read_upload_or_error so
+    callers can `return` the error directly instead of leaking an unhandled
+    StorageError as a bare 500.
+    """
     ext = _EXT_BY_TYPE.get(content_type, "jpg")
     storage_path = f"clinic_{clinic_id}/{path_prefix}/{uuid.uuid4().hex}.{ext}"
-    storage.upload_object(storage_path, data, content_type)
+    try:
+        storage.upload_object(storage_path, data, content_type)
+    except storage.StorageError:
+        return None, (jsonify({"error": "No se pudo subir la imagen al almacenamiento"}), 502)
 
     image = TreatmentImage(
         clinic_id=clinic_id,
@@ -693,7 +701,7 @@ def _persist_image(*, clinic_id, patient_id, treatment_id, treatment_plan_id,
     )
     db.session.add(image)
     db.session.commit()
-    return image
+    return image, None
 
 
 @treatments_bp.route("/<int:treatment_id>/images", methods=["POST"])
@@ -743,7 +751,7 @@ def upload_treatment_image(treatment_id):
         return error
     data, content_type = result
 
-    image = _persist_image(
+    image, error = _persist_image(
         clinic_id=treatment.clinic_id,
         patient_id=treatment.patient_id,
         treatment_id=treatment.id,
@@ -754,6 +762,8 @@ def upload_treatment_image(treatment_id):
         path_prefix=f"treatment_{treatment.id}",
         caption=(request.form.get("caption") or None),
     )
+    if error:
+        return error
     return jsonify({"image": image.to_dict(), "message": "Imagen subida"}), 201
 
 
@@ -803,7 +813,7 @@ def upload_plan_image(plan_id):
         return error
     data, content_type = result
 
-    image = _persist_image(
+    image, error = _persist_image(
         clinic_id=plan.clinic_id,
         patient_id=plan.patient_id,
         treatment_id=None,
@@ -814,6 +824,8 @@ def upload_plan_image(plan_id):
         path_prefix=f"plan_{plan.id}",
         caption=(request.form.get("caption") or None),
     )
+    if error:
+        return error
     return jsonify({"image": image.to_dict(), "message": "Imagen subida"}), 201
 
 
