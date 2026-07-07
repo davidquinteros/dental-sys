@@ -388,6 +388,9 @@ def update_appointment(appt_id):
               type: string
             session_number:
               type: integer
+            treatment_plan_id:
+              type: integer
+              description: Plan de tratamiento asociado. Enviar null para desasociar.
             status:
               type: string
               enum: [scheduled, confirmed, in_progress, completed, cancelled, no_show]
@@ -432,7 +435,7 @@ def update_appointment(appt_id):
     # El estado (y su motivo de cancelación) siempre puede cambiarse; el resto de
     # los campos quedan congelados una vez que la cita está completada/cancelada.
     locked = appt.status in [AppointmentStatus.COMPLETED, AppointmentStatus.CANCELLED]
-    editable_fields = {"scheduled_at", "consultorio_id", "duration_minutes", "reason", "notes", "session_number"}
+    editable_fields = {"scheduled_at", "consultorio_id", "duration_minutes", "reason", "notes", "session_number", "treatment_plan_id"}
     if locked and editable_fields.intersection(data.keys()):
         return jsonify({"error": "No se puede modificar una cita completada o cancelada"}), 400
 
@@ -452,7 +455,7 @@ def update_appointment(appt_id):
     if "consultorio_id" in data:
         appt.consultorio_id = data["consultorio_id"] or None
 
-    for field in ["duration_minutes", "reason", "notes", "session_number"]:
+    for field in ["duration_minutes", "reason", "notes", "session_number", "treatment_plan_id"]:
         if field in data:
             setattr(appt, field, data[field])
 
