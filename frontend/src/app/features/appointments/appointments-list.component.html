@@ -106,6 +106,7 @@
             <th>Médico</th>
             <th>Consultorio</th>
             <th>Tipo</th>
+            <th>Plan</th>
             <th>Duración</th>
             <th>Estado</th>
             <th>Factura</th>
@@ -135,6 +136,15 @@
                 }
               </td>
               <td class="text-sm">{{ typeLabel(appt.appointment_type) }}</td>
+              <td>
+                @if (appt.treatment_plan_id) {
+                  <a [routerLink]="['/patients', appt.patient_id]" [queryParams]="{ tab: 'plans', planId: appt.treatment_plan_id }" class="patient-link">
+                    {{ appt.treatment_plan_name }}{{ appt.session_number ? ' (sesión ' + appt.session_number + ')' : '' }}
+                  </a>
+                } @else {
+                  <span class="text-muted">—</span>
+                }
+              </td>
               <td class="text-sm text-muted">{{ appt.duration_minutes }}min</td>
               <td>
                 <select class="status-select" [class]="'status-' + appt.status"
