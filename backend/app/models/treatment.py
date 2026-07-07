@@ -56,6 +56,7 @@ class Treatment(db.Model):
             "doctor_name": self.doctor.full_name if self.doctor else None,
             "appointment_id": self.appointment_id,
             "treatment_plan_id": self.treatment_plan_id,
+            "treatment_plan_name": self.treatment_plan.name if self.treatment_plan else None,
             "diagnosis": self.diagnosis,
             "procedure": self.procedure,
             "tooth_number": self.tooth_number,

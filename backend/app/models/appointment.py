@@ -84,6 +84,7 @@ class Appointment(db.Model):
             "appointment_type": self.appointment_type,
             "status": self.status.value,
             "treatment_plan_id": self.treatment_plan_id,
+            "treatment_plan_name": self.treatment_plan.name if self.treatment_plan else None,
             "session_number": self.session_number,
             "reason": self.reason,
             "notes": self.notes,
