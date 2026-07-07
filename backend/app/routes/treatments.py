@@ -5,6 +5,7 @@ from app.models.treatment_image import TreatmentImage
 from app.middleware.auth import medical_staff_required, clinical_access_required, doctor_or_admin_required, get_current_user
 from app.utils import storage
 from datetime import date
+from sqlalchemy.orm import joinedload
 import uuid
 
 treatments_bp = Blueprint("treatments", __name__)
@@ -73,7 +74,7 @@ def list_treatments():
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
 
-    query = Treatment.query
+    query = Treatment.query.options(joinedload(Treatment.treatment_plan))
     if patient_id:
         query = query.filter_by(patient_id=patient_id)
     if doctor_id:

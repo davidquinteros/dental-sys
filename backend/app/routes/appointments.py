@@ -143,6 +143,7 @@ def list_appointments():
         joinedload(Appointment.patient),
         joinedload(Appointment.doctor),
         joinedload(Appointment.consultorio),
+        joinedload(Appointment.treatment_plan),
     )
 
     # Doctors only see their own appointments unless admin/receptionist,

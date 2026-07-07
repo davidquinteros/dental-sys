@@ -1,8 +1,11 @@
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.patient import Patient
+from app.models.appointment import Appointment
+from app.models.treatment import Treatment
 from app.middleware.auth import clinical_access_required, get_current_user
 from datetime import date
+from sqlalchemy.orm import joinedload
 
 patients_bp = Blueprint("patients", __name__)
 
@@ -476,11 +479,15 @@ def patient_history(patient_id):
     """
     patient = Patient.query.get_or_404(patient_id, description="Paciente no encontrado")
 
-    appointments = patient.appointments.order_by(
+    appointments = patient.appointments.options(
+        joinedload(Appointment.treatment_plan)
+    ).order_by(
         db.desc("scheduled_at")
     ).all()
 
-    treatments = patient.treatments.order_by(
+    treatments = patient.treatments.options(
+        joinedload(Treatment.treatment_plan)
+    ).order_by(
         db.desc("performed_at")
     ).all()
 

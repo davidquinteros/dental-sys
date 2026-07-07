@@ -119,6 +119,7 @@ def get_dashboard():
         joinedload(Appointment.patient),
         joinedload(Appointment.doctor),
         joinedload(Appointment.consultorio),
+        joinedload(Appointment.treatment_plan),
     ).filter(
         Appointment.scheduled_at >= datetime.combine(today, datetime.min.time()),
         Appointment.scheduled_at <= datetime.combine(today, datetime.max.time()),
@@ -189,6 +190,7 @@ def get_dashboard():
         joinedload(Appointment.patient),
         joinedload(Appointment.doctor),
         joinedload(Appointment.consultorio),
+        joinedload(Appointment.treatment_plan),
     ).filter(
         Appointment.scheduled_at >= cal_start,
         Appointment.scheduled_at <= cal_end,
