@@ -92,7 +92,9 @@ export class AppointmentFormComponent implements OnInit {
     if (this.embedded) {
       if (this.presetPatient) {
         this.selectedPatient.set(this.presetPatient);
-        this.loadPatientPlans(this.presetPatient.id);
+        if (!this.appointmentId) {
+          this.loadPatientPlans(this.presetPatient.id);
+        }
       }
       if (this.appointmentId) {
         this.isEdit.set(true);
