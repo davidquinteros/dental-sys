@@ -126,6 +126,11 @@
                   <div class="appt-info">
                     <a class="patient-name patient-link" [routerLink]="['/patients', appt.patient_id]">{{ appt.patient_name }}</a>
                     <span class="appt-type">{{ appointmentTypeLabel(appt.appointment_type) }}</span>
+                    @if (appt.treatment_plan_id) {
+                      <a class="appt-plan" [routerLink]="['/patients', appt.patient_id]" [queryParams]="{ tab: 'plans', planId: appt.treatment_plan_id }">
+                        {{ appt.treatment_plan_name }}{{ appt.session_number ? ' (sesión ' + appt.session_number + ')' : '' }}
+                      </a>
+                    }
                   </div>
                   <div class="appt-right">
                     <span class="status-badge" [class]="'status-' + appt.status">
@@ -196,6 +201,11 @@
                     <div class="upcoming-info">
                       <span class="patient-name">{{ appt.patient_name }}</span>
                       <span class="upcoming-meta">{{ formatTime(appt.scheduled_at) }} · Dr. {{ appt.doctor_name.split(' ')[0] }}</span>
+                      @if (appt.treatment_plan_id) {
+                        <a class="upcoming-plan" [routerLink]="['/patients', appt.patient_id]" [queryParams]="{ tab: 'plans', planId: appt.treatment_plan_id }">
+                          {{ appt.treatment_plan_name }}{{ appt.session_number ? ' (sesión ' + appt.session_number + ')' : '' }}
+                        </a>
+                      }
                     </div>
                   </div>
                 }
