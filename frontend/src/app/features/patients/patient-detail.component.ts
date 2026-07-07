@@ -74,6 +74,9 @@ export class PatientDetailComponent implements OnInit {
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab) this.activeTab.set(tab);
 
+    const planId = this.route.snapshot.queryParamMap.get('planId');
+    if (planId) this.openPlanDetail(+planId);
+
     const id = +this.route.snapshot.paramMap.get('id')!;
     this.patientService.getHistory(id).subscribe({
       next: res => {
