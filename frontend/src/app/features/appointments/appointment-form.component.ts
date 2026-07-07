@@ -4,10 +4,10 @@ import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } 
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import {
   AppointmentService, PatientService, UserService,
-  ConsultorioService, AppointmentTypeService,
+  ConsultorioService, AppointmentTypeService, TreatmentService,
 } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Appointment, Patient, User, Consultorio, AppointmentTypeItem } from '../../core/models';
+import { Appointment, Patient, User, Consultorio, AppointmentTypeItem, TreatmentPlan } from '../../core/models';
 import { CalendarComponent } from '../calendar/calendar.component';
 
 @Component({
@@ -35,6 +35,7 @@ export class AppointmentFormComponent implements OnInit {
   doctors         = signal<User[]>([]);
   consultorios    = signal<Consultorio[]>([]);
   appointmentTypes = signal<AppointmentTypeItem[]>([]);
+  patientPlans    = signal<TreatmentPlan[]>([]);
 
   patientResults  = signal<Patient[]>([]);
   selectedPatient = signal<Patient | null>(null);
@@ -67,16 +68,19 @@ export class AppointmentFormComponent implements OnInit {
     private userService: UserService,
     private consultorioService: ConsultorioService,
     private apptTypeService: AppointmentTypeService,
+    private treatmentService: TreatmentService,
     public auth: AuthService,
   ) {
     this.form = this.fb.group({
-      doctor_id:        ['', Validators.required],
-      consultorio_id:   ['', Validators.required],
-      scheduled_at:     ['', Validators.required],
-      duration_minutes: [30],
-      appointment_type: ['', Validators.required],
-      reason:           [''],
-      notes:            [''],
+      doctor_id:         ['', Validators.required],
+      consultorio_id:    ['', Validators.required],
+      scheduled_at:      ['', Validators.required],
+      duration_minutes:  [30],
+      appointment_type:  ['', Validators.required],
+      treatment_plan_id: [''],
+      session_number:    [''],
+      reason:            [''],
+      notes:             [''],
     });
   }
 
@@ -86,7 +90,10 @@ export class AppointmentFormComponent implements OnInit {
     this.apptTypeService.getAll().subscribe(res => this.appointmentTypes.set(res.appointment_types));
 
     if (this.embedded) {
-      if (this.presetPatient) this.selectedPatient.set(this.presetPatient);
+      if (this.presetPatient) {
+        this.selectedPatient.set(this.presetPatient);
+        this.loadPatientPlans(this.presetPatient.id);
+      }
       if (this.appointmentId) {
         this.isEdit.set(true);
         this.apptId = this.appointmentId;
@@ -101,7 +108,10 @@ export class AppointmentFormComponent implements OnInit {
 
     const patientId = this.route.snapshot.queryParamMap.get('patient_id');
     if (patientId) {
-      this.patientService.getById(+patientId).subscribe(res => this.selectedPatient.set(res.patient));
+      this.patientService.getById(+patientId).subscribe(res => {
+        this.selectedPatient.set(res.patient);
+        this.loadPatientPlans(res.patient.id);
+      });
     }
 
     const date = this.route.snapshot.queryParamMap.get('date');
@@ -127,16 +137,24 @@ export class AppointmentFormComponent implements OnInit {
       next: res => {
         const a = res.appointment;
         this.form.patchValue({
-          doctor_id:        a.doctor_id,
-          consultorio_id:   a.consultorio_id ?? '',
-          scheduled_at:     a.scheduled_at.substring(0, 16),
-          duration_minutes: a.duration_minutes,
-          appointment_type: a.appointment_type,
-          reason:           a.reason,
-          notes:            a.notes,
+          doctor_id:         a.doctor_id,
+          consultorio_id:    a.consultorio_id ?? '',
+          scheduled_at:      a.scheduled_at.substring(0, 16),
+          duration_minutes:  a.duration_minutes,
+          appointment_type:  a.appointment_type,
+          treatment_plan_id: a.treatment_plan_id ?? '',
+          session_number:    a.session_number ?? '',
+          reason:            a.reason,
+          notes:             a.notes,
         });
         if (fetchPatient) {
-          this.patientService.getById(a.patient_id).subscribe(pr => this.selectedPatient.set(pr.patient));
+          this.patientService.getById(a.patient_id).subscribe(pr => {
+            this.selectedPatient.set(pr.patient);
+            this.loadPatientPlans(pr.patient.id, a.treatment_plan_id);
+          });
+        } else {
+          const patientId = this.selectedPatient()?.id ?? a.patient_id;
+          this.loadPatientPlans(patientId, a.treatment_plan_id);
         }
         this.updatePreviewSlot();
       },
@@ -161,9 +179,34 @@ export class AppointmentFormComponent implements OnInit {
     this.selectedPatient.set(p);
     this.patientResults.set([]);
     this.patientSearch = '';
+    this.form.patchValue({ treatment_plan_id: '', session_number: '' });
+    this.loadPatientPlans(p.id);
   }
 
-  clearPatient(): void { this.selectedPatient.set(null); }
+  clearPatient(): void {
+    this.selectedPatient.set(null);
+    this.patientPlans.set([]);
+    this.form.patchValue({ treatment_plan_id: '', session_number: '' });
+  }
+
+  private loadPatientPlans(patientId: number, includePlanId?: number | null): void {
+    this.treatmentService.getPlans({ patient_id: patientId, status: 'active' }).subscribe(res => {
+      const plans: TreatmentPlan[] = res.treatment_plans;
+      if (includePlanId && !plans.some(p => p.id === includePlanId)) {
+        this.treatmentService.getPlan(includePlanId).subscribe(r => {
+          this.patientPlans.set([r.treatment_plan, ...plans]);
+        });
+      } else {
+        this.patientPlans.set(plans);
+      }
+    });
+  }
+
+  onPlanChange(): void {
+    if (!this.form.get('treatment_plan_id')?.value) {
+      this.form.patchValue({ session_number: '' });
+    }
+  }
 
   // ── Quick patient create modal ────────────────────────────────────────────────
 
@@ -302,7 +345,13 @@ export class AppointmentFormComponent implements OnInit {
     }
     this.saving.set(true);
     this.errorMsg.set('');
-    const payload = { ...this.form.value, patient_id: this.selectedPatient()!.id };
+    const raw = this.form.value;
+    const payload = {
+      ...raw,
+      patient_id: this.selectedPatient()!.id,
+      treatment_plan_id: raw.treatment_plan_id ? +raw.treatment_plan_id : null,
+      session_number: raw.session_number ? +raw.session_number : null,
+    };
     const req = this.isEdit()
       ? this.apptService.update(this.apptId!, payload)
       : this.apptService.create(payload);
