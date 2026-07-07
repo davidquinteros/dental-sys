@@ -673,6 +673,7 @@ def today_appointments():
         joinedload(Appointment.patient),
         joinedload(Appointment.doctor),
         joinedload(Appointment.consultorio),
+        joinedload(Appointment.treatment_plan),
     ).filter(
         Appointment.scheduled_at >= day_start,
         Appointment.scheduled_at <= day_end,
