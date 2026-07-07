@@ -101,7 +101,7 @@
             <table class="table">
               <thead>
                 <tr>
-                  <th>Fecha</th><th>Médico</th><th>Tipo</th><th>Estado</th><th>Notas</th><th class="col-actions">Acciones</th>
+                  <th>Fecha</th><th>Médico</th><th>Tipo</th><th>Plan</th><th>Estado</th><th>Notas</th><th class="col-actions">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -110,6 +110,15 @@
                     <td>{{ formatDateTime(a.scheduled_at) }}</td>
                     <td>{{ a.doctor_name }}</td>
                     <td>{{ typeLabel(a.appointment_type) }}</td>
+                    <td>
+                      @if (a.treatment_plan_id) {
+                        <button type="button" class="plan-link-btn" (click)="openPlanDetail(a.treatment_plan_id)">
+                          {{ a.treatment_plan_name }}{{ a.session_number ? ' (sesión ' + a.session_number + ')' : '' }}
+                        </button>
+                      } @else {
+                        <span class="text-muted">—</span>
+                      }
+                    </td>
                     <td>
                       <select class="status-select" [class]="'status-' + a.status"
                         [value]="a.status"
@@ -172,7 +181,7 @@
             <div class="table-wrapper">
             <table class="table">
               <thead>
-                <tr><th class="col-date">Fecha</th><th>Pieza</th><th>Procedimiento</th><th>Diagnóstico</th><th>Próximos Pasos</th><th class="col-actions">Acciones</th></tr>
+                <tr><th class="col-date">Fecha</th><th>Pieza</th><th>Procedimiento</th><th>Plan</th><th>Diagnóstico</th><th>Próximos Pasos</th><th class="col-actions">Acciones</th></tr>
               </thead>
               <tbody>
                 @for (t of treatments(); track t.id) {
@@ -183,6 +192,15 @@
                     </td>
                     <td>{{ t.tooth_number || '—' }}</td>
                     <td><strong>{{ t.procedure }}</strong></td>
+                    <td>
+                      @if (t.treatment_plan_id) {
+                        <button type="button" class="plan-link-btn" (click)="openPlanDetail(t.treatment_plan_id)">
+                          {{ t.treatment_plan_name }}
+                        </button>
+                      } @else {
+                        <span class="text-muted">—</span>
+                      }
+                    </td>
                     <td class="notes-cell">{{ t.diagnosis || '—' }}</td>
                     <td class="notes-cell">{{ t.next_steps || '—' }}</td>
                     <td class="col-actions">
