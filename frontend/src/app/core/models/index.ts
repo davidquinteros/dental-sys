@@ -103,6 +103,7 @@ export interface Appointment {
   appointment_type: string;
   status: AppointmentStatus;
   treatment_plan_id?: number;
+  treatment_plan_name?: string;
   session_number?: number;
   reason?: string;
   notes?: string;
@@ -124,6 +125,7 @@ export interface Treatment {
   doctor_name: string;
   appointment_id?: number;
   treatment_plan_id?: number;
+  treatment_plan_name?: string;
   diagnosis?: string;
   procedure: string;
   tooth_number?: string;
