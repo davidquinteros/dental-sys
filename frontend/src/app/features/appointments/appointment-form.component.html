@@ -151,6 +151,27 @@
             @if (hasError('appointment_type')) { <span class="field-error">Seleccione un tipo</span> }
           </div>
 
+          <!-- Treatment plan (optional) -->
+          @if (patientPlans().length > 0) {
+            <div class="form-row">
+              <div class="form-group">
+                <label>Plan de Tratamiento (opcional)</label>
+                <select formControlName="treatment_plan_id" (change)="onPlanChange()">
+                  <option value="">Ninguno</option>
+                  @for (plan of patientPlans(); track plan.id) {
+                    <option [value]="plan.id">{{ plan.name }}</option>
+                  }
+                </select>
+              </div>
+              @if (form.get('treatment_plan_id')?.value) {
+                <div class="form-group">
+                  <label>N° de Sesión (opcional)</label>
+                  <input type="number" min="1" formControlName="session_number" placeholder="Ej. 3"/>
+                </div>
+              }
+            </div>
+          }
+
           <!-- Reason -->
           <div class="form-group">
             <label>Motivo de Consulta</label>
