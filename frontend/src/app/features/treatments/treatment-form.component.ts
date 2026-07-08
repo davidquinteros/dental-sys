@@ -1,10 +1,10 @@
 import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { TreatmentService, PatientService, AppointmentService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Patient, Treatment, Appointment, TreatmentPlan } from '../../core/models';
+import { Patient, Treatment, Appointment, TreatmentPlan, Medication } from '../../core/models';
 
 @Component({
   selector: 'app-treatment-form',
@@ -24,6 +24,11 @@ export class TreatmentFormComponent implements OnInit {
   @Output() cancelled = new EventEmitter<void>();
 
   form: FormGroup;
+  medications: FormArray;
+  readonly medicationForms = [
+    'Comprimido', 'Cápsula', 'Jarabe', 'Gotas', 'Inyectable',
+    'Crema/Ungüento', 'Enjuague bucal', 'Otro',
+  ];
   saving = signal(false);
   errorMsg = signal('');
   isEdit = signal(false);
@@ -47,6 +52,7 @@ export class TreatmentFormComponent implements OnInit {
     private appointmentService: AppointmentService,
     public auth: AuthService,
   ) {
+    this.medications = this.fb.array([]);
     this.form = this.fb.group({
       procedure: ['', Validators.required],
       tooth_number: [''],
@@ -54,11 +60,41 @@ export class TreatmentFormComponent implements OnInit {
       diagnosis: [''],
       description: [''],
       clinical_notes: [''],
-      prescriptions: [''],
       next_steps: [''],
       appointment_id: [''],
       treatment_plan_id: [''],
+      has_prescription: [false],
+      medications: this.medications,
+      prescription_notes: [''],
     });
+  }
+
+  private newMedicationGroup(med?: Medication): FormGroup {
+    const presetForms = this.medicationForms.slice(0, -1);
+    const isOther = !!med?.form && !presetForms.includes(med.form);
+    return this.fb.group({
+      name: [med?.name ?? '', Validators.required],
+      concentration: [med?.concentration ?? ''],
+      form: [isOther ? 'Otro' : (med?.form ?? '')],
+      form_custom: [isOther ? med!.form : ''],
+      quantity: [med?.quantity ?? ''],
+      dosage: [med?.dosage ?? '', Validators.required],
+      duration: [med?.duration ?? ''],
+    });
+  }
+
+  addMedication(): void {
+    this.medications.push(this.newMedicationGroup());
+  }
+
+  removeMedication(i: number): void {
+    this.medications.removeAt(i);
+  }
+
+  onPrescriptionToggle(): void {
+    if (!this.form.get('has_prescription')?.value) {
+      while (this.medications.length) this.medications.removeAt(0);
+    }
   }
 
   ngOnInit(): void {
@@ -83,9 +119,11 @@ export class TreatmentFormComponent implements OnInit {
           diagnosis: t.diagnosis ?? '',
           description: t.description ?? '',
           clinical_notes: t.clinical_notes ?? '',
-          prescriptions: t.prescriptions ?? '',
           next_steps: t.next_steps ?? '',
+          has_prescription: t.has_prescription,
+          prescription_notes: t.prescription_notes ?? '',
         });
+        (t.medications ?? []).forEach(m => this.medications.push(this.newMedicationGroup(m)));
       });
       return;
     }
@@ -199,6 +237,17 @@ export class TreatmentFormComponent implements OnInit {
     this.saving.set(true);
     this.errorMsg.set('');
     const val = this.form.value;
+    const medications = this.medications.controls.map(c => {
+      const g = c.value;
+      return {
+        name: g.name,
+        concentration: g.concentration || null,
+        form: g.form === 'Otro' ? (g.form_custom || null) : (g.form || null),
+        quantity: g.quantity || null,
+        dosage: g.dosage,
+        duration: g.duration || null,
+      };
+    });
     const clinicalFields = {
       procedure: val.procedure,
       tooth_number: val.tooth_number || null,
@@ -206,8 +255,10 @@ export class TreatmentFormComponent implements OnInit {
       diagnosis: val.diagnosis || null,
       description: val.description || null,
       clinical_notes: val.clinical_notes || null,
-      prescriptions: val.prescriptions || null,
       next_steps: val.next_steps || null,
+      has_prescription: !!val.has_prescription,
+      medications: val.has_prescription ? medications : [],
+      prescription_notes: val.has_prescription ? (val.prescription_notes || null) : null,
     };
 
     if (this.isEdit()) {
