@@ -43,7 +43,7 @@
 .form-group { display: flex; flex-direction: column; gap: 5px; }
 label { font-size: 13px; font-weight: 500; color: #4a5568; }
 .req { color: #e53e3e; }
-input[type="text"], input[type="datetime-local"], select, textarea {
+input[type="text"], input[type="datetime-local"], input[type="number"], select, textarea {
   padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px;
   color: #2d3748; outline: none; background: white; transition: border-color 0.2s; font-family: inherit; }
 input:focus, select:focus, textarea:focus { border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66,153,225,0.12); }
