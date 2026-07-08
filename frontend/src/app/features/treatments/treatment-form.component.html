@@ -125,17 +125,10 @@
             placeholder="Descripción detallada del procedimiento realizado..."></textarea>
         </div> -->
 
-        <div class="form-row">
-          <div class="form-group">
-            <label>Notas Clínicas</label>
-            <textarea formControlName="clinical_notes" rows="3"
-              placeholder="Observaciones clínicas adicionales, complicaciones, hallazgos..."></textarea>
-          </div>
-          <div class="form-group">
-            <label>Prescripciones / Medicamentos</label>
-            <textarea formControlName="prescriptions" rows="3"
-              placeholder="Medicamentos recetados, dosis, indicaciones..."></textarea>
-          </div>
+        <div class="form-group">
+          <label>Notas Clínicas</label>
+          <textarea formControlName="clinical_notes" rows="3"
+            placeholder="Observaciones clínicas adicionales, complicaciones, hallazgos..."></textarea>
         </div>
 
         <div class="form-group">
@@ -182,6 +175,81 @@
         </div>
         }
       </div>
+    </div>
+
+    <!-- Recetario / Prescripción -->
+    <div class="form-card">
+      <div class="form-card-header recetario-header">
+        <div class="recetario-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
+          </svg>
+          Recetario / Prescripción
+        </div>
+        <label class="switch-label">
+          <input type="checkbox" formControlName="has_prescription" (change)="onPrescriptionToggle()"/>
+          ¿Con receta?
+        </label>
+      </div>
+      @if (form.get('has_prescription')?.value) {
+        <div class="form-body">
+          @for (med of medications.controls; track $index; let i = $index) {
+            <div class="medication-card" [formGroup]="$any(med)">
+              <div class="medication-card-header">
+                <span>Medicamento {{ i + 1 }}</span>
+                <button type="button" class="remove-med-btn" (click)="removeMedication(i)">Eliminar</button>
+              </div>
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label>Medicamento <span class="req">*</span></label>
+                  <input formControlName="name" type="text" placeholder="Ej: Amoxicilina"/>
+                </div>
+                <div class="form-group">
+                  <label>Concentración</label>
+                  <input formControlName="concentration" type="text" placeholder="Ej: 500mg"/>
+                </div>
+                <div class="form-group">
+                  <label>Forma</label>
+                  <select formControlName="form">
+                    <option value="">Seleccionar...</option>
+                    @for (f of medicationForms; track f) {
+                      <option [value]="f">{{ f }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              @if (med.get('form')?.value === 'Otro') {
+                <div class="form-group">
+                  <label>Especifique la forma</label>
+                  <input formControlName="form_custom" type="text" placeholder="Ej: Parche transdérmico"/>
+                </div>
+              }
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label>Cantidad</label>
+                  <input formControlName="quantity" type="text" placeholder="Ej: 1 caja x 12"/>
+                </div>
+                <div class="form-group">
+                  <label>Dosis <span class="req">*</span></label>
+                  <input formControlName="dosage" type="text" placeholder="Ej: 1 comprimido cada 8h"/>
+                </div>
+                <div class="form-group">
+                  <label>Duración</label>
+                  <input formControlName="duration" type="text" placeholder="Ej: 7 días"/>
+                </div>
+              </div>
+            </div>
+          }
+          <button type="button" class="btn btn-secondary add-med-btn" (click)="addMedication()">
+            + Agregar medicamento
+          </button>
+          <div class="form-group">
+            <label>Indicaciones Generales</label>
+            <textarea formControlName="prescription_notes" rows="2"
+              placeholder="Indicaciones generales del tratamiento, forma de conservación, etc..."></textarea>
+          </div>
+        </div>
+      }
     </div>
 
     @if (errorMsg()) {
