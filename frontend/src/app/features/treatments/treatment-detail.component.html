@@ -19,6 +19,9 @@
         @if (treatment()!.treatment_plan_id) {
           <a [routerLink]="['/treatments/plans', treatment()!.treatment_plan_id]" class="btn btn-secondary">Ver Plan</a>
         }
+        @if (treatment()!.has_prescription) {
+          <button type="button" class="btn btn-secondary" (click)="printReceta()">🖨️ Imprimir Receta</button>
+        }
         @if (!embedded) {
           @if (auth.canEditTreatments()) {
             <a [routerLink]="['/treatments', treatment()!.id, 'edit']" class="btn btn-secondary">Editar</a>
@@ -51,7 +54,20 @@
             <p>{{ treatment()!.clinical_notes }}</p>
           </div>
         }
-        @if (treatment()!.prescriptions) {
+        @if (treatment()!.has_prescription && (treatment()!.medications?.length ?? 0) > 0) {
+          <div class="info-section prescription">
+            <h4>💊 Recetario</h4>
+            @for (med of treatment()!.medications; track $index) {
+              <div class="medication-row">
+                <span class="med-name">{{ med.name }}{{ med.concentration ? ' — ' + med.concentration : '' }}</span>
+                <span class="med-detail">{{ med.form || '—' }} · Cant. {{ med.quantity || '—' }} · Dosis: {{ med.dosage }}{{ med.duration ? ' · ' + med.duration : '' }}</span>
+              </div>
+            }
+            @if (treatment()!.prescription_notes) {
+              <p class="prescription-notes">{{ treatment()!.prescription_notes }}</p>
+            }
+          </div>
+        } @else if (treatment()!.prescriptions) {
           <div class="info-section prescription">
             <h4>💊 Prescripciones</h4>
             <p>{{ treatment()!.prescriptions }}</p>

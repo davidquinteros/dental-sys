@@ -43,4 +43,8 @@ export class TreatmentDetailComponent implements OnInit {
   formatDateTime(iso: string): string {
     return new Date(iso).toLocaleString('es-BO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
+
+  printReceta(): void {
+    window.open(`/treatments/${this.treatment()!.id}/receta`, '_blank');
+  }
 }

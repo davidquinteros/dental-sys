@@ -28,6 +28,11 @@
 .info-section p { font-size: 14px; color: #2d3748; line-height: 1.7; margin: 0; white-space: pre-wrap; }
 .info-section.prescription { border-left: 3px solid #9f7aea; }
 .info-section.next { border-left: 3px solid #48bb78; }
+.medication-row { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid #f0f4f8; }
+.medication-row:last-of-type { border-bottom: none; }
+.med-name { font-size: 14px; font-weight: 600; color: #2d3748; }
+.med-detail { font-size: 12px; color: #718096; }
+.prescription-notes { font-size: 14px; color: #2d3748; margin: 10px 0 0; padding-top: 10px; border-top: 1px dashed #e2e8f0; white-space: pre-wrap; }
 
 .meta-card { background: white; border-radius: 12px; padding: 16px 20px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
