@@ -31,6 +31,12 @@ class Treatment(db.Model):
     prescriptions = db.Column(db.Text, nullable=True)
     next_steps = db.Column(db.Text, nullable=True)
 
+    # Structured recetario (FCLI-11) — additive; `prescriptions` above is kept as a
+    # read-only legacy field for treatments created before this feature.
+    has_prescription = db.Column(db.Boolean, default=False, nullable=False, server_default=db.false())
+    medications = db.Column(db.JSON, nullable=True)  # [{name, concentration, form, quantity, dosage, duration}]
+    prescription_notes = db.Column(db.Text, nullable=True)
+
     # Images / Attachments (stored as JSON array of file paths)
     attachments = db.Column(db.JSON, nullable=True)
 
@@ -65,6 +71,9 @@ class Treatment(db.Model):
             "clinical_notes": self.clinical_notes,
             "prescriptions": self.prescriptions,
             "next_steps": self.next_steps,
+            "has_prescription": self.has_prescription,
+            "medications": self.medications,
+            "prescription_notes": self.prescription_notes,
             "attachments": self.attachments,
             "performed_at": self.performed_at.isoformat() if self.performed_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,

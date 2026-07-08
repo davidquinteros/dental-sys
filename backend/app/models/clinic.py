@@ -13,6 +13,11 @@ class Clinic(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False, server_default=db.true())
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Printable-header info (FCLI-11) — shown on the recetario print view.
+    address = db.Column(db.String(255), nullable=True)
+    phone = db.Column(db.String(50), nullable=True)
+    logo_url = db.Column(db.String(500), nullable=True)
+
     # SaaS subscription tracking (platform-admin managed, manual billing — no payment gateway).
     subscription_tier_id = db.Column(db.Integer, db.ForeignKey("subscription_tiers.id"), nullable=True)
     subscription_status = db.Column(
@@ -65,6 +70,9 @@ class Clinic(db.Model):
             "name": self.name,
             "slug": self.slug,
             "is_active": self.is_active,
+            "address": self.address,
+            "phone": self.phone,
+            "logo_url": self.logo_url,
             "subscription_tier_id": self.subscription_tier_id,
             "subscription_tier_name": self.subscription_tier.name if self.subscription_tier else None,
             "subscription_status": self.subscription_status.value,
