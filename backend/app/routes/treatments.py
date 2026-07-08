@@ -19,6 +19,16 @@ MAX_IMAGE_BYTES = 8 * 1024 * 1024  # 8 MB
 _EXT_BY_TYPE = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 
 
+def _validate_medications(medications) -> str | None:
+    """Returns an error message if any medication is missing name/dosage, else None."""
+    if not isinstance(medications, list):
+        return "medications debe ser una lista"
+    for med in medications:
+        if not isinstance(med, dict) or not med.get("name") or not med.get("dosage"):
+            return "Cada medicamento requiere nombre y dosis"
+    return None
+
+
 # ─── TREATMENTS (Single sessions) ────────────────────────────────────────────
 
 @treatments_bp.route("/", methods=["GET"])
@@ -183,6 +193,19 @@ def create_treatment():
               type: string
             next_steps:
               type: string
+            has_prescription:
+              type: boolean
+              default: false
+            medications:
+              type: array
+              description: >
+                Cada medicamento requiere al menos "name" y "dosage". Formato:
+                [{name, concentration, form, quantity, dosage, duration}]
+              items:
+                type: object
+            prescription_notes:
+              type: string
+              description: Indicaciones generales del recetario
     responses:
       201:
         description: Atención registrada correctamente
@@ -213,6 +236,11 @@ def create_treatment():
         if not data.get(field):
             return jsonify({"error": f"Campo requerido: {field}"}), 400
 
+    medications = data.get("medications") or []
+    med_error = _validate_medications(medications)
+    if med_error:
+        return jsonify({"error": med_error}), 400
+
     treatment = Treatment(
         clinic_id=current.clinic_id,
         patient_id=data["patient_id"],
@@ -227,6 +255,9 @@ def create_treatment():
         clinical_notes=data.get("clinical_notes"),
         prescriptions=data.get("prescriptions"),
         next_steps=data.get("next_steps"),
+        has_prescription=bool(data.get("has_prescription", False)),
+        medications=medications,
+        prescription_notes=data.get("prescription_notes"),
     )
 
     # Update plan session count if linked. Row-locked so two treatments
@@ -281,6 +312,17 @@ def update_treatment(treatment_id):
               type: string
             next_steps:
               type: string
+            has_prescription:
+              type: boolean
+            medications:
+              type: array
+              description: >
+                Cada medicamento requiere al menos "name" y "dosage". Formato:
+                [{name, concentration, form, quantity, dosage, duration}]
+              items:
+                type: object
+            prescription_notes:
+              type: string
     responses:
       200:
         description: Atención actualizada
@@ -307,9 +349,15 @@ def update_treatment(treatment_id):
     treatment = Treatment.query.get_or_404(treatment_id)
     data = request.get_json()
 
+    if "medications" in data:
+        med_error = _validate_medications(data["medications"] or [])
+        if med_error:
+            return jsonify({"error": med_error}), 400
+
     fields = [
         "diagnosis", "procedure", "tooth_number", "tooth_surface",
         "description", "clinical_notes", "prescriptions", "next_steps",
+        "has_prescription", "medications", "prescription_notes",
     ]
     for field in fields:
         if field in data:
