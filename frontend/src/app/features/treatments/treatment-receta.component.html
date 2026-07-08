@@ -1,0 +1,9 @@
+<div class="receta-page">
+  @if (loading()) {
+    <p>Cargando...</p>
+  } @else if (error()) {
+    <p>{{ error() }}</p>
+  } @else if (treatment() && patient() && clinic()) {
+    <p>{{ treatment()!.procedure }} — {{ patient()!.full_name }} — {{ clinic()!.name }}</p>
+  }
+</div>
