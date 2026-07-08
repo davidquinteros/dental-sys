@@ -2,8 +2,57 @@
   @if (loading()) {
     <p>Cargando...</p>
   } @else if (error()) {
-    <p>{{ error() }}</p>
+    <p class="error-msg">{{ error() }}</p>
   } @else if (treatment() && patient() && clinic()) {
-    <p>{{ treatment()!.procedure }} — {{ patient()!.full_name }} — {{ clinic()!.name }}</p>
+    <header class="receta-header">
+      @if (clinic()!.logo_url) {
+        <img [src]="clinic()!.logo_url" alt="Logo" class="clinic-logo"/>
+      }
+      <div class="clinic-info">
+        <h1>{{ clinic()!.name }}</h1>
+        @if (clinic()!.address) { <p>{{ clinic()!.address }}</p> }
+        @if (clinic()!.phone) { <p>Tel: {{ clinic()!.phone }}</p> }
+      </div>
+    </header>
+
+    <section class="patient-info">
+      <p><strong>Paciente:</strong> {{ patient()!.full_name }}</p>
+      <p>
+        @if (patient()!.age !== undefined && patient()!.age !== null) {
+          <strong>Edad:</strong> {{ patient()!.age }} años ·
+        }
+        <strong>C.I.:</strong> {{ patient()!.document_number }}
+      </p>
+      <p><strong>Fecha:</strong> {{ formatDate(treatment()!.performed_at) }}</p>
+    </section>
+
+    <section class="rx-block">
+      <h2 class="rx-symbol">℞</h2>
+      @for (med of treatment()!.medications; track $index) {
+        <div class="medication-item">
+          <p class="med-name">{{ med.name }}{{ med.concentration ? ' — ' + med.concentration : '' }}</p>
+          <p class="med-detail">
+            {{ med.form || '—' }} · Cantidad: {{ med.quantity || '—' }} · Dosis: {{ med.dosage }}{{ med.duration ? ' · Duración: ' + med.duration : '' }}
+          </p>
+        </div>
+      }
+    </section>
+
+    @if (treatment()!.prescription_notes) {
+      <section class="notes-block">
+        <h3>Indicaciones generales</h3>
+        <p>{{ treatment()!.prescription_notes }}</p>
+      </section>
+    }
+
+    <footer class="signature-block">
+      <div class="signature-line"></div>
+      <p class="doctor-name">{{ treatment()!.doctor_name }}</p>
+      @if (doctorSpecialty()) { <p class="doctor-specialty">{{ doctorSpecialty() }}</p> }
+    </footer>
+
+    <div class="print-actions no-print">
+      <button type="button" (click)="print()">Imprimir</button>
+    </div>
   }
 </div>
