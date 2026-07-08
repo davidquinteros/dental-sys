@@ -87,6 +87,7 @@ def create_app(config=None):
     from app.routes.permissions import permissions_bp
     from app.routes.consultorios import consultorios_bp
     from app.routes.appointment_types import appointment_types_bp
+    from app.routes.clinic import clinic_bp
     from app.routes.platform_admin import platform_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
@@ -99,6 +100,7 @@ def create_app(config=None):
     app.register_blueprint(permissions_bp, url_prefix="/api/permissions")
     app.register_blueprint(consultorios_bp, url_prefix="/api/consultorios")
     app.register_blueprint(appointment_types_bp, url_prefix="/api/appointment-types")
+    app.register_blueprint(clinic_bp, url_prefix="/api/clinic")
     app.register_blueprint(platform_bp, url_prefix="/api/platform")
 
     # Health check
