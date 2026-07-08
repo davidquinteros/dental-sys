@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   Patient, Appointment, Treatment, TreatmentPlan, TreatmentImage,
-  Invoice, Payment, PaymentPlan, PaymentPlanInstallment, DashboardData, User, Consultorio, AppointmentTypeItem
+  Invoice, Payment, PaymentPlan, PaymentPlanInstallment, DashboardData, User, Consultorio, AppointmentTypeItem,
+  ClinicInfo,
 } from '../models';
 
 const API = environment.apiUrl;
@@ -280,6 +281,16 @@ export class UserService {
 
   resetPassword(id: number, password: string): Observable<{ message: string }> {
     return this.http.put<{ message: string }>(`${API}/users/${id}/reset-password`, { password });
+  }
+}
+
+// ─── Clinic (own-clinic header info, clinic-facing app) ───────────────────────
+@Injectable({ providedIn: 'root' })
+export class ClinicService {
+  constructor(private http: HttpClient) {}
+
+  getInfo(): Observable<ClinicInfo> {
+    return this.http.get<ClinicInfo>(`${API}/clinic/info`);
   }
 }
 

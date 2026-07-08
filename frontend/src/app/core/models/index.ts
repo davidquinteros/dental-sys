@@ -117,6 +117,16 @@ export interface Appointment {
 // ─── Treatment Models ──────────────────────────────────────────────────────────
 export type TreatmentPlanStatus = 'active' | 'completed' | 'cancelled' | 'on_hold';
 
+/** One medication line in a Treatment's structured recetario (FCLI-11). */
+export interface Medication {
+  name: string;
+  concentration?: string;
+  form?: string;
+  quantity?: string;
+  dosage: string;
+  duration?: string;
+}
+
 export interface Treatment {
   id: number;
   patient_id: number;
@@ -134,8 +144,19 @@ export interface Treatment {
   clinical_notes?: string;
   prescriptions?: string;
   next_steps?: string;
+  has_prescription: boolean;
+  medications?: Medication[];
+  prescription_notes?: string;
   performed_at: string;
   created_at: string;
+}
+
+/** Header info for the recetario print view — GET /api/clinic/info. */
+export interface ClinicInfo {
+  name: string;
+  address?: string;
+  phone?: string;
+  logo_url?: string;
 }
 
 /** Clinical photo attached to an appointment (Treatment) or a TreatmentPlan. */
