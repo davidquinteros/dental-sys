@@ -20,11 +20,6 @@ export const TREATMENTS_ROUTES: Routes = [
     data: { roles: ['admin', 'doctor'] },
   },
   {
-    path: ':id/receta',
-    loadComponent: () =>
-      import('./treatment-receta.component').then(m => m.TreatmentRecetaComponent),
-  },
-  {
     path: ':id',
     loadComponent: () =>
       import('./treatment-detail.component').then(m => m.TreatmentDetailComponent),

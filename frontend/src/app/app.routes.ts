@@ -14,6 +14,12 @@ export const routes: Routes = [
       import('./features/planes/planes.component').then(m => m.PlanesComponent),
   },
   {
+    path: 'treatments/:id/receta',
+    loadComponent: () =>
+      import('./features/treatments/treatment-receta.component').then(m => m.TreatmentRecetaComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./shared/components/layout/layout.component').then(m => m.LayoutComponent),
