@@ -27,7 +27,7 @@
     </section>
 
     <section class="rx-block">
-      <h2 class="rx-symbol">℞</h2>
+      <h4 ><strong> Indicaciones:</strong></h4> 
       @for (med of treatment()!.medications; track $index) {
         <div class="medication-item">
           <p class="med-name">{{ med.name }}{{ med.concentration ? ' — ' + med.concentration : '' }}</p>

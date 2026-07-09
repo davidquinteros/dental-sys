@@ -7,7 +7,7 @@
 .clinic-info p { font-size: 13px; color: #4a5568; margin: 0; }
 
 .patient-info { margin-bottom: 20px; font-size: 14px; }
-.patient-info p { margin: 4px 0; }
+.patient-info p { margin: 4px 0; }   
 
 .rx-block { margin-bottom: 20px; }
 .rx-symbol { font-size: 28px; color: #2b6cb0; margin: 0 0 12px; }
@@ -20,8 +20,8 @@
 .notes-block h3 { font-size: 13px; text-transform: uppercase; color: #718096; margin: 0 0 6px; }
 .notes-block p { margin: 0; white-space: pre-wrap; }
 
-.signature-block { margin-top: 48px; text-align: center; width: 260px; }
-.signature-line { border-top: 1px solid #1a202c; margin-bottom: 6px; }
+.signature-block { margin-top: 80px; text-align: center; width: 260px; }
+.signature-line { border-top: 1px solid #1a202c; margin-bottom: 6px; } 
 .doctor-name { font-size: 14px; font-weight: 600; margin: 0; }
 .doctor-specialty { font-size: 12px; color: #4a5568; margin: 2px 0 0; }
 
