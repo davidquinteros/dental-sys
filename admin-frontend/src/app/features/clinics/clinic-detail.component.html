@@ -41,6 +41,14 @@
             </p>
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group"><label>Dirección</label><p>{{ detail()!.clinic.address || '—' }}</p></div>
+          <div class="form-group"><label>Teléfono</label><p>{{ detail()!.clinic.phone || '—' }}</p></div>
+        </div>
+        <div class="form-group">
+          <label>Logo (URL)</label>
+          <p>{{ detail()!.clinic.logo_url || '—' }}</p>
+        </div>
         <div class="form-group">
           <label>Notas internas</label>
           <p>{{ detail()!.clinic.notes || '—' }}</p>
@@ -100,6 +108,20 @@
                 </small>
               }
             </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Dirección</label>
+              <input type="text" name="address" [(ngModel)]="editForm.address" />
+            </div>
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input type="text" name="phone" [(ngModel)]="editForm.phone" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Logo (URL de la imagen)</label>
+            <input type="text" name="logo_url" [(ngModel)]="editForm.logo_url" placeholder="https://..." />
           </div>
           <div class="form-group">
             <label>Notas internas</label>

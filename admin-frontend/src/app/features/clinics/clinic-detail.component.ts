@@ -21,6 +21,7 @@ export class ClinicDetailComponent implements OnInit {
   editForm = {
     name: '', is_active: true, subscription_tier_id: null as number | null, subscription_status: '',
     plan_started_at: '', plan_expires_at: '', notes: '',
+    address: '', phone: '', logo_url: '',
   };
   savingEdit = signal(false);
   editMessage = signal('');
@@ -55,6 +56,9 @@ export class ClinicDetailComponent implements OnInit {
           plan_started_at: this.toDateInput(d.clinic.plan_started_at),
           plan_expires_at: this.toDateInput(d.clinic.plan_expires_at),
           notes: d.clinic.notes || '',
+          address: d.clinic.address || '',
+          phone: d.clinic.phone || '',
+          logo_url: d.clinic.logo_url || '',
         };
         this.loading.set(false);
       },
