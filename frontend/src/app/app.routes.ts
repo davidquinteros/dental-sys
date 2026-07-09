@@ -17,7 +17,8 @@ export const routes: Routes = [
     path: 'treatments/:id/receta',
     loadComponent: () =>
       import('./features/treatments/treatment-receta.component').then(m => m.TreatmentRecetaComponent),
-    canActivate: [authGuard],
+    canActivate: [roleGuard],
+    data: { pageKey: 'treatments' },
   },
   {
     path: '',
