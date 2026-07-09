@@ -41,6 +41,9 @@ export interface Clinic {
   name: string;
   slug: string;
   is_active: boolean;
+  address: string | null;
+  phone: string | null;
+  logo_url: string | null;
   subscription_tier_id: number | null;
   subscription_tier_name: string | null;
   subscription_status: SubscriptionStatus;

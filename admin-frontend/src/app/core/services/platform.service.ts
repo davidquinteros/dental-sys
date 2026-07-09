@@ -37,6 +37,7 @@ export class PlatformService {
     name: string; is_active: boolean; subscription_tier_id: number | null;
     subscription_status: string; notes: string;
     plan_started_at: string | null; plan_expires_at: string | null;
+    address: string | null; phone: string | null; logo_url: string | null;
   }>): Observable<{ clinic: Clinic; message: string }> {
     return this.http.put<{ clinic: Clinic; message: string }>(`${this.API}/clinics/${id}`, data);
   }
