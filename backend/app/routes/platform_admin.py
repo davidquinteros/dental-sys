@@ -305,8 +305,6 @@ def update_clinic(clinic_id):
               type: string
             phone:
               type: string
-            logo_url:
-              type: string
             plan_started_at:
               type: string
               format: date
@@ -349,8 +347,6 @@ def update_clinic(clinic_id):
         clinic.address = data["address"]
     if "phone" in data:
         clinic.phone = data["phone"]
-    if "logo_url" in data:
-        clinic.logo_url = data["logo_url"]
     if "subscription_tier_id" in data:
         tier_id = data["subscription_tier_id"]
         if tier_id is not None and not SubscriptionTier.query.get(tier_id):
