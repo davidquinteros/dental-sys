@@ -1,25 +1,10 @@
-<div class="receta-page">
+<div class="print-page">
   @if (loading()) {
     <p>Cargando...</p>
   } @else if (error()) {
     <p class="error-msg">{{ error() }}</p>
   } @else if (treatment() && patient() && clinic()) {
-    <header class="receta-header">
-      <div class="header-side header-left">
-        @if (logoUrl()) {
-          <img [src]="logoUrl()" alt="Logo clínica" class="clinic-logo"/>
-        }
-      </div>
-      <div class="clinic-info">
-        <h1>{{ clinic()!.name }}</h1>
-        @if (clinic()!.address) { <p>{{ clinic()!.address }}</p> }
-        @if (clinic()!.phone) { <p>Tel: {{ clinic()!.phone }}</p> }
-        @if (clinic()!.email) { <p>{{ clinic()!.email }}</p> }
-      </div>
-      <div class="header-side header-right">
-        <img src="assets/mydentalsys-logo.svg" alt="My Dental Sys" class="system-logo"/>
-      </div>
-    </header>
+    <app-print-clinic-header [clinic]="clinic()!"></app-print-clinic-header>
 
     <section class="patient-info">
       <p><strong>Paciente:</strong> {{ patient()!.full_name }}</p>
