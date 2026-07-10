@@ -1,0 +1,16 @@
+.print-clinic-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 2px solid #2b6cb0; padding-bottom: 16px; margin-bottom: 20px; }
+.header-side { flex: 0 0 90px; display: flex; align-items: center; }
+.header-left { justify-content: flex-start; }
+.header-right { justify-content: flex-end; }
+.clinic-logo, .system-logo { max-height: 64px; max-width: 100%; object-fit: contain; }
+.clinic-info { flex: 1; text-align: center; }
+.clinic-info h1 { font-size: 18px; margin: 0 0 4px; color: #1a202c; }
+.clinic-info p { font-size: 13px; color: #4a5568; margin: 0; }
+.doc-title { font-size: 14px !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #2b6cb0 !important; margin-top: 8px !important; }
+.doc-date { font-size: 12px !important; color: #718096 !important; margin-top: 2px !important; }
+
+@media print {
+  .print-clinic-header { display: flex; align-items: center; justify-content: space-between; }
+  .header-side { flex: 0 0 90px; }
+  .clinic-logo, .system-logo { max-height: 64px; }
+}

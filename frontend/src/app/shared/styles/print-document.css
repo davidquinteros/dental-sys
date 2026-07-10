@@ -1,0 +1,12 @@
+.print-page { max-width: 700px; margin: 0 auto; padding: 32px; font-family: inherit; color: #1a202c; }
+.error-msg { color: #c53030; font-size: 14px; }
+
+.print-actions { margin-top: 24px; text-align: center; }
+.print-actions button { padding: 10px 24px; border-radius: 8px; background: #2b6cb0; color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+@media print {
+  .no-print { display: none; }
+  .print-page { padding: 0; }
+}
+
+@page { margin: 16mm; }

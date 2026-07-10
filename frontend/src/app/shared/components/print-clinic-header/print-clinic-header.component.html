@@ -1,0 +1,18 @@
+<header class="print-clinic-header">
+  <div class="header-side header-left">
+    @if (logoUrl()) {
+      <img [src]="logoUrl()" alt="Logo clínica" class="clinic-logo"/>
+    }
+  </div>
+  <div class="clinic-info">
+    <h1>{{ clinic.name }}</h1>
+    @if (clinic.address) { <p>{{ clinic.address }}</p> }
+    @if (clinic.phone) { <p>Tel: {{ clinic.phone }}</p> }
+    @if (clinic.email) { <p>{{ clinic.email }}</p> }
+    @if (documentTitle) { <p class="doc-title">{{ documentTitle }}</p> }
+    @if (issuedDate) { <p class="doc-date">{{ issuedDate }}</p> }
+  </div>
+  <div class="header-side header-right">
+    <img src="assets/mydentalsys-logo.svg" alt="My Dental Sys" class="system-logo"/>
+  </div>
+</header>
