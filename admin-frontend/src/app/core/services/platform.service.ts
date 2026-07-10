@@ -42,6 +42,16 @@ export class PlatformService {
     return this.http.put<{ clinic: Clinic; message: string }>(`${this.API}/clinics/${id}`, data);
   }
 
+  uploadClinicLogo(clinicId: number, blob: Blob, filename: string): Observable<{ clinic: Clinic; message: string }> {
+    const form = new FormData();
+    form.append('file', blob, filename);
+    return this.http.post<{ clinic: Clinic; message: string }>(`${this.API}/clinics/${clinicId}/logo`, form);
+  }
+
+  getClinicLogoBlob(clinicId: number): Observable<Blob> {
+    return this.http.get(`${this.API}/clinics/${clinicId}/logo`, { responseType: 'blob' });
+  }
+
   resetAdminPassword(clinicId: number, userId?: number): Observable<{
     user: PlatformUser; temporary_password: string; message: string;
   }> {
