@@ -63,6 +63,7 @@ export class TreatmentRecetaComponent implements OnInit, OnDestroy {
   }
 
   private loadLogo(): void {
+    if (this.logoObjectUrl) URL.revokeObjectURL(this.logoObjectUrl);
     this.clinicService.getLogoBlob().subscribe({
       next: blob => {
         this.logoObjectUrl = URL.createObjectURL(blob);
