@@ -36,7 +36,7 @@
             </div>
             <div class="m-row">
               <span class="ml">Fecha de Inicio</span>
-              <span>{{ formatDate(plan()!.start_date) }}</span>
+              <span>{{ formatDateOnly(plan()!.start_date) }}</span>
             </div>
             @if (plan()!.notes) {
               <div class="m-row col">

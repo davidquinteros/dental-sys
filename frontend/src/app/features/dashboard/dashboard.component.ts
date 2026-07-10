@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { DashboardService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardData, Appointment } from '../../core/models';
+import { formatTime as fmtTime } from '../../core/util/date.util';
 import { CalendarComponent } from '../calendar/calendar.component';
 
 @Component({
@@ -65,9 +66,7 @@ export class DashboardComponent implements OnInit {
     return new Intl.NumberFormat('es-BO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
   }
 
-  formatTime(iso: string): string {
-    return new Date(iso).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', hour12: false });
-  }
+  formatTime(iso: string): string { return fmtTime(iso); }
 
   formatDay(iso: string): string {
     return new Date(iso).toLocaleDateString('es-BO', { day: 'numeric' });

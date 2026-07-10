@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { TreatmentService, PatientService, UserService, ClinicService } from '../../core/services/api.service';
 import { Treatment, Patient, ClinicInfo } from '../../core/models';
+import { formatDateLong as fmtDateLong } from '../../core/util/date.util';
 
 @Component({
   selector: 'app-treatment-receta',
@@ -73,9 +74,7 @@ export class TreatmentRecetaComponent implements OnInit, OnDestroy {
     });
   }
 
-  formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' });
-  }
+  formatDate(iso: string): string { return fmtDateLong(iso); }
 
   print(): void {
     window.print();

@@ -4,6 +4,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { BillingService } from '../../core/services/api.service';
 import { PaymentPlan, PaymentPlanInstallment } from '../../core/models';
+import { formatDate as fmtDate, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 
 @Component({
   selector: 'app-payment-plan-detail',
@@ -74,10 +75,8 @@ export class PaymentPlanDetailComponent implements OnInit {
     return new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
   }
 
-  formatDate(iso?: string): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
+  formatDate(iso?: string): string { return iso ? fmtDate(iso) : '—'; }
+  formatDateOnly(iso?: string): string { return iso ? fmtDateOnly(iso) : '—'; }
 
   statusLabel(s: string): string {
     const m: Record<string, string> = { active: 'Activo', completed: 'Completado', cancelled: 'Cancelado', defaulted: 'En mora' };

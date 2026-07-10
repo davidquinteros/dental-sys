@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { PatientService, TreatmentService, AppointmentService } from '../../core/services/api.service';
 import { Patient, Appointment, Treatment, TreatmentPlan } from '../../core/models';
+import { formatDate as fmtDate, formatDateTime as fmtDateTime, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 import { OdontogramComponent } from './odontogram.component';
 import { TreatmentFormComponent } from '../treatments/treatment-form.component';
 import { TreatmentPlanFormComponent } from '../treatments/treatment-plan-form.component';
@@ -91,8 +92,9 @@ export class PatientDetailComponent implements OnInit {
   }
 
   initials(p: Patient): string { return `${p.first_name[0]}${p.last_name[0]}`.toUpperCase(); }
-  formatDate(iso: string): string { return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' }); }
-  formatDateTime(iso: string): string { return new Date(iso).toLocaleString('es-BO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+  formatDate(iso: string): string { return fmtDate(iso); }
+  formatDateTime(iso: string): string { return fmtDateTime(iso); }
+  formatDateOnly(iso: string): string { return fmtDateOnly(iso); }
 
   typeLabel(t: string): string {
     const m: Record<string, string> = {

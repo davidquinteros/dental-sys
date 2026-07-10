@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PatientService } from '../../core/services/api.service';
 import { Patient } from '../../core/models';
+import { formatDate as fmtDate } from '../../core/util/date.util';
 
 @Component({
   selector: 'app-patients',
@@ -71,7 +72,5 @@ export class PatientsListComponent implements OnInit {
     return `${p.first_name[0]}${p.last_name[0]}`.toUpperCase();
   }
 
-  formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
+  formatDate(iso: string): string { return fmtDate(iso); }
 }

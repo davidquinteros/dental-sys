@@ -140,7 +140,7 @@
             }
 
             <div class="plan-footer">
-              @if (plan.start_date) { <span class="date-text">Inicio: {{ formatDate(plan.start_date) }}</span> }
+              @if (plan.start_date) { <span class="date-text">Inicio: {{ formatDateOnly(plan.start_date) }}</span> }
               <a [routerLink]="['/treatments/plans', plan.id]" class="btn-ghost">Ver detalle →</a>
             </div>
           </div>

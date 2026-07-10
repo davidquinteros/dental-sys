@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { TreatmentService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Treatment, TreatmentPlan } from '../../core/models';
+import { formatDate as fmtDate, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 
 @Component({
   selector: 'app-treatments',
@@ -36,9 +37,8 @@ export class TreatmentsComponent implements OnInit {
     });
   }
 
-  formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
+  formatDate(iso: string): string { return fmtDate(iso); }
+  formatDateOnly(iso: string): string { return fmtDateOnly(iso); }
 
   planStatusLabel(s: string): string {
     const m: Record<string, string> = { active: 'Activo', completed: 'Completado', cancelled: 'Cancelado', on_hold: 'En pausa' };

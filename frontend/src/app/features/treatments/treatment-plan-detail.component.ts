@@ -4,6 +4,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { TreatmentService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { TreatmentPlan } from '../../core/models';
+import { formatDate as fmtDate, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 import { TreatmentImagesComponent } from './treatment-images.component';
 
 @Component({
@@ -31,9 +32,8 @@ export class TreatmentPlanDetailComponent implements OnInit {
     });
   }
 
-  formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
+  formatDate(iso: string): string { return fmtDate(iso); }
+  formatDateOnly(iso: string): string { return fmtDateOnly(iso); }
   statusLabel(s: string): string {
     const m: Record<string, string> = { active: 'Activo', completed: 'Completado', cancelled: 'Cancelado', on_hold: 'En pausa' };
     return m[s] ?? s;

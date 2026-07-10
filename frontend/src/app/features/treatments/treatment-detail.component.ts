@@ -4,6 +4,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { TreatmentService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Treatment } from '../../core/models';
+import { formatDateLong as fmtDateLong, formatDateTime as fmtDateTime } from '../../core/util/date.util';
 import { TreatmentImagesComponent } from './treatment-images.component';
 
 @Component({
@@ -37,12 +38,8 @@ export class TreatmentDetailComponent implements OnInit {
     });
   }
 
-  formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' });
-  }
-  formatDateTime(iso: string): string {
-    return new Date(iso).toLocaleString('es-BO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  }
+  formatDate(iso: string): string { return fmtDateLong(iso); }
+  formatDateTime(iso: string): string { return fmtDateTime(iso); }
 
   printReceta(): void {
     window.open(`/treatments/${this.treatment()!.id}/receta`, '_blank');

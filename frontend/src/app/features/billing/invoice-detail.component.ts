@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ReactiveFormsModule, FormBuilder, FormArray, FormGroup, Validators } from '@angular/forms';
 import { BillingService } from '../../core/services/api.service';
 import { Invoice } from '../../core/models';
+import { formatDate as fmtDate, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 
 @Component({
   selector: 'app-invoice-detail',
@@ -147,9 +148,8 @@ export class InvoiceDetailComponent implements OnInit {
   formatMoney(val: number): string {
     return new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
   }
-  formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
+  formatDate(iso: string): string { return fmtDate(iso); }
+  formatDateOnly(iso: string): string { return fmtDateOnly(iso); }
   invStatusLabel(s: string): string {
     const m: Record<string, string> = { pending: 'Pendiente', paid: 'Pagada', cancelled: 'Cancelada', overdue: 'Vencida' };
     return m[s] ?? s;

@@ -154,7 +154,7 @@
             </div>
           }
           @if (invoice()!.due_date) {
-            <div class="m-row"><span class="ml">Vencimiento</span><span>{{ formatDate(invoice()!.due_date!) }}</span></div>
+            <div class="m-row"><span class="ml">Vencimiento</span><span>{{ formatDateOnly(invoice()!.due_date!) }}</span></div>
           }
           @if (invoice()!.notes) {
             <div class="m-row col"><span class="ml">Notas</span><span class="note-txt">{{ invoice()!.notes }}</span></div>

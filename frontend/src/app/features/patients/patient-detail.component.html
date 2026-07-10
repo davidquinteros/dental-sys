@@ -366,10 +366,10 @@
                 <h4>Información</h4>
                 <div class="pd-meta-row"><span class="info-label">Médico</span><span class="info-value">{{ selectedPlan()!.doctor_name }}</span></div>
                 @if (selectedPlan()!.start_date) {
-                  <div class="pd-meta-row"><span class="info-label">Inicio</span><span class="info-value">{{ formatDate(selectedPlan()!.start_date!) }}</span></div>
+                  <div class="pd-meta-row"><span class="info-label">Inicio</span><span class="info-value">{{ formatDateOnly(selectedPlan()!.start_date!) }}</span></div>
                 }
                 @if (selectedPlan()!.estimated_end_date) {
-                  <div class="pd-meta-row"><span class="info-label">Fin estimado</span><span class="info-value">{{ formatDate(selectedPlan()!.estimated_end_date!) }}</span></div>
+                  <div class="pd-meta-row"><span class="info-label">Fin estimado</span><span class="info-value">{{ formatDateOnly(selectedPlan()!.estimated_end_date!) }}</span></div>
                 }
                 @if (selectedPlan()!.description) {
                   <div class="pd-meta-row pd-meta-col"><span class="info-label">Descripción</span><span class="info-value pd-mv-text">{{ selectedPlan()!.description }}</span></div>

@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AppointmentService, UserService, PatientService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Appointment, User, Patient } from '../../core/models';
+import { formatDate as fmtDate, formatTime as fmtTime } from '../../core/util/date.util';
 
 interface AppointmentFilters {
   status: string;
@@ -124,8 +125,8 @@ export class AppointmentsListComponent implements OnInit {
   }
 
   isPast(appt: Appointment): boolean { return new Date(appt.scheduled_at) < new Date() && appt.status !== 'completed'; }
-  formatDate(iso: string): string { return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' }); }
-  formatTime(iso: string): string { return new Date(iso).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', hour12: false }); }
+  formatDate(iso: string): string { return fmtDate(iso); }
+  formatTime(iso: string): string { return fmtTime(iso); }
 
   typeLabel(t: string): string {
     const m: Record<string, string> = {

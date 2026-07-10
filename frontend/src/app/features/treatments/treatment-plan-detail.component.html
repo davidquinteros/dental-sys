@@ -79,10 +79,10 @@
           </div>
           <div class="meta-row"><span class="ml">Médico</span><span class="mv">{{ plan()!.doctor_name }}</span></div>
           @if (plan()!.start_date) {
-            <div class="meta-row"><span class="ml">Inicio</span><span class="mv">{{ formatDate(plan()!.start_date!) }}</span></div>
+            <div class="meta-row"><span class="ml">Inicio</span><span class="mv">{{ formatDateOnly(plan()!.start_date!) }}</span></div>
           }
           @if (plan()!.estimated_end_date) {
-            <div class="meta-row"><span class="ml">Fin estimado</span><span class="mv">{{ formatDate(plan()!.estimated_end_date!) }}</span></div>
+            <div class="meta-row"><span class="ml">Fin estimado</span><span class="mv">{{ formatDateOnly(plan()!.estimated_end_date!) }}</span></div>
           }
           @if (plan()!.description) {
             <div class="meta-row col"><span class="ml">Descripción</span><span class="mv text">{{ plan()!.description }}</span></div>

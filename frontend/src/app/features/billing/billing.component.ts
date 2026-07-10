@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { BillingService } from '../../core/services/api.service';
 import { Invoice, PaymentPlan } from '../../core/models';
+import { formatDate as fmtDate } from '../../core/util/date.util';
 
 @Component({
   selector: 'app-billing',
@@ -61,9 +62,7 @@ export class BillingComponent implements OnInit {
     return new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
   }
 
-  formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
+  formatDate(iso: string): string { return fmtDate(iso); }
 
   invStatusLabel(s: string): string {
     const m: Record<string, string> = { pending: 'Pendiente', paid: 'Pagada', cancelled: 'Cancelada', overdue: 'Vencida' };
