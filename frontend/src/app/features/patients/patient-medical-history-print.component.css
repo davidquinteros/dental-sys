@@ -1,0 +1,27 @@
+.historia-page { max-width: 900px; }
+
+.patient-info { margin-bottom: 24px; font-size: 14px; }
+.patient-info p { margin: 4px 0; }
+.allergies-row { color: #c53030; font-weight: 600; }
+
+.hist-section, .odonto-section, .treatments-section { margin-bottom: 28px; }
+.hist-section h3, .odonto-section h3, .treatments-section h3 {
+  font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: #718096; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin: 0 0 12px;
+}
+
+.empty-row { font-size: 13px; color: #a0aec0; font-style: italic; }
+
+.treatments-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.treatments-table th, .treatments-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+.treatments-table th { font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; }
+
+.signatures-footer { display: flex; justify-content: space-between; gap: 40px; margin-top: 80px; }
+.signature-block { flex: 1; text-align: center; }
+.signature-line { border-top: 1px solid #1a202c; margin-bottom: 6px; }
+.signature-label { font-size: 14px; font-weight: 600; margin: 0; }
+.signature-role { font-size: 12px; color: #4a5568; margin: 2px 0 0; }
+
+@media print {
+  .treatments-table tr { page-break-inside: avoid; }
+}

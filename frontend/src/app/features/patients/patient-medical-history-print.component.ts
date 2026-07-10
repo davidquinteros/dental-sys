@@ -16,7 +16,7 @@ import { OdontogramPrintComponent } from './odontogram-print.component';
   standalone: true,
   imports: [CommonModule, PrintClinicHeaderComponent, MedicalHistoryComponent, OdontogramPrintComponent],
   templateUrl: './patient-medical-history-print.component.html',
-  styleUrls: ['./patient-medical-history-print.component.css', '../../shared/styles/print-document.css'],
+  styleUrls: ['../../shared/styles/print-document.css', './patient-medical-history-print.component.css'],
 })
 export class PatientMedicalHistoryPrintComponent implements OnInit {
   loading = signal(true);

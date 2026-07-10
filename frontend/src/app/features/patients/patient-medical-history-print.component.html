@@ -1,1 +1,99 @@
-<div class="print-page">placeholder — replaced in Task 6</div>
+<div class="print-page historia-page">
+  @if (loading()) {
+    <p>Cargando...</p>
+  } @else if (error()) {
+    <p class="error-msg">{{ error() }}</p>
+  } @else if (patient() && clinic()) {
+    <app-print-clinic-header
+      [clinic]="clinic()!"
+      documentTitle="HISTORIA MÉDICA"
+      [issuedDate]="issuedDate">
+    </app-print-clinic-header>
+
+    <section class="patient-info">
+      <p><strong>Paciente:</strong> {{ patient()!.full_name }}</p>
+      <p><strong>C.I.:</strong> {{ patient()!.document_number }}</p>
+      @if (patient()!.age !== undefined && patient()!.age !== null) {
+        <p><strong>Edad:</strong> {{ patient()!.age }} años</p>
+      }
+      @if (patient()!.phone) {
+        <p><strong>Teléfono:</strong> {{ patient()!.phone }}</p>
+      }
+      @if (patient()!.address) {
+        <p><strong>Dirección:</strong> {{ patient()!.address }}</p>
+      }
+      @if (patient()!.city) {
+        <p><strong>Ciudad:</strong> {{ patient()!.city }}</p>
+      }
+      @if (patient()!.phone_emergency) {
+        <p><strong>Teléfono de emergencia:</strong> {{ patient()!.phone_emergency }}</p>
+      }
+      @if (patient()!.email) {
+        <p><strong>Correo:</strong> {{ patient()!.email }}</p>
+      }
+      @if (patient()!.blood_type && patient()!.blood_type !== 'unknown') {
+        <p><strong>Tipo de sangre:</strong> {{ patient()!.blood_type }}</p>
+      }
+      @if (patient()!.allergies) {
+        <p class="allergies-row"><strong>Alergias:</strong> {{ patient()!.allergies }}</p>
+      }
+    </section>
+
+    <section class="hist-section">
+      <h3>Historia Médica</h3>
+      <app-medical-history [value]="patient()!.medical_history" [readonly]="true"></app-medical-history>
+    </section>
+
+    <section class="odonto-section">
+      <h3>Odontograma</h3>
+      <app-odontogram-print [odontogram]="odontogram()"></app-odontogram-print>
+    </section>
+
+    <section class="treatments-section">
+      <h3>Atenciones</h3>
+      @if (treatments().length === 0) {
+        <p class="empty-row">Sin atenciones registradas</p>
+      } @else {
+        <table class="treatments-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Procedimiento</th>
+              <th>Pieza</th>
+              <th>Diagnóstico</th>
+              <th>Médico</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of treatments(); track t.id) {
+              <tr>
+                <td>{{ formatDate(t.performed_at) }}</td>
+                <td>{{ t.procedure }}</td>
+                <td>{{ t.tooth_number || '—' }}</td>
+                <td>{{ t.diagnosis || '—' }}</td>
+                <td>{{ t.doctor_name }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
+    <footer class="signatures-footer">
+      <div class="signature-block">
+        <div class="signature-line"></div>
+        <p class="signature-label">{{ patient()!.full_name }}</p>
+        <p class="signature-role">Paciente</p>
+      </div>
+      <div class="signature-block">
+        <div class="signature-line"></div>
+        <p class="signature-label">{{ doctorName() }}</p>
+        <p class="signature-role">Médico</p>
+      </div>
+    </footer>
+
+    <div class="print-actions no-print">
+      <button type="button" (click)="print()">Imprimir</button>
+    </div>
+  }
+</div>
