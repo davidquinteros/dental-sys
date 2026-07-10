@@ -10,6 +10,7 @@ from app.middleware.auth import platform_admin_required, get_current_user
 from app.utils.seeder import create_clinic
 from app.utils import storage
 from app.routes.treatments import _read_upload_or_error
+from app.routes.clinic import _serve_clinic_logo
 
 platform_bp = Blueprint("platform_admin", __name__)
 
@@ -446,6 +447,39 @@ def upload_clinic_logo(clinic_id):
     db.session.commit()
 
     return jsonify({"clinic": clinic.to_dict(), "message": "Logo actualizado"}), 200
+
+
+@platform_bp.route("/clinics/<int:clinic_id>/logo", methods=["GET"])
+@platform_admin_required
+def get_clinic_logo(clinic_id):
+    """
+    Logo de una clínica (vista de plataforma)
+    ---
+    tags:
+      - Plataforma
+    security:
+      - BearerAuth: []
+    produces:
+      - image/jpeg
+    parameters:
+      - in: path
+        name: clinic_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Bytes del logo
+      404:
+        description: Clínica no encontrada, o sin logo
+        schema:
+          $ref: '#/definitions/Error'
+      503:
+        description: Almacenamiento no configurado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    clinic = Clinic.query.get_or_404(clinic_id, description="Clínica no encontrada")
+    return _serve_clinic_logo(clinic)
 
 
 @platform_bp.route("/clinics/<int:clinic_id>/reset-admin-password", methods=["POST"])
