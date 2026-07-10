@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.serialization import iso_utc
 import enum
 
 
@@ -94,7 +95,7 @@ class Invoice(db.Model):
             "notes": self.notes,
             "due_date": self.due_date.isoformat() if self.due_date else None,
             "items": [item.to_dict() for item in self.items],
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": iso_utc(self.created_at),
         }
 
     def __repr__(self):
@@ -148,7 +149,7 @@ class Payment(db.Model):
             "method": self.method.value,
             "reference": self.reference,
             "notes": self.notes,
-            "payment_date": self.payment_date.isoformat() if self.payment_date else None,
+            "payment_date": iso_utc(self.payment_date),
             "received_by": self.received_by.full_name if self.received_by else None,
         }
 
@@ -176,7 +177,7 @@ class PaymentPlanInstallment(db.Model):
             "payment_plan_id": self.payment_plan_id,
             "amount": float(self.amount),
             "notes": self.notes,
-            "payment_date": self.payment_date.isoformat() if self.payment_date else None,
+            "payment_date": iso_utc(self.payment_date),
             "received_by": self.received_by.full_name if self.received_by else None,
         }
 
@@ -245,7 +246,7 @@ class PaymentPlan(db.Model):
             "status": self.status.value,
             "start_date": self.start_date.isoformat() if self.start_date else None,
             "notes": self.notes,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": iso_utc(self.created_at),
         }
 
     def __repr__(self):

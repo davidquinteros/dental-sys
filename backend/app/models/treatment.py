@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.serialization import iso_utc
 import enum
 
 
@@ -75,8 +76,8 @@ class Treatment(db.Model):
             "medications": self.medications,
             "prescription_notes": self.prescription_notes,
             "attachments": self.attachments,
-            "performed_at": self.performed_at.isoformat() if self.performed_at else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "performed_at": iso_utc(self.performed_at),
+            "created_at": iso_utc(self.created_at),
         }
 
     def __repr__(self):
@@ -146,7 +147,7 @@ class TreatmentPlan(db.Model):
             "actual_end_date": self.actual_end_date.isoformat() if self.actual_end_date else None,
             "notes": self.notes,
             "has_payment_plan": self.payment_plan is not None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": iso_utc(self.created_at),
         }
         if include_sessions:
             data["sessions"] = [s.to_dict() for s in self.sessions.order_by("performed_at")]

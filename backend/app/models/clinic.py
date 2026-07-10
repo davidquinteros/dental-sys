@@ -1,6 +1,7 @@
 from app import db
 from app.models.subscription import SubscriptionStatus
 from datetime import datetime
+from app.utils.serialization import iso_utc
 
 
 class Clinic(db.Model):
@@ -78,13 +79,13 @@ class Clinic(db.Model):
             "subscription_tier_id": self.subscription_tier_id,
             "subscription_tier_name": self.subscription_tier.name if self.subscription_tier else None,
             "subscription_status": self.subscription_status.value,
-            "trial_ends_at": self.trial_ends_at.isoformat() if self.trial_ends_at else None,
-            "next_payment_due_at": self.next_payment_due_at.isoformat() if self.next_payment_due_at else None,
-            "suspended_at": self.suspended_at.isoformat() if self.suspended_at else None,
+            "trial_ends_at": iso_utc(self.trial_ends_at),
+            "next_payment_due_at": iso_utc(self.next_payment_due_at),
+            "suspended_at": iso_utc(self.suspended_at),
             "plan_started_at": self.plan_started_at.isoformat() if self.plan_started_at else None,
             "plan_expires_at": self.plan_expires_at.isoformat() if self.plan_expires_at else None,
             "notes": self.notes,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": iso_utc(self.created_at),
         }
 
     def __repr__(self):

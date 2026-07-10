@@ -1,5 +1,6 @@
 from app import db, bcrypt
 from datetime import datetime
+from app.utils.serialization import iso_utc
 import enum
 
 
@@ -80,7 +81,7 @@ class User(db.Model):
             "license_number": self.license_number,
             "is_active": self.is_active,
             "is_platform_admin": self.is_platform_admin,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": iso_utc(self.created_at),
         }
 
     def __repr__(self):

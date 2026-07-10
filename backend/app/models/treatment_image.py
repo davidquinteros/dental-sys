@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.serialization import iso_utc
 
 
 class TreatmentImage(db.Model):
@@ -58,7 +59,7 @@ class TreatmentImage(db.Model):
             # streamed through this authenticated endpoint, never from a public
             # bucket URL — see routes/treatments.py::get_treatment_image_file.
             "file_url": f"/treatments/images/{self.id}/file",
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": iso_utc(self.created_at),
         }
 
     def __repr__(self):

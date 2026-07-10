@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.serialization import iso_utc
 import enum
 
 
@@ -94,7 +95,7 @@ class Patient(db.Model):
             "medical_history": self.medical_history or {},
             "odontogram": self.odontogram or {},
             "is_active": self.is_active,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": iso_utc(self.created_at),
         }
         if include_history:
             data["total_appointments"] = self.appointments.count()

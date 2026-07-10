@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.serialization import iso_utc
 import enum
 
 
@@ -33,7 +34,7 @@ class SubscriptionTier(db.Model):
             "max_users": self.max_users,
             "description": self.description,
             "is_active": self.is_active,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": iso_utc(self.created_at),
         }
 
     def __repr__(self):
@@ -67,7 +68,7 @@ class SubscriptionPayment(db.Model):
             "period_end": self.period_end.isoformat() if self.period_end else None,
             "notes": self.notes,
             "recorded_by": self.recorded_by.full_name if self.recorded_by else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": iso_utc(self.created_at),
         }
 
     def __repr__(self):

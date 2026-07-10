@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.serialization import iso_utc
 import enum
 
 
@@ -89,8 +90,8 @@ class Appointment(db.Model):
             "reason": self.reason,
             "notes": self.notes,
             "cancellation_reason": self.cancellation_reason,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "created_at": iso_utc(self.created_at),
+            "completed_at": iso_utc(self.completed_at),
             "has_treatment": self.treatment is not None,
             "has_invoice": self.invoice is not None,
         }
