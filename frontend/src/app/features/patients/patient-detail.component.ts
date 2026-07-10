@@ -94,6 +94,10 @@ export class PatientDetailComponent implements OnInit {
   initials(p: Patient): string { return `${p.first_name[0]}${p.last_name[0]}`.toUpperCase(); }
   formatDate(iso: string): string { return fmtDate(iso); }
   formatDateTime(iso: string): string { return fmtDateTime(iso); }
+
+  printMedicalHistory(): void {
+    window.open(`/patients/${this.patient()!.id}/historia/imprimir`, '_blank');
+  }
   formatDateOnly(iso: string): string { return fmtDateOnly(iso); }
 
   typeLabel(t: string): string {

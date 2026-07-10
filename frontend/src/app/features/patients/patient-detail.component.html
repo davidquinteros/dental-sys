@@ -264,6 +264,10 @@
 
         <!-- Notes / Medical history tab (read-only — edit from "Editar Paciente") -->
         @if (activeTab() === 'notes') {
+          <div class="tab-section-header">
+            <span class="tab-section-title">Historia Médica</span>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="printMedicalHistory()">🖨️ Imprimir</button>
+          </div>
           <app-medical-history [value]="patient()!.medical_history" [readonly]="true"></app-medical-history>
 
           <div class="tab-section-header notes-header">
