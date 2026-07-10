@@ -21,6 +21,13 @@ export const routes: Routes = [
     data: { pageKey: 'treatments' },
   },
   {
+    path: 'patients/:id/historia/imprimir',
+    loadComponent: () =>
+      import('./features/patients/patient-medical-history-print.component').then(m => m.PatientMedicalHistoryPrintComponent),
+    canActivate: [roleGuard],
+    data: { pageKey: 'patients' },
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./shared/components/layout/layout.component').then(m => m.LayoutComponent),
