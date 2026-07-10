@@ -1,8 +1,12 @@
 .receta-page { max-width: 700px; margin: 0 auto; padding: 32px; font-family: inherit; color: #1a202c; }
 .error-msg { color: #c53030; font-size: 14px; }
 
-.receta-header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #2b6cb0; padding-bottom: 16px; margin-bottom: 20px; }
-.clinic-logo { max-height: 64px; max-width: 120px; object-fit: contain; }
+.receta-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 2px solid #2b6cb0; padding-bottom: 16px; margin-bottom: 20px; }
+.header-side { flex: 0 0 90px; display: flex; align-items: center; }
+.header-left { justify-content: flex-start; }
+.header-right { justify-content: flex-end; }
+.clinic-logo, .system-logo { max-height: 64px; max-width: 100%; object-fit: contain; }
+.clinic-info { flex: 1; text-align: center; }
 .clinic-info h1 { font-size: 18px; margin: 0 0 4px; color: #1a202c; }
 .clinic-info p { font-size: 13px; color: #4a5568; margin: 0; }
 
@@ -15,6 +19,7 @@
 .medication-item:last-child { border-bottom: none; }
 .med-name { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
 .med-detail { font-size: 13px; color: #4a5568; margin: 0; }
+.med-indications { font-size: 12px; color: #666; margin: 4px 0 0; }
 
 .notes-block { margin-bottom: 32px; font-size: 14px; }
 .notes-block h3 { font-size: 13px; text-transform: uppercase; color: #718096; margin: 0 0 6px; }
@@ -31,6 +36,9 @@
 @media print {
   .no-print { display: none; }
   .receta-page { padding: 0; }
+  .receta-header { display: flex; align-items: center; justify-content: space-between; }
+  .header-side { flex: 0 0 90px; }
+  .clinic-logo, .system-logo { max-height: 64px; }
 }
 
 @page { margin: 16mm; }

@@ -24,7 +24,7 @@ export class ClinicDetailComponent implements OnInit, OnDestroy {
   editForm = {
     name: '', is_active: true, subscription_tier_id: null as number | null, subscription_status: '',
     plan_started_at: '', plan_expires_at: '', notes: '',
-    address: '', phone: '',
+    address: '', phone: '', email: '',
   };
   savingEdit = signal(false);
   editMessage = signal('');
@@ -70,6 +70,7 @@ export class ClinicDetailComponent implements OnInit, OnDestroy {
           notes: d.clinic.notes || '',
           address: d.clinic.address || '',
           phone: d.clinic.phone || '',
+          email: d.clinic.email || '',
         };
         this.loading.set(false);
         this.loadLogoPreview(d.clinic.logo_url);

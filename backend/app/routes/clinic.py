@@ -62,6 +62,8 @@ def clinic_info():
               type: string
             logo_url:
               type: string
+            email:
+              type: string
       401:
         description: Token requerido o inválido
         schema:
@@ -82,6 +84,7 @@ def clinic_info():
         "address": clinic.address,
         "phone": clinic.phone,
         "logo_url": clinic.logo_url,
+        "email": clinic.email,
     }), 200
 
 

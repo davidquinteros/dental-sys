@@ -29,6 +29,9 @@ export class TreatmentFormComponent implements OnInit {
     'Comprimido', 'Cápsula', 'Jarabe', 'Gotas', 'Inyectable',
     'Crema/Ungüento', 'Enjuague bucal', 'Otro',
   ];
+  readonly durationOptions = [
+    '1 día', '2 días', '3 días', '4 días', '5 días', '6 días', '7 días', 'Otro',
+  ];
   saving = signal(false);
   errorMsg = signal('');
   isEdit = signal(false);
@@ -71,15 +74,19 @@ export class TreatmentFormComponent implements OnInit {
 
   private newMedicationGroup(med?: Medication): FormGroup {
     const presetForms = this.medicationForms.slice(0, -1);
-    const isOther = !!med?.form && !presetForms.includes(med.form);
+    const isOtherForm = !!med?.form && !presetForms.includes(med.form);
+    const presetDurations = this.durationOptions.slice(0, -1);
+    const isOtherDuration = !!med?.duration && !presetDurations.includes(med.duration);
     return this.fb.group({
       name: [med?.name ?? '', Validators.required],
       concentration: [med?.concentration ?? ''],
-      form: [isOther ? 'Otro' : (med?.form ?? '')],
-      form_custom: [isOther ? med!.form : ''],
+      form: [isOtherForm ? 'Otro' : (med?.form ?? '')],
+      form_custom: [isOtherForm ? med!.form : ''],
       quantity: [med?.quantity ?? ''],
       dosage: [med?.dosage ?? '', Validators.required],
-      duration: [med?.duration ?? ''],
+      duration: [isOtherDuration ? 'Otro' : (med?.duration ?? '')],
+      duration_custom: [isOtherDuration ? med!.duration : ''],
+      indications: [med?.indications ?? ''],
     });
   }
 
@@ -245,7 +252,8 @@ export class TreatmentFormComponent implements OnInit {
         form: g.form === 'Otro' ? (g.form_custom || null) : (g.form || null),
         quantity: g.quantity || null,
         dosage: g.dosage,
-        duration: g.duration || null,
+        duration: g.duration === 'Otro' ? (g.duration_custom || null) : (g.duration || null),
+        indications: g.indications || null,
       };
     });
     const clinicalFields = {

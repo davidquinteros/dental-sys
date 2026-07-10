@@ -235,8 +235,23 @@
                 </div>
                 <div class="form-group">
                   <label>Duración</label>
-                  <input formControlName="duration" type="text" placeholder="Ej: 7 días"/>
+                  <select formControlName="duration">
+                    <option value="">Seleccionar...</option>
+                    @for (d of durationOptions; track d) {
+                      <option [value]="d">{{ d }}</option>
+                    }
+                  </select>
                 </div>
+              </div>
+              @if (med.get('duration')?.value === 'Otro') {
+                <div class="form-group">
+                  <label>Especifique la duración</label>
+                  <input formControlName="duration_custom" type="text" placeholder="Ej: 10 días"/>
+                </div>
+              }
+              <div class="form-group">
+                <label>Indicaciones</label>
+                <input formControlName="indications" type="text" placeholder="Ej: Tomar con alimentos"/>
               </div>
             </div>
           }

@@ -44,6 +44,7 @@
         <div class="form-row">
           <div class="form-group"><label>Dirección</label><p>{{ detail()!.clinic.address || '—' }}</p></div>
           <div class="form-group"><label>Teléfono</label><p>{{ detail()!.clinic.phone || '—' }}</p></div>
+          <div class="form-group"><label>Email</label><p>{{ detail()!.clinic.email || '—' }}</p></div>
         </div>
         <div class="form-group">
           <label>Logo</label>
@@ -121,6 +122,10 @@
             <div class="form-group">
               <label>Teléfono</label>
               <input type="text" name="phone" [(ngModel)]="editForm.phone" />
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" name="email" placeholder="Ej: contacto@clinica.com" [(ngModel)]="editForm.email" />
             </div>
           </div>
           <div class="form-group">

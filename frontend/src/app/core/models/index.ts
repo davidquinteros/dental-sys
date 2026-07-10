@@ -125,6 +125,7 @@ export interface Medication {
   quantity?: string;
   dosage: string;
   duration?: string;
+  indications?: string;
 }
 
 export interface Treatment {
@@ -157,6 +158,7 @@ export interface ClinicInfo {
   address?: string;
   phone?: string;
   logo_url?: string;
+  email?: string;
 }
 
 /** Clinical photo attached to an appointment (Treatment) or a TreatmentPlan. */

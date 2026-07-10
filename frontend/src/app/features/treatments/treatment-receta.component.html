@@ -5,13 +5,19 @@
     <p class="error-msg">{{ error() }}</p>
   } @else if (treatment() && patient() && clinic()) {
     <header class="receta-header">
-      @if (logoUrl()) {
-        <img [src]="logoUrl()" alt="Logo" class="clinic-logo"/>
-      }
+      <div class="header-side header-left">
+        @if (logoUrl()) {
+          <img [src]="logoUrl()" alt="Logo clínica" class="clinic-logo"/>
+        }
+      </div>
       <div class="clinic-info">
         <h1>{{ clinic()!.name }}</h1>
         @if (clinic()!.address) { <p>{{ clinic()!.address }}</p> }
         @if (clinic()!.phone) { <p>Tel: {{ clinic()!.phone }}</p> }
+        @if (clinic()!.email) { <p>{{ clinic()!.email }}</p> }
+      </div>
+      <div class="header-side header-right">
+        <img src="assets/mydentalsys-logo.svg" alt="My Dental Sys" class="system-logo"/>
       </div>
     </header>
 
@@ -28,12 +34,15 @@
 
     <section class="rx-block">
       <h4 ><strong> Indicaciones:</strong></h4> 
-      @for (med of treatment()!.medications; track $index) {
+      @for (med of treatment()!.medications; track $index; let i = $index) {
         <div class="medication-item">
-          <p class="med-name">{{ med.name }}{{ med.concentration ? ' — ' + med.concentration : '' }}</p>
+          <p class="med-name">{{ i + 1 }}. {{ med.name }}{{ med.concentration ? ' — ' + med.concentration : '' }}</p>
           <p class="med-detail">
             {{ med.form || '—' }} · Cantidad: {{ med.quantity || '—' }} · Dosis: {{ med.dosage }}{{ med.duration ? ' · Duración: ' + med.duration : '' }}
           </p>
+          @if (med.indications) {
+            <p class="med-indications"><em>Indicaciones: {{ med.indications }}</em></p>
+          }
         </div>
       }
     </section>

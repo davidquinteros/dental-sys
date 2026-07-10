@@ -17,6 +17,7 @@ class Clinic(db.Model):
     address = db.Column(db.String(255), nullable=True)
     phone = db.Column(db.String(50), nullable=True)
     logo_url = db.Column(db.String(500), nullable=True)
+    email = db.Column(db.String(255), nullable=True)  # Email de contacto (encabezado del recetario)
 
     # SaaS subscription tracking (platform-admin managed, manual billing — no payment gateway).
     subscription_tier_id = db.Column(db.Integer, db.ForeignKey("subscription_tiers.id"), nullable=True)
@@ -73,6 +74,7 @@ class Clinic(db.Model):
             "address": self.address,
             "phone": self.phone,
             "logo_url": self.logo_url,
+            "email": self.email,
             "subscription_tier_id": self.subscription_tier_id,
             "subscription_tier_name": self.subscription_tier.name if self.subscription_tier else None,
             "subscription_status": self.subscription_status.value,

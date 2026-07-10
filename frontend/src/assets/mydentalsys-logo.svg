@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="My Dental Sys">
+  <g transform="translate(4,4)">
+    <path fill="#2c5aa0" d="M20 2c-4.5 0-7.5 2.7-9.5 2.7S6.8 2 4.5 2C1.8 2 0 4.6 0 8.3c0 5 1.8 10.9 3.6 15.6C5.2 28 7 32 9.8 32c2.4 0 2.7-4.6 3.9-4.6s1.5 4.6 3.9 4.6c2.8 0 4.6-4 6.2-8.1C25.6 19.2 27.4 13.3 27.4 8.3 27.4 4.6 25.6 2 22.9 2c-1 0-1.9.3-2.9.7z"/>
+    <circle cx="13.7" cy="9" r="2.4" fill="#ffffff"/>
+  </g>
+  <text x="40" y="21" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#2c5aa0">My Dental</text>
+  <text x="40" y="38" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#2c5aa0">Sys</text>
+</svg>

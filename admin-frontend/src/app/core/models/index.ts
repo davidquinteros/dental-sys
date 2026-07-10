@@ -43,6 +43,7 @@ export interface Clinic {
   is_active: boolean;
   address: string | null;
   phone: string | null;
+  email?: string | null;
   logo_url: string | null;
   subscription_tier_id: number | null;
   subscription_tier_name: string | null;
