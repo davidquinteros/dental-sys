@@ -5,8 +5,8 @@
     <p class="error-msg">{{ error() }}</p>
   } @else if (treatment() && patient() && clinic()) {
     <header class="receta-header">
-      @if (clinic()!.logo_url) {
-        <img [src]="clinic()!.logo_url" alt="Logo" class="clinic-logo"/>
+      @if (logoUrl()) {
+        <img [src]="logoUrl()" alt="Logo" class="clinic-logo"/>
       }
       <div class="clinic-info">
         <h1>{{ clinic()!.name }}</h1>

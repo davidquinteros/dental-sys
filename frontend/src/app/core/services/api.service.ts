@@ -292,6 +292,10 @@ export class ClinicService {
   getInfo(): Observable<ClinicInfo> {
     return this.http.get<ClinicInfo>(`${API}/clinic/info`);
   }
+
+  getLogoBlob(): Observable<Blob> {
+    return this.http.get(`${API}/clinic/logo`, { responseType: 'blob' });
+  }
 }
 
 // ─── Appointment Types ─────────────────────────────────────────────────────────
