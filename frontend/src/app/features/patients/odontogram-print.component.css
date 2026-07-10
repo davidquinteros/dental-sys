@@ -1,0 +1,34 @@
+.odonto-print-container { padding: 0; }
+
+.legend {
+  display: flex; flex-wrap: wrap; gap: 10px 18px;
+  margin-bottom: 20px; padding: 12px 16px;
+  background: #f7fafc; border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #4a5568; }
+.legend-swatch { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid; flex-shrink: 0; }
+
+.chart { display: flex; flex-direction: column; gap: 0; min-width: 680px; }
+
+.quad-labels { display: flex; align-items: center; padding: 6px 0; }
+.quad-label { flex: 1; font-size: 11px; font-weight: 600; color: #718096; text-align: center; line-height: 1.4; }
+.quad-label small { font-weight: 400; }
+.quad-label.q1, .quad-label.q4 { text-align: right; padding-right: 8px; }
+.quad-label.q2, .quad-label.q3 { text-align: left; padding-left: 8px; }
+.quad-sep { width: 24px; flex-shrink: 0; }
+
+.jaw { display: flex; flex-direction: column; }
+
+.num-row { display: flex; align-items: center; }
+.num-cell { width: 44px; text-align: center; font-size: 11px; font-weight: 600; color: #a0aec0; padding: 2px 0; flex-shrink: 0; }
+
+.tooth-row { display: flex; align-items: center; }
+.tooth-cell { width: 44px; height: 44px; flex-shrink: 0; }
+.tooth-svg { width: 44px; height: 44px; display: block; }
+
+.jaw-midline { width: 24px; flex-shrink: 0; display: flex; justify-content: center; }
+
+.jaw-divider { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+.jaw-label-side { font-size: 10px; color: #a0aec0; white-space: nowrap; font-weight: 500; }
+.divider-line { flex: 1; height: 1px; background: #e2e8f0; }

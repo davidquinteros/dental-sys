@@ -1,0 +1,122 @@
+<div class="odonto-print-container">
+  <!-- Legend -->
+  <div class="legend">
+    @for (s of statuses; track s.key) {
+      <div class="legend-item">
+        <div class="legend-swatch" [style.background]="s.fill" [style.border-color]="s.stroke"></div>
+        <span>{{ s.label }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="chart">
+    <!-- Quadrant labels (above upper jaw) -->
+    <div class="quad-labels">
+      <div class="quad-label q1">Cuadrante 1<br><small>Superior Derecho</small></div>
+      <div class="quad-sep"></div>
+      <div class="quad-label q2">Cuadrante 2<br><small>Superior Izquierdo</small></div>
+    </div>
+
+    <!-- UPPER JAW -->
+    <div class="jaw upper-jaw">
+      <div class="num-row">
+        @for (t of Q1; track t) { <div class="num-cell">{{ t }}</div> }
+        <div class="jaw-midline"></div>
+        @for (t of Q2; track t) { <div class="num-cell">{{ t }}</div> }
+      </div>
+      <div class="tooth-row">
+        @for (t of Q1; track t) {
+          <div class="tooth-cell" [title]="getToothName(t) + ' — ' + getStatusLabel(t)">
+            <svg viewBox="0 0 44 44" class="tooth-svg">
+              <polygon points="0,0 44,0 34,10 10,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="0,44 44,44 34,34 10,34" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="0,0 0,44 10,34 10,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="44,0 44,44 34,34 34,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="10,10 34,10 34,34 10,34" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <rect x="0.5" y="0.5" width="43" height="43" rx="4" fill="none" [attr.stroke]="getStroke(t)" stroke-width="1.5"/>
+              @if (isExtracted(t)) {
+                <line x1="9" y1="9" x2="35" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="35" y1="9" x2="9" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
+              }
+            </svg>
+          </div>
+        }
+        <div class="jaw-midline"></div>
+        @for (t of Q2; track t) {
+          <div class="tooth-cell" [title]="getToothName(t) + ' — ' + getStatusLabel(t)">
+            <svg viewBox="0 0 44 44" class="tooth-svg">
+              <polygon points="0,0 44,0 34,10 10,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="0,44 44,44 34,34 10,34" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="0,0 0,44 10,34 10,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="44,0 44,44 34,34 34,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="10,10 34,10 34,34 10,34" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <rect x="0.5" y="0.5" width="43" height="43" rx="4" fill="none" [attr.stroke]="getStroke(t)" stroke-width="1.5"/>
+              @if (isExtracted(t)) {
+                <line x1="9" y1="9" x2="35" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="35" y1="9" x2="9" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
+              }
+            </svg>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Jaw divider -->
+    <div class="jaw-divider">
+      <div class="jaw-label-side">Maxilar Superior</div>
+      <div class="divider-line"></div>
+      <div class="jaw-label-side">Mandíbula Inferior</div>
+    </div>
+
+    <!-- LOWER JAW -->
+    <div class="jaw lower-jaw">
+      <div class="tooth-row">
+        @for (t of Q4; track t) {
+          <div class="tooth-cell" [title]="getToothName(t) + ' — ' + getStatusLabel(t)">
+            <svg viewBox="0 0 44 44" class="tooth-svg">
+              <polygon points="0,0 44,0 34,10 10,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="0,44 44,44 34,34 10,34" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="0,0 0,44 10,34 10,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="44,0 44,44 34,34 34,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="10,10 34,10 34,34 10,34" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <rect x="0.5" y="0.5" width="43" height="43" rx="4" fill="none" [attr.stroke]="getStroke(t)" stroke-width="1.5"/>
+              @if (isExtracted(t)) {
+                <line x1="9" y1="9" x2="35" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="35" y1="9" x2="9" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
+              }
+            </svg>
+          </div>
+        }
+        <div class="jaw-midline"></div>
+        @for (t of Q3; track t) {
+          <div class="tooth-cell" [title]="getToothName(t) + ' — ' + getStatusLabel(t)">
+            <svg viewBox="0 0 44 44" class="tooth-svg">
+              <polygon points="0,0 44,0 34,10 10,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="0,44 44,44 34,34 10,34" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="0,0 0,44 10,34 10,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="44,0 44,44 34,34 34,10" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <polygon points="10,10 34,10 34,34 10,34" [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+              <rect x="0.5" y="0.5" width="43" height="43" rx="4" fill="none" [attr.stroke]="getStroke(t)" stroke-width="1.5"/>
+              @if (isExtracted(t)) {
+                <line x1="9" y1="9" x2="35" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="35" y1="9" x2="9" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
+              }
+            </svg>
+          </div>
+        }
+      </div>
+      <div class="num-row">
+        @for (t of Q4; track t) { <div class="num-cell">{{ t }}</div> }
+        <div class="jaw-midline"></div>
+        @for (t of Q3; track t) { <div class="num-cell">{{ t }}</div> }
+      </div>
+    </div>
+
+    <!-- Quadrant labels below lower jaw -->
+    <div class="quad-labels">
+      <div class="quad-label q4">Cuadrante 4<br><small>Inferior Derecho</small></div>
+      <div class="quad-sep"></div>
+      <div class="quad-label q3">Cuadrante 3<br><small>Inferior Izquierdo</small></div>
+    </div>
+  </div>
+</div>
