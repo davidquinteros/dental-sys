@@ -8,6 +8,8 @@ from app.models.user import User, UserRole
 from app.models.subscription import SubscriptionTier, SubscriptionPayment, SubscriptionStatus
 from app.middleware.auth import platform_admin_required, get_current_user
 from app.utils.seeder import create_clinic
+from app.utils import storage
+from app.routes.treatments import _read_upload_or_error
 
 platform_bp = Blueprint("platform_admin", __name__)
 
@@ -376,6 +378,74 @@ def update_clinic(clinic_id):
 
     db.session.commit()
     return jsonify({"clinic": clinic.to_dict(), "message": "Clínica actualizada"}), 200
+
+
+@platform_bp.route("/clinics/<int:clinic_id>/logo", methods=["POST"])
+@platform_admin_required
+def upload_clinic_logo(clinic_id):
+    """
+    Subir el logo de una clínica
+    ---
+    tags:
+      - Plataforma
+    security:
+      - BearerAuth: []
+    consumes:
+      - multipart/form-data
+    description: >
+      Reemplaza el logo actual de la clínica (si existe). La imagen se guarda en
+      el mismo almacenamiento privado que las fotos clínicas, en una ruta fija
+      por clínica — subir un logo nuevo pisa al anterior, sin dejar huérfanos.
+    parameters:
+      - in: path
+        name: clinic_id
+        type: integer
+        required: true
+      - in: formData
+        name: file
+        type: file
+        required: true
+        description: Imagen JPEG, PNG o WEBP (comprimida en el cliente).
+    responses:
+      200:
+        description: Logo actualizado
+        schema:
+          type: object
+          properties:
+            clinic:
+              $ref: '#/definitions/Clinic'
+            message:
+              type: string
+      400:
+        description: Archivo inválido
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Clínica no encontrada
+        schema:
+          $ref: '#/definitions/Error'
+      503:
+        description: Almacenamiento no configurado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    clinic = Clinic.query.get_or_404(clinic_id, description="Clínica no encontrada")
+
+    result, error = _read_upload_or_error()
+    if error:
+        return error
+    data, content_type = result
+
+    storage_path = f"clinic_{clinic.id}/logo.jpg"
+    try:
+        storage.upload_object(storage_path, data, content_type)
+    except storage.StorageError:
+        return jsonify({"error": "No se pudo subir el logo al almacenamiento"}), 502
+
+    clinic.logo_url = storage_path
+    db.session.commit()
+
+    return jsonify({"clinic": clinic.to_dict(), "message": "Logo actualizado"}), 200
 
 
 @platform_bp.route("/clinics/<int:clinic_id>/reset-admin-password", methods=["POST"])
