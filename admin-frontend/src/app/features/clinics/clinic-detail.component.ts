@@ -1,8 +1,11 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { firstValueFrom } from 'rxjs';
 import { PlatformService } from '../../core/services/platform.service';
 import { Clinic, ClinicDetail, PlatformUser, SubscriptionTier } from '../../core/models';
+import { compressImage } from '../../shared/utils/image-compression';
 
 @Component({
   selector: 'app-clinic-detail',
@@ -11,7 +14,7 @@ import { Clinic, ClinicDetail, PlatformUser, SubscriptionTier } from '../../core
   templateUrl: './clinic-detail.component.html',
   styleUrl: './clinic-detail.component.css',
 })
-export class ClinicDetailComponent implements OnInit {
+export class ClinicDetailComponent implements OnInit, OnDestroy {
   clinicId!: number;
   detail = signal<ClinicDetail | null>(null);
   tiers = signal<SubscriptionTier[]>([]);
@@ -21,10 +24,15 @@ export class ClinicDetailComponent implements OnInit {
   editForm = {
     name: '', is_active: true, subscription_tier_id: null as number | null, subscription_status: '',
     plan_started_at: '', plan_expires_at: '', notes: '',
-    address: '', phone: '', logo_url: '',
+    address: '', phone: '',
   };
   savingEdit = signal(false);
   editMessage = signal('');
+
+  logoPreviewUrl = signal<SafeUrl | null>(null);
+  uploadingLogo = signal(false);
+  logoError = signal('');
+  private logoObjectUrl: string | null = null;
 
   paymentForm = { amount: null as number | null, payment_date: '', period_start: '', period_end: '', notes: '' };
   savingPayment = signal(false);
@@ -35,12 +43,16 @@ export class ClinicDetailComponent implements OnInit {
   resetResult = signal<{ user: PlatformUser; temporary_password: string } | null>(null);
   resetError = signal('');
 
-  constructor(private route: ActivatedRoute, private platform: PlatformService) {}
+  constructor(private route: ActivatedRoute, private platform: PlatformService, private sanitizer: DomSanitizer) {}
 
   ngOnInit(): void {
     this.clinicId = Number(this.route.snapshot.paramMap.get('id'));
     this.platform.getTiers().subscribe({ next: (r) => this.tiers.set(r.tiers) });
     this.load();
+  }
+
+  ngOnDestroy(): void {
+    this.revokeLogoUrl();
   }
 
   load(): void {
@@ -58,12 +70,51 @@ export class ClinicDetailComponent implements OnInit {
           notes: d.clinic.notes || '',
           address: d.clinic.address || '',
           phone: d.clinic.phone || '',
-          logo_url: d.clinic.logo_url || '',
         };
         this.loading.set(false);
+        this.loadLogoPreview(d.clinic.logo_url);
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  private loadLogoPreview(logoUrl: string | null): void {
+    this.revokeLogoUrl();
+    this.logoPreviewUrl.set(null);
+    if (!logoUrl) return;
+    this.platform.getClinicLogoBlob(this.clinicId).subscribe({
+      next: blob => {
+        this.logoObjectUrl = URL.createObjectURL(blob);
+        this.logoPreviewUrl.set(this.sanitizer.bypassSecurityTrustUrl(this.logoObjectUrl));
+      },
+      error: () => {},
+    });
+  }
+
+  private revokeLogoUrl(): void {
+    if (this.logoObjectUrl) {
+      URL.revokeObjectURL(this.logoObjectUrl);
+      this.logoObjectUrl = null;
+    }
+  }
+
+  async onLogoSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    input.value = '';
+
+    this.uploadingLogo.set(true);
+    this.logoError.set('');
+    try {
+      const { blob, filename } = await compressImage(file, 400, 0.85);
+      await firstValueFrom(this.platform.uploadClinicLogo(this.clinicId, blob, filename));
+      this.uploadingLogo.set(false);
+      this.load();
+    } catch {
+      this.uploadingLogo.set(false);
+      this.logoError.set('No se pudo subir el logo');
+    }
   }
 
   startEdit(): void {

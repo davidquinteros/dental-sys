@@ -46,8 +46,12 @@
           <div class="form-group"><label>Teléfono</label><p>{{ detail()!.clinic.phone || '—' }}</p></div>
         </div>
         <div class="form-group">
-          <label>Logo (URL)</label>
-          <p>{{ detail()!.clinic.logo_url || '—' }}</p>
+          <label>Logo</label>
+          @if (logoPreviewUrl()) {
+            <img [src]="logoPreviewUrl()" alt="Logo" class="clinic-logo-preview"/>
+          } @else {
+            <p class="text-muted">Sin logo</p>
+          }
         </div>
         <div class="form-group">
           <label>Notas internas</label>
@@ -120,8 +124,13 @@
             </div>
           </div>
           <div class="form-group">
-            <label>Logo (URL de la imagen)</label>
-            <input type="text" name="logo_url" [(ngModel)]="editForm.logo_url" placeholder="https://..." />
+            <label>Logo</label>
+            @if (logoPreviewUrl()) {
+              <img [src]="logoPreviewUrl()" alt="Logo" class="clinic-logo-preview"/>
+            }
+            <input type="file" accept="image/*" (change)="onLogoSelected($event)" [disabled]="uploadingLogo()" />
+            @if (uploadingLogo()) { <small class="text-muted">Subiendo...</small> }
+            @if (logoError()) { <small class="text-danger">{{ logoError() }}</small> }
           </div>
           <div class="form-group">
             <label>Notas internas</label>

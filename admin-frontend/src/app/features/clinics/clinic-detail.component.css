@@ -4,3 +4,5 @@ code {
   border-radius: 6px;
   margin-left: 6px;
 }
+
+.clinic-logo-preview { max-height: 64px; max-width: 160px; object-fit: contain; margin-bottom: 8px; display: block; }
