@@ -246,9 +246,9 @@
             <tbody>
               @for (p of detail()!.payments; track p.id) {
                 <tr>
-                  <td>{{ formatDate(p.payment_date) }}</td>
+                  <td>{{ formatDateOnly(p.payment_date) }}</td>
                   <td>{{ p.amount }}</td>
-                  <td>{{ formatDate(p.period_start) }} – {{ formatDate(p.period_end) }}</td>
+                  <td>{{ formatDateOnly(p.period_start) }} – {{ formatDateOnly(p.period_end) }}</td>
                   <td>{{ p.notes || '—' }}</td>
                   <td>{{ p.recorded_by || '—' }}</td>
                 </tr>

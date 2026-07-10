@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PlatformService } from '../../core/services/platform.service';
 import { DashboardStats } from '../../core/models';
+import { formatDate as fmtDate } from '../../core/util/date.util';
 
 @Component({
   selector: 'app-dashboard',
@@ -27,8 +28,5 @@ export class DashboardComponent implements OnInit {
     return value.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  formatDate(iso: string | null): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
+  formatDate(iso: string | null): string { return iso ? fmtDate(iso) : '—'; }
 }

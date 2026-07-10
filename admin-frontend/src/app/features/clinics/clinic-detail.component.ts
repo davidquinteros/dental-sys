@@ -5,6 +5,7 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { firstValueFrom } from 'rxjs';
 import { PlatformService } from '../../core/services/platform.service';
 import { Clinic, ClinicDetail, PlatformUser, SubscriptionTier } from '../../core/models';
+import { formatDate as fmtDate, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 import { compressImage } from '../../shared/utils/image-compression';
 
 @Component({
@@ -190,10 +191,8 @@ export class ClinicDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  formatDate(iso: string | null): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
+  formatDate(iso: string | null): string { return iso ? fmtDate(iso) : '—'; }
+  formatDateOnly(iso: string | null): string { return iso ? fmtDateOnly(iso) : '—'; }
 
   daysRemaining(iso: string | null): { label: string; cssClass: string } {
     if (!iso) return { label: '—', cssClass: 'text-muted' };

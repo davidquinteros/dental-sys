@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { PlatformService } from '../../core/services/platform.service';
 import { Clinic, SubscriptionTier } from '../../core/models';
+import { formatDate as fmtDate } from '../../core/util/date.util';
 
 @Component({
   selector: 'app-clinics-list',
@@ -62,10 +63,7 @@ export class ClinicsListComponent implements OnInit {
     });
   }
 
-  formatDate(iso: string | null): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
+  formatDate(iso: string | null): string { return iso ? fmtDate(iso) : '—'; }
 
   daysRemaining(iso: string | null): { label: string; cssClass: string } {
     if (!iso) return { label: '—', cssClass: 'text-muted' };
