@@ -475,7 +475,7 @@ def get_clinic_logo(clinic_id):
           $ref: '#/definitions/Error'
     """
     clinic = Clinic.query.get_or_404(clinic_id, description="Clínica no encontrada")
-    return _serve_clinic_logo(clinic)
+    return _serve_clinic_logo(clinic, cacheable=True)
 
 
 @platform_bp.route("/clinics/<int:clinic_id>/reset-admin-password", methods=["POST"])

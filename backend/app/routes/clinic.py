@@ -6,10 +6,18 @@ from app.utils import storage
 clinic_bp = Blueprint("clinic", __name__)
 
 
-def _serve_clinic_logo(clinic):
+def _serve_clinic_logo(clinic, cacheable: bool = True):
     """Stream a clinic's logo bytes from private storage, or a JSON error tuple.
     Shared by the self-scoped /clinic/logo route and the id-scoped
-    /platform/clinics/<id>/logo route."""
+    /platform/clinics/<id>/logo route.
+
+    `cacheable` controls whether the browser is allowed to cache the response
+    under `max-age`. The id-scoped platform route has the clinic id embedded
+    in the URL, so per-clinic caching is safe there. The self-scoped route's
+    URL is constant regardless of which clinic the authenticated user belongs
+    to — caching it would let a browser serve one clinic's logo to a
+    different clinic's user on a shared browser profile, so it must pass
+    `cacheable=False` to disable caching entirely."""
     if not clinic.logo_url:
         return jsonify({"error": "Esta clínica no tiene logo"}), 404
     if not storage.is_configured():
@@ -18,10 +26,11 @@ def _serve_clinic_logo(clinic):
         data = storage.download_object(clinic.logo_url)
     except storage.StorageError:
         return jsonify({"error": "No se pudo recuperar el logo del almacenamiento"}), 502
+    cache_control = "private, max-age=3600" if cacheable else "private, no-store"
     return Response(
         data,
         mimetype="image/jpeg",
-        headers={"Cache-Control": "private, max-age=3600"},
+        headers={"Cache-Control": cache_control},
     )
 
 
@@ -112,4 +121,4 @@ def clinic_logo():
     if not current.clinic_id:
         return jsonify({"error": "Usuario sin clínica asignada"}), 404
     clinic = Clinic.query.get_or_404(current.clinic_id, description="Clínica no encontrada")
-    return _serve_clinic_logo(clinic)
+    return _serve_clinic_logo(clinic, cacheable=False)
