@@ -1,78 +1,113 @@
-# 🦷 DentalSys — Sistema de Gestión de Clínica Dental
+# 🦷 DentalSys — Plataforma SaaS Multi-Tenant para Clínicas Dentales
 
-Sistema MVP completo para gestión de clínica dental con módulos de **Usuarios**, **Pacientes**, **Citas**, **Atenciones Clínicas**, **Cobros** y **Dashboard**.
+Sistema SaaS multi-tenant para gestión de clínicas dentales: **Pacientes**, **Citas** (calendario visual), **Atenciones Clínicas** (con odontograma y recetario estructurado), **Cobros** (facturas y planes de pago), y una capa de administración de la plataforma para dar de alta clínicas y gestionar sus suscripciones.
+
+Cada clínica es un tenant aislado (datos, usuarios, permisos, configuración) dentro de la misma base de datos compartida, reforzado por dos capas de seguridad independientes (filtro a nivel de ORM + Row Level Security de Postgres — ver [Multi-tenancy y seguridad](#-multi-tenancy-y-seguridad)).
+
+> Para guía técnica exhaustiva orientada a quien desarrolla sobre este código (incluyendo gotchas, decisiones de diseño y el detalle interno de cada subsistema), ver [`CLAUDE.md`](CLAUDE.md) — este README es la introducción general al proyecto.
 
 ---
 
 ## 🏗️ Arquitectura del Sistema
 
+Un backend Flask sirve a **dos** aplicaciones Angular 18 independientes:
+
+- **`frontend/`** (puerto 4200) — la app que usa el personal de cada clínica (recepción, médicos, asistentes, admin de la clínica). Todo su acceso está acotado a los datos de su propia clínica.
+- **`admin-frontend/`** (puerto 4300) — una app separada, mucho más chica, usada únicamente por el operador de la plataforma (el dueño del SaaS) para dar de alta clínicas, gestionar sus planes de suscripción y cobros. No comparte código ni estado con `frontend/`.
+
 ```
 dental-clinic/
-├── backend/                    # Flask (Python)
+├── backend/                       # Flask (Python) + PostgreSQL (Supabase)
 │   ├── app/
-│   │   ├── models/             # SQLAlchemy models
-│   │   │   ├── user.py         # Usuarios y roles
-│   │   │   ├── patient.py      # Pacientes
-│   │   │   ├── appointment.py  # Citas
-│   │   │   ├── treatment.py    # Atenciones y planes
-│   │   │   └── billing.py      # Facturas y cobros
-│   │   ├── routes/             # API REST endpoints
-│   │   │   ├── auth.py         # Login, JWT, perfil
-│   │   │   ├── users.py        # CRUD usuarios
-│   │   │   ├── patients.py     # CRUD pacientes + historial
-│   │   │   ├── appointments.py # Citas + disponibilidad
-│   │   │   ├── treatments.py   # Atenciones + planes
-│   │   │   ├── billing.py      # Facturas + pagos + planes de pago
-│   │   │   └── dashboard.py    # Métricas del dashboard
-│   │   └── middleware/
-│   │       └── auth.py         # JWT decorators + RBAC
-│   ├── run.py                  # Punto de entrada Flask
-│   ├── requirements.txt
-│   └── .env.example
+│   │   ├── models/
+│   │   │   ├── clinic.py          # Clinic (tenant + estado de suscripción)
+│   │   │   ├── subscription.py    # SubscriptionTier, SubscriptionPayment
+│   │   │   ├── user.py            # Usuarios y roles
+│   │   │   ├── patient.py         # Pacientes (medical_history/odontogram como JSON)
+│   │   │   ├── appointment.py     # Citas
+│   │   │   ├── appointment_type.py
+│   │   │   ├── consultorio.py     # Consultorios/salas
+│   │   │   ├── treatment.py       # Atenciones, planes de tratamiento, recetario
+│   │   │   ├── treatment_image.py # Fotos clínicas (Supabase Storage)
+│   │   │   ├── billing.py         # Facturas, ítems, pagos, planes de pago
+│   │   │   └── permission.py      # Page + RolePermission (permisos por clínica)
+│   │   ├── routes/                # Un blueprint por dominio, bajo /api/<nombre>
+│   │   │   ├── auth.py, users.py, patients.py, appointments.py
+│   │   │   ├── treatments.py, billing.py, dashboard.py
+│   │   │   ├── consultorios.py, appointment_types.py, permissions.py
+│   │   │   ├── clinic.py          # Info/logo propios de la clínica (self-service)
+│   │   │   └── platform_admin.py  # /api/platform/* — solo el operador SaaS
+│   │   ├── middleware/
+│   │   │   ├── auth.py            # JWT + decoradores de rol (incluye platform_admin_required)
+│   │   │   └── tenancy.py         # Filtro ORM por clinic_id + GUCs de RLS
+│   │   └── utils/
+│   │       ├── seeder.py          # flask seed / create-clinic / create-platform-admin
+│   │       ├── storage.py         # Supabase Storage (fotos clínicas, logos)
+│   │       ├── serialization.py   # iso_utc() — timestamps UTC consistentes
+│   │       └── clinic_time.py     # Hora local de la clínica (agenda)
+│   ├── migrations/versions/       # Alembic — incluye las migraciones de RLS
+│   ├── run.py
+│   └── requirements.txt
 │
-└── frontend/                   # Angular 18 (Standalone)
-    └── src/app/
-        ├── core/
-        │   ├── models/         # TypeScript interfaces
-        │   ├── services/       # AuthService + API services
-        │   ├── guards/         # Auth guard + Role guard
-        │   └── interceptors/   # JWT interceptor con auto-refresh
-        ├── shared/
-        │   └── components/
-        │       └── layout/     # Shell con sidebar navegación
-        └── features/
-            ├── auth/           # Login
-            ├── dashboard/      # Dashboard con métricas
-            ├── patients/       # Listado, detalle, formulario
-            ├── appointments/   # Listado + agenda + formulario
-            ├── treatments/     # Atenciones + planes de tratamiento
-            ├── billing/        # Facturas + cobros + planes de pago
-            └── users/          # Gestión de usuarios (admin)
+├── frontend/                      # Angular 18 (Standalone) — personal de clínica
+│   └── src/app/
+│       ├── core/                  # guards (auth/rol), services, interceptors, util (fechas)
+│       ├── shared/                # layout, print-clinic-header, print-document.css
+│       └── features/
+│           ├── auth/, dashboard/, patients/ (+ odontograma, historia médica, impresión)
+│           ├── appointments/, calendar/ (agenda visual), planes/
+│           ├── treatments/ (+ recetario imprimible), billing/
+│           ├── users/, permissions/, consultorios/, appointment-types/
+│
+└── admin-frontend/                 # Angular 18 (Standalone) — operador de la plataforma
+    └── src/app/features/
+        ├── auth/, dashboard/, clinics/, subscription-tiers/
 ```
+
+---
+
+## 🔒 Multi-tenancy y seguridad
+
+Cada tabla de datos de una clínica (`patients`, `appointments`, `treatments`, `invoices`, etc.) tiene una columna `clinic_id`. El aislamiento entre clínicas se refuerza por **dos capas independientes**, deliberadamente redundantes:
+
+1. **Filtro a nivel de ORM** — un evento de SQLAlchemy inyecta `clinic_id == <clínica del usuario>` en cada consulta, incluso en relaciones cargadas de forma perezosa.
+2. **Row Level Security de Postgres** — políticas RLS en la base de datos misma, como defensa adicional ante cualquier código que use SQL crudo.
+
+Una clínica cuyo `usuario` pertenece a ella nunca puede leer ni escribir datos de otra, aunque una de las dos capas fallara. Por encima de esto hay dos sistemas de autorización separados:
+
+- **Roles** (`admin`, `doctor`, `receptionist`, `assistant`) — gatean endpoints completos.
+- **Permisos por página** — cada clínica puede personalizar, desde su propio panel de administración, qué rol puede ver/crear/editar/eliminar cada sección de la app (módulo de Permisos).
+
+Y un tercer nivel, totalmente separado de lo anterior: el **operador de la plataforma** (quien vende el SaaS) opera desde `admin-frontend/` con acceso no acotado a ninguna clínica en particular, para darlas de alta y gestionar su suscripción/facturación.
 
 ---
 
 ## 🚀 Instalación y Configuración
 
-### Prerrequisitos
-- Python 3.11+
-- PostgreSQL 14+
-- Node.js 18+
-- Angular CLI 18: `npm install -g @angular/cli`
+### Opción recomendada: Docker Compose
 
-### Setup automático
 ```bash
-bash setup.sh
+docker compose up -d --build
 ```
 
-### Setup manual
+Levanta backend (`:5000`), `frontend/` (`:4200`) y `admin-frontend/` (`:4300`) juntos. Requiere un archivo `.env` en la raíz con `DATABASE_URL`/`MIGRATIONS_DATABASE_URL` apuntando a un Postgres (ver más abajo) — no incluye un contenedor de base de datos propio.
+
+```bash
+docker compose exec backend flask db upgrade                # aplicar migraciones
+docker compose exec backend flask seed                      # datos de demo (clínica #1)
+docker compose exec backend flask create-clinic --name "..." --admin-email "..." --admin-password "..."
+docker compose exec backend flask create-platform-admin --email "..." --password "..."   # usuario del operador SaaS
+```
+
+### Opción manual (sin Docker)
 
 #### 1. Base de datos PostgreSQL
 ```sql
 CREATE DATABASE dental_clinic_db;
-CREATE USER dental_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE dental_clinic_db TO dental_user;
+CREATE USER dental_app WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE dental_clinic_db TO dental_app;
 ```
+(La app también soporta Postgres administrado, p. ej. Supabase — ver `create_app_role.sql` para el esquema de dos roles, uno restringido para runtime y otro dueño del esquema para migraciones.)
 
 #### 2. Backend Flask
 ```bash
@@ -83,17 +118,10 @@ source venv/bin/activate          # Linux/Mac
 
 pip install -r requirements.txt
 cp .env.example .env
-# Edite .env con sus credenciales de base de datos
+# Editar .env con las credenciales de base de datos
 
-# Migraciones
-flask db init
-flask db migrate -m "initial migration"
 flask db upgrade
-
-# Datos iniciales
 flask seed
-
-# Iniciar servidor
 flask run --port 5000
 ```
 
@@ -102,11 +130,17 @@ flask run --port 5000
 cd frontend
 npm install
 npm start                          # http://localhost:4200
+
+cd ../admin-frontend
+npm install
+npm start                          # http://localhost:4300
 ```
 
 ---
 
 ## 🔐 Roles y Permisos
+
+La matriz por defecto (personalizable por cada clínica desde el módulo de Permisos):
 
 | Funcionalidad | Admin | Médico | Recepcionista | Asistente |
 |---|:---:|:---:|:---:|:---:|
@@ -114,81 +148,51 @@ npm start                          # http://localhost:4200
 | Gestión de Usuarios | ✅ | ❌ | ❌ | ❌ |
 | Pacientes (CRUD) | ✅ | ✅ | ✅ | ✅ |
 | Citas (todas) | ✅ | Solo propias | ✅ | Solo asignadas |
-| Atenciones clínicas | ✅ | ✅ | ❌ | ✅ |
+| Calendario visual | ✅ | ✅ | ✅ | ✅ |
+| Atenciones clínicas (+ recetario, fotos) | ✅ | ✅ | ❌ | ✅ |
 | Planes de tratamiento | ✅ | ✅ | ❌ | ✅ |
-| Cobros y Facturas | ✅ | ❌ | ✅ | ❌ |
-| Planes de Pago | ✅ | ❌ | ✅ | ❌ |
+| Cobros, Facturas y Planes de Pago | ✅ | ❌ | ✅ | ❌ |
+| Consultorios / Tipos de cita | ✅ | ❌ | ❌ | ❌ |
+| Permisos (configurar la matriz) | ✅ | ❌ | ❌ | ❌ |
 
 ---
 
 ## 📡 API Endpoints
 
-### Autenticación
-| Método | Endpoint | Descripción |
-|---|---|---|
-| POST | `/api/auth/login` | Iniciar sesión |
-| POST | `/api/auth/refresh` | Renovar token JWT |
-| GET | `/api/auth/me` | Perfil del usuario logueado |
-| PUT | `/api/auth/change-password` | Cambiar contraseña |
+Todas las rutas viven bajo `/api/<blueprint>` en el backend Flask; la documentación interactiva completa (Swagger/OpenAPI) está en **`/api/docs/`**.
 
-### Usuarios
-| Método | Endpoint | Descripción |
-|---|---|---|
-| GET | `/api/users/` | Listar usuarios |
-| POST | `/api/users/` | Crear usuario (admin) |
-| PUT | `/api/users/:id` | Actualizar usuario |
-| DELETE | `/api/users/:id` | Desactivar usuario (admin) |
-| GET | `/api/users/doctors` | Lista de médicos activos |
+### Autenticación — `/api/auth`
+`POST /login` · `POST /refresh` · `GET /me` · `PUT /change-password`
 
-### Pacientes
-| Método | Endpoint | Descripción |
-|---|---|---|
-| GET | `/api/patients/` | Listar con búsqueda y paginación |
-| POST | `/api/patients/` | Crear paciente |
-| GET | `/api/patients/:id` | Detalle de paciente |
-| PUT | `/api/patients/:id` | Actualizar paciente |
-| GET | `/api/patients/:id/history` | Historial completo |
+### Usuarios — `/api/users`
+`GET /` · `POST /` (admin) · `PUT /:id` · `DELETE /:id` (desactivar) · `GET /doctors`
 
-### Citas
-| Método | Endpoint | Descripción |
-|---|---|---|
-| GET | `/api/appointments/` | Listar con filtros |
-| POST | `/api/appointments/` | Crear cita |
-| PUT | `/api/appointments/:id` | Actualizar/cambiar estado |
-| POST | `/api/appointments/:id/cancel` | Cancelar cita |
-| GET | `/api/appointments/availability` | Verificar disponibilidad médico |
-| GET | `/api/appointments/today` | Citas del día actual |
+### Pacientes — `/api/patients`
+`GET /` (búsqueda + paginación) · `POST /` · `GET /:id` · `PUT /:id` · `GET /:id/history` · odontograma e historia médica vía el mismo recurso (`medical_history`/`odontogram`, JSON)
 
-### Atenciones
-| Método | Endpoint | Descripción |
-|---|---|---|
-| GET | `/api/treatments/` | Listar atenciones |
-| POST | `/api/treatments/` | Registrar atención |
-| PUT | `/api/treatments/:id` | Actualizar atención |
-| GET | `/api/treatments/plans` | Listar planes |
-| POST | `/api/treatments/plans` | Crear plan de tratamiento |
-| PUT | `/api/treatments/plans/:id` | Actualizar plan |
+### Citas — `/api/appointments`
+`GET /` · `POST /` · `PUT /:id` · `POST /:id/cancel` · `GET /availability` · `GET /today`
 
-### Cobros
-| Método | Endpoint | Descripción |
-|---|---|---|
-| GET | `/api/billing/invoices` | Listar facturas |
-| POST | `/api/billing/invoices` | Crear factura |
-| GET | `/api/billing/invoices/:id` | Detalle factura |
-| POST | `/api/billing/invoices/:id/payments` | Registrar pago |
-| GET | `/api/billing/payment-plans` | Listar planes de pago |
-| POST | `/api/billing/payment-plans` | Crear plan de pago |
-| POST | `/api/billing/payment-plans/:id/installment` | Registrar cuota |
-| GET | `/api/billing/summary` | Resumen financiero |
+### Atenciones y planes de tratamiento — `/api/treatments`
+`GET /` · `POST /` · `PUT /:id` · `GET /plans` · `POST /plans` · `PUT /plans/:id` — más fotos clínicas: `POST/GET /:id/images`, `POST/GET /plans/:id/images`, `GET /images/:id/file`, `DELETE /images/:id`
 
-### Dashboard
-| Método | Endpoint | Descripción |
-|---|---|---|
-| GET | `/api/dashboard/` | Métricas y resumen del día |
+### Cobros — `/api/billing`
+`GET/POST /invoices` · `GET /invoices/:id` · `POST /invoices/:id/payments` · `GET/POST /payment-plans` · `POST /payment-plans/:id/installment` · `GET /payment-plans/:id/installments` · `GET /summary`
+
+### Configuración de la clínica — `/api/consultorios`, `/api/appointment-types`, `/api/permissions`, `/api/clinic`
+CRUD de consultorios y tipos de cita · matriz de permisos por rol (`GET/PUT /permissions/matrix`, `GET /permissions/me`) · datos propios de la clínica para encabezados impresos (`GET /clinic/info`, `GET /clinic/logo`)
+
+### Dashboard — `/api/dashboard`
+`GET /` — métricas y resumen del día
+
+### Plataforma (solo operador SaaS, `admin-frontend`) — `/api/platform`
+`GET /dashboard` · `GET/POST /clinics` · `GET/PUT /clinics/:id` · `POST/GET /clinics/:id/logo` · `POST /clinics/:id/reset-admin-password` · `GET/POST/PUT /subscription-tiers` · `GET/POST /clinics/:id/payments`
 
 ---
 
 ## 🔑 Credenciales de Prueba (después de `flask seed`)
+
+Datos de demo para la clínica #1, solo en un entorno local/testing recién sembrado:
 
 | Rol | Email | Contraseña |
 |---|---|---|
@@ -200,25 +204,29 @@ npm start                          # http://localhost:4200
 
 ---
 
+## ✅ Funcionalidades implementadas
+
+- **Multi-tenancy SaaS completo**: alta de clínicas, períodos de prueba, estados de suscripción (`trial`/`active`/`past_due`/`suspended`/`cancelled`), bloqueo de acceso automático al vencer el plan.
+- **Calendario visual de citas** (vista semanal/mensual), con colores por médico y disponibilidad de médico/consultorio en tiempo real.
+- **Odontograma interactivo** (mapa dental completo, por pieza FDI) y su versión estática imprimible.
+- **Recetario estructurado**: lista de medicamentos (nombre, concentración, forma, dosis, duración, indicaciones) con vista imprimible dedicada.
+- **Impresión de historia médica** del paciente (antecedentes, odontograma, historial de atenciones) en un documento único.
+- **Subida de fotos clínicas** y de logo de clínica, en un bucket privado de Supabase Storage servido solo vía endpoints autenticados.
+- **Multi-consultorio / multi-sede** dentro de cada clínica, con tipos de cita configurables.
+- **Permisos configurables por clínica** (qué rol ve/edita cada sección), además de los roles base.
+- **Planes de pago en cuotas** (montos variables, historial de pagos) además de facturación de pago único.
+
 ## 🗺️ Próximas Entregas (Roadmap)
 
-### Entregable 2
 - [ ] Notificaciones por email/SMS para citas
-- [ ] Exportación de reportes en PDF/Excel
+- [ ] Exportación de reportes en PDF/Excel desde el dashboard
 - [ ] Módulo de inventario de materiales
-- [ ] Calendario visual de citas (vista semanal/mensual)
-
-### Entregable 3
-- [ ] Odontograma interactivo (mapa dental completo)
-- [ ] Subida de radiografías e imágenes clínicas
-- [ ] Portal del paciente (acceso limitado)
+- [ ] Portal del paciente (acceso limitado, fuera de `frontend`/`admin-frontend`)
 - [ ] Módulo de recordatorios automáticos
-
-### Entregable 4
 - [ ] Reportes analíticos avanzados
-- [ ] Integración con sistemas de pago (QR, etc.)
+- [ ] Integración con pasarelas de pago (más allá del registro manual de cobro en efectivo/QR)
 - [ ] App móvil (Angular PWA)
-- [ ] Multi-consultorio / multi-sede
+- [ ] Página de auto-configuración de clínica dentro de `frontend/` (hoy esos datos solo se editan desde `admin-frontend`)
 
 ---
 
@@ -231,9 +239,11 @@ npm start                          # http://localhost:4200
 | Auth | Flask-JWT-Extended (JWT tokens) |
 | CORS | Flask-CORS |
 | Hashing | Flask-Bcrypt |
-| Base de Datos | PostgreSQL |
-| Frontend | Angular 18 (Standalone Components) |
+| Base de Datos | PostgreSQL, alojado en Supabase (con Row Level Security) |
+| Almacenamiento de archivos | Supabase Storage (bucket privado — fotos clínicas, logos) |
+| Frontend | Angular 18 (Standalone Components) — dos apps: `frontend/` y `admin-frontend/` |
 | State Management | Angular Signals |
 | Routing | Angular Router (Lazy Loading) |
 | HTTP | HttpClient + Interceptors |
 | Formularios | Reactive Forms |
+| Hosting | Render (backend + dos Static Sites por app), entornos separados para `main` (producción) y `testing` |

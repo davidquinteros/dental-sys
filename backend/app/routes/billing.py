@@ -258,6 +258,7 @@ def create_invoice():
         qty = item_data.get("quantity", 1)
         unit_price = float(item_data["unit_price"])
         item = InvoiceItem(
+            clinic_id=invoice.clinic_id,
             invoice_id=invoice.id,
             description=item_data["description"],
             quantity=qty,
@@ -383,6 +384,7 @@ def update_invoice(invoice_id):
             qty = item_data.get("quantity", 1)
             unit_price = float(item_data["unit_price"])
             invoice.items.append(InvoiceItem(
+                clinic_id=invoice.clinic_id,
                 description=item_data["description"],
                 quantity=qty,
                 unit_price=unit_price,
@@ -500,6 +502,7 @@ def add_payment(invoice_id):
         return jsonify({"error": f"Método de pago inválido. Válidos: {valid}"}), 400
 
     payment = Payment(
+        clinic_id=invoice.clinic_id,
         invoice_id=invoice.id,
         received_by_id=current.id,
         amount=amount,
