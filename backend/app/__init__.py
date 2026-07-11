@@ -36,7 +36,11 @@ def create_app(config=None):
         "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", 2)),
         "pool_timeout": int(os.getenv("DB_POOL_TIMEOUT", 30)),
         "pool_recycle": int(os.getenv("DB_POOL_RECYCLE", 280)),
-        "pool_pre_ping": True,
+        # pool_pre_ping is deliberately OFF: the tenancy GUC-stamp query that
+        # runs on every checkout anyway (middleware/tenancy.py) doubles as the
+        # liveness check, so a stale connection is caught there instead of by
+        # a separate "SELECT 1" round-trip first — halves the round-trips per
+        # checkout instead of adding a second one.
     }
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "jwt-secret-change-in-prod")
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 3600))

@@ -19,6 +19,7 @@ from contextlib import contextmanager
 from flask import g, has_app_context
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from sqlalchemy import event, text
+from sqlalchemy.exc import DisconnectionError
 from sqlalchemy.orm import Session, with_loader_criteria
 from sqlalchemy.pool import Pool
 
@@ -69,26 +70,38 @@ def _current_tenant_context():
 
 @event.listens_for(Pool, "checkout")
 def _stamp_tenant_guc_on_checkout(dbapi_connection, connection_record, connection_proxy):
+    # This query doubles as the pool's liveness check — pool_pre_ping is
+    # deliberately OFF (see app/__init__.py) so a stale/dropped connection is
+    # only ever caught here, not by a separate "SELECT 1" round-trip first.
+    # Every checkout already has to pay for this query's round-trip regardless
+    # (RLS needs it), so folding the liveness check into it halves the number
+    # of round-trips per checkout instead of adding a second one.
     clinic_id, bypass = _current_tenant_context()
-    cursor = dbapi_connection.cursor()
     try:
-        # current_clinic_id is always a valid integer string, even when
-        # unscoped (bypass=True covers actual access in that case) — the RLS
-        # policy casts it with ::int, and '' raises InvalidTextRepresentation.
-        # Postgres doesn't guarantee bypass_rls='on' short-circuits the policy's
-        # OR before the ::int cast runs, so the right side must stay castable.
-        cursor.execute(
-            "SELECT set_config('app.bypass_rls', %s, false), "
-            "set_config('app.current_clinic_id', %s, false)",
-            ('on' if bypass else 'off', str(clinic_id) if clinic_id is not None else str(NO_MATCH_CLINIC_ID)),
-        )
-    finally:
-        cursor.close()
-    # is_local=false makes the setting outlive any transaction on this
-    # connection, but the implicit transaction this SELECT opened (psycopg2
-    # always opens one) should still be closed out before SQLAlchemy starts
-    # using the connection for its own work.
-    dbapi_connection.commit()
+        cursor = dbapi_connection.cursor()
+        try:
+            # current_clinic_id is always a valid integer string, even when
+            # unscoped (bypass=True covers actual access in that case) — the RLS
+            # policy casts it with ::int, and '' raises InvalidTextRepresentation.
+            # Postgres doesn't guarantee bypass_rls='on' short-circuits the policy's
+            # OR before the ::int cast runs, so the right side must stay castable.
+            cursor.execute(
+                "SELECT set_config('app.bypass_rls', %s, false), "
+                "set_config('app.current_clinic_id', %s, false)",
+                ('on' if bypass else 'off', str(clinic_id) if clinic_id is not None else str(NO_MATCH_CLINIC_ID)),
+            )
+        finally:
+            cursor.close()
+        # is_local=false makes the setting outlive any transaction on this
+        # connection, but the implicit transaction this SELECT opened (psycopg2
+        # always opens one) should still be closed out before SQLAlchemy starts
+        # using the connection for its own work.
+        dbapi_connection.commit()
+    except Exception as err:
+        # Tells the pool this connection is dead so it's discarded and
+        # checkout retried on a fresh one — the same recovery pool_pre_ping
+        # would have done, triggered by this query instead of an extra one.
+        raise DisconnectionError() from err
 
 
 def _scoped_models():

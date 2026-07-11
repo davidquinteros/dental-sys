@@ -27,6 +27,15 @@ export class PrintClinicHeaderComponent implements OnChanges, OnDestroy {
 
   constructor(private clinicService: ClinicService, private sanitizer: DomSanitizer) {}
 
+  get contactLine(): string {
+    const parts = [
+      this.clinic?.address,
+      this.clinic?.phone ? `Tel: ${this.clinic.phone}` : null,
+      this.clinic?.email,
+    ].filter(Boolean);
+    return parts.join(' · ');
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['clinic'] && this.clinic?.logo_url) {
       this.loadLogo();

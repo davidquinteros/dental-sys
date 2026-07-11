@@ -16,7 +16,7 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       MIGRATIONS_DATABASE_URL: ${MIGRATIONS_DATABASE_URL}
       JWT_SECRET_KEY: jwt-secret-change-in-prod
-      JWT_ACCESS_TOKEN_EXPIRES: "3600"
+      JWT_ACCESS_TOKEN_EXPIRES: "14400"
       JWT_REFRESH_TOKEN_EXPIRES: "2592000"
       CORS_ORIGINS: http://localhost:4200,http://localhost:4300
       # Supabase Storage para fotos clínicas (FCLI-10). Si no están seteadas,
@@ -30,6 +30,15 @@ services:
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       POSTGRES_USER: ${POSTGRES_USER}
+      # Gunicorn worker/thread count + SQLAlchemy pool size — see
+      # backend/.env.example for the reasoning and suggested values per tier.
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      WEB_THREADS: ${WEB_THREADS:-2}
+      WEB_TIMEOUT: ${WEB_TIMEOUT:-60}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-3}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-2}
+      DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-30}
+      DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-280}
     ports:
       - "5000:5000"
     volumes:
