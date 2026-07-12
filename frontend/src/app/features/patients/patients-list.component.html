@@ -74,7 +74,7 @@
                 <div class="patient-cell">
                   <div class="patient-avatar">{{ initials(patient) }}</div>
                   <div class="patient-info">
-                    <span class="patient-name">{{ patient.full_name }}</span>
+                    <a [routerLink]="['/patients', patient.id]" class="patient-name">{{ patient.full_name }}</a>
                     <span class="patient-email">{{ patient.email || '—' }}</span>
                   </div>
                 </div>
