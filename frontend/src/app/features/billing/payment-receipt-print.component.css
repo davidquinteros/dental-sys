@@ -1,0 +1,32 @@
+.receipt-page { max-width: 800px; }
+
+.patient-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 32px;
+  row-gap: 4px;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+.patient-info p { margin: 4px 0; }
+
+.payment-section, .summary-section { margin-bottom: 28px; }
+.payment-section h3, .summary-section h3 {
+  font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: #718096; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin: 0 0 12px;
+}
+
+.payment-grid, .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 32px; }
+.pay-item, .sum-item { display: flex; justify-content: space-between; font-size: 14px; }
+.pay-label, .sum-label { color: #718096; }
+.pay-item.notes { grid-column: 1 / -1; }
+.pay-item.amount { grid-column: 1 / -1; font-weight: 700; font-size: 16px; color: #276749;
+  border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 4px; }
+.sum-item.balance { grid-column: 1 / -1; font-weight: 700; font-size: 15px; color: #2b6cb0;
+  border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 4px; }
+
+.signatures-footer { display: flex; justify-content: space-between; gap: 40px; margin-top: 100px; }
+.signature-block { flex: 1; text-align: center; }
+.signature-line { border-top: 1px solid #1a202c; margin-bottom: 6px; }
+.signature-label { font-size: 14px; font-weight: 600; margin: 0; }
+.signature-role { font-size: 12px; color: #4a5568; margin: 2px 0 0; }

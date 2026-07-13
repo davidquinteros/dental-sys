@@ -212,6 +212,47 @@
 .plan-link-btn:hover { text-decoration: underline; }
 .text-muted { color: #a0aec0; }
 
+/* Billing tab (Pagos y Presupuestos) */
+.billing-subtabs { display: flex; gap: 4px; margin-bottom: 16px; background: #f7fafc; padding: 4px;
+  border-radius: 10px; width: fit-content; }
+.subtab { padding: 7px 16px; font-size: 13px; font-weight: 500; color: #718096; background: none;
+  border: none; border-radius: 7px; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 6px; }
+.subtab.active { background: white; color: #2b6cb0; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.subtab .tab-badge { background: #e2e8f0; color: #718096; }
+.subtab.active .tab-badge { background: #ebf8ff; color: #2b6cb0; }
+
+.inv-num { font-size: 13px; font-family: monospace; }
+.money { font-variant-numeric: tabular-nums; font-weight: 500; }
+.green-text { color: #276749; }
+.red-text { color: #c53030; }
+.inv-pending { background: #fffbeb; color: #b7791f; }
+.inv-partial { background: #ebf8ff; color: #2b6cb0; }
+.inv-paid { background: #f0fff4; color: #276749; }
+.inv-cancelled { background: #f7fafc; color: #a0aec0; }
+.inv-overdue { background: #fff5f5; color: #c53030; }
+
+.plan-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.plan-sub { display: block; font-size: 12px; color: #a0aec0; margin-top: 2px; }
+.plan-status { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.pstatus-active { background: #e6fffa; color: #319795; }
+.pstatus-completed { background: #f0fff4; color: #276749; }
+.pstatus-cancelled { background: #fff5f5; color: #c53030; }
+.pstatus-defaulted { background: #fefcbf; color: #744210; }
+.bstatus-draft { background: #fffbeb; color: #b7791f; }
+.bstatus-accepted { background: #f0fff4; color: #276749; }
+.bstatus-rejected { background: #fff5f5; color: #c53030; }
+
+.amounts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.amount-item { background: #f7fafc; border-radius: 8px; padding: 10px 12px; }
+.a-label { display: block; font-size: 11px; color: #a0aec0; text-transform: uppercase; font-weight: 600; }
+.a-val { display: block; font-size: 15px; font-weight: 700; color: #2d3748; margin-top: 2px; }
+.progress-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.prog-txt { font-size: 12px; color: #718096; }
+.plan-actions { display: flex; gap: 12px; padding-top: 12px; border-top: 1px solid #f0f4f8; }
+.plan-action-link { font-size: 13px; font-weight: 600; color: #4299e1; text-decoration: none; }
+.plan-action-link:hover { text-decoration: underline; }
+
 @media (max-width: 1024px) {
   .info-grid { grid-template-columns: repeat(2, 1fr); }
 }

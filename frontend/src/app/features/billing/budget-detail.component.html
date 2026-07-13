@@ -1,0 +1,141 @@
+<div class="page">
+  @if (loading()) {
+    <div class="loading-center"><div class="spinner-lg"></div></div>
+  } @else if (budget()) {
+    <div class="breadcrumb">
+      <a routerLink="/billing" class="breadcrumb-link">Cobros</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span>{{ budget()!.name }}</span>
+    </div>
+
+    <div class="header-row">
+      <div>
+        <h1 class="page-title">{{ budget()!.name }}</h1>
+        <p class="sub">Paciente: {{ budget()!.patient_name }} · {{ formatDate(budget()!.created_at) }}</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn-print" (click)="printBudget()">🖨️ Imprimir</button>
+        @if (budget()!.status === 'draft') {
+          <a [routerLink]="['/billing/budgets', budget()!.id, 'edit']" class="btn-edit">Editar</a>
+        }
+        <span class="status-badge big" [class]="'bstatus-' + budget()!.status">{{ statusLabel(budget()!.status) }}</span>
+      </div>
+    </div>
+
+    @if (actionError()) { <p class="action-error">{{ actionError() }}</p> }
+
+    <div class="detail-grid">
+      <div class="main-col">
+        <div class="card">
+          <div class="card-header"><h3>Detalle del Presupuesto</h3></div>
+          <div class="info-body">
+            <div class="m-row">
+              <span class="ml">Paciente</span>
+              <a [routerLink]="['/patients', budget()!.patient_id]" class="link">{{ budget()!.patient_name }}</a>
+            </div>
+            <div class="m-row">
+              <span class="ml">Plan de Tratamiento</span>
+              @if (budget()!.treatment_plan_id) {
+                <a [routerLink]="['/treatments/plans', budget()!.treatment_plan_id]" class="link">{{ budget()!.treatment_plan_name || ('#' + budget()!.treatment_plan_id) }}</a>
+              } @else {
+                <span class="text-muted">Sin asignar todavía</span>
+              }
+            </div>
+            <div class="m-row">
+              <span class="ml">Período</span>
+              <span>{{ formatDateOnly(budget()!.start_date) }} – {{ formatDateOnly(budget()!.end_date) }}</span>
+            </div>
+            @if (budget()!.notes) {
+              <div class="m-row col">
+                <span class="ml">Notas</span>
+                <span class="note-txt">{{ budget()!.notes }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="amounts-row">
+            <div class="amount-item">
+              <span class="a-label">Cantidad de Citas</span>
+              <span class="a-val">{{ budget()!.num_citas }}</span>
+            </div>
+            <div class="amount-item">
+              <span class="a-label">Costo por Cita</span>
+              <span class="a-val">Bs {{ formatMoney(budget()!.cost_per_cita) }}</span>
+            </div>
+            <div class="amount-item">
+              <span class="a-label">Cuota Inicial</span>
+              <span class="a-val">Bs {{ formatMoney(budget()!.down_payment) }}</span>
+            </div>
+            <div class="amount-item total">
+              <span class="a-label">Total</span>
+              <span class="a-val">Bs {{ formatMoney(budget()!.total_amount) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Ítems Propuestos</h3></div>
+          @if (budget()!.items.length === 0) {
+            <div class="empty-history">Sin ítems detallados — presupuesto por costo de citas.</div>
+          } @else {
+            <div class="table-wrapper">
+              <table class="table">
+                <thead>
+                  <tr><th>Descripción</th><th>Cant.</th><th>P. Unit.</th><th>Total</th></tr>
+                </thead>
+                <tbody>
+                  @for (item of budget()!.items; track item.id) {
+                    <tr>
+                      <td>{{ item.description }}</td>
+                      <td>{{ item.quantity }}</td>
+                      <td class="money">Bs {{ formatMoney(item.unit_price) }}</td>
+                      <td class="money">Bs {{ formatMoney(item.total) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="items-subtotal-row">
+              <span>Subtotal de ítems</span><span>Bs {{ formatMoney(budget()!.items_subtotal) }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="side-col">
+        @if (budget()!.status === 'draft') {
+          <div class="action-panel">
+            <h4>Acciones</h4>
+            <button type="button" class="btn-accept" (click)="accept()" [disabled]="acting()">Aceptar Presupuesto</button>
+            <button type="button" class="btn-reject" (click)="reject()" [disabled]="acting()">Rechazar Presupuesto</button>
+          </div>
+        }
+
+        @if (budget()!.status === 'accepted' && !budget()!.converted_plan_id) {
+          <div class="action-panel accepted">
+            <h4>Presupuesto Aceptado</h4>
+            <p class="panel-hint">Definí con el paciente qué tratamientos hacer y generá el plan de pago con estas condiciones precargadas.</p>
+            <a [routerLink]="['/billing/payment-plans/new']" [queryParams]="{ budget_id: budget()!.id }" class="btn-convert">
+              Crear Plan de Pago
+            </a>
+          </div>
+        }
+
+        @if (budget()!.converted_plan_id) {
+          <div class="converted-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span>Convertido a plan de pago</span>
+            <a [routerLink]="['/billing/payment-plans', budget()!.converted_plan_id]" class="link">Ver Plan de Pago</a>
+          </div>
+        }
+
+        @if (budget()!.status === 'rejected') {
+          <div class="rejected-badge">Presupuesto rechazado — no se generó ningún plan.</div>
+        }
+      </div>
+    </div>
+  }
+</div>

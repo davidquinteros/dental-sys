@@ -20,7 +20,7 @@
       <div class="actions">
         <a [routerLink]="['/treatments/new']"
           [queryParams]="{ patient_id: plan()!.patient_id, plan_id: plan()!.id }"
-          class="btn btn-secondary">+ Registrar Sesión</a>
+          class="btn btn-secondary">+ Registrar Atención</a>
         <a [routerLink]="['/appointments/new']"
           [queryParams]="{ patient_id: plan()!.patient_id, treatment_plan_id: plan()!.id }"
           class="btn btn-primary">+ Agendar Cita</a>
@@ -37,8 +37,8 @@
         <div class="progress-fill-lg" [style.width]="plan()!.progress_percentage + '%'"></div>
       </div>
       <div class="progress-stats">
-        <span>{{ plan()!.completed_sessions }} sesiones completadas</span>
-        <span>{{ plan()!.total_sessions || '?' }} sesiones planificadas</span>
+        <span>{{ plan()!.completed_sessions }} atenciones completadas</span>
+        <span>{{ plan()!.total_sessions || '?' }} atenciones planificadas</span>
       </div>
     </div>
 
@@ -46,13 +46,13 @@
       <!-- Sessions history -->
       <div class="sessions-card">
         <div class="card-header">
-          <h3>Historial de Sesiones</h3>
+          <h3>Historial de atenciones</h3>
           <a [routerLink]="['/treatments/new']"
             [queryParams]="{ patient_id: plan()!.patient_id, plan_id: plan()!.id }"
             class="link-btn">+ Agregar</a>
         </div>
         @if (!plan()!.sessions || plan()!.sessions!.length === 0) {
-          <div class="empty-sessions">Sin sesiones registradas aún</div>
+          <div class="empty-sessions">Sin atenciones registradas aún</div>
         } @else {
           <div class="sessions-list">
             @for (session of plan()!.sessions!; track session.id; let i = $index) {

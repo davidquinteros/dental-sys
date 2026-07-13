@@ -3,6 +3,7 @@ from app import db
 from app.models.billing import (
     Invoice, InvoiceItem, Payment, PaymentPlan, PaymentPlanInstallment,
     InvoiceStatus, PaymentMethod, PaymentPlanStatus,
+    Budget, BudgetItem, BudgetStatus,
 )
 from app.middleware.auth import clinical_access_required, admin_required, get_current_user
 from app.models.user import UserRole
@@ -359,6 +360,15 @@ def update_invoice(invoice_id):
         return jsonify({"error": "No se puede modificar una factura pagada o cancelada"}), 400
 
     data = request.get_json()
+
+    # Cancelling or replacing items only makes sense before any money has been
+    # collected — once a partial payment exists, cancelling would silently drop
+    # already-received Payment rows out of every revenue report (recalculate()
+    # leaves CANCELLED invoices' balance/amount_paid frozen, and both are
+    # excluded from GET /billing/summary and the dashboard by status).
+    if (("status" in data and data["status"] == "cancelled") or "items" in data) and invoice.status != InvoiceStatus.PENDING:
+        return jsonify({"error": "Solo se puede cancelar o editar los ítems de una factura pendiente (sin pagos registrados)"}), 400
+
     if "discount" in data:
         invoice.discount = float(data["discount"])
     if "notes" in data:
@@ -489,9 +499,6 @@ def add_payment(invoice_id):
 
     if amount > float(invoice.balance):
         return jsonify({"error": f"El monto excede el saldo pendiente ({invoice.balance})"}), 400
-
-    if amount < float(invoice.balance):
-        return jsonify({"error": "Solo se aceptan pagos totales. Use un plan de pago para pagos en cuotas."}), 400
 
     try:
         method = PaymentMethod(data.get("method", "cash"))
@@ -629,15 +636,21 @@ def create_payment_plan():
     security:
       - BearerAuth: []
     description: >
-      Asociado a un plan de tratamiento. Calcula automáticamente `installment_amount`
-      = (total_amount - down_payment) / installments, e inicializa `total_paid` con el down_payment.
+      Asociado a un plan de tratamiento. `installments` (cantidad de citas) e
+      `installment_amount` (costo fijo por cita) quedan fijos según `calc_mode`:
+      en `per_cita` se envía `cost_per_cita` y el servidor calcula
+      `total_amount = down_payment + num_citas * cost_per_cita`; en `total` se
+      envía `total_amount` y el servidor calcula
+      `cost_per_cita = (total_amount - down_payment) / num_citas`. El plan se crea
+      con `total_paid = 0` (nada cobrado todavía); el enganche/cuota inicial se
+      registra después como cualquier otro pago, no se marca como pagado al crear.
     parameters:
       - in: body
         name: body
         required: true
         schema:
           type: object
-          required: [patient_id, treatment_plan_id, name, total_amount, installments]
+          required: [patient_id, treatment_plan_id, name, num_citas, calc_mode]
           properties:
             patient_id:
               type: integer
@@ -648,22 +661,36 @@ def create_payment_plan():
             name:
               type: string
               example: Plan de pago - Ortodoncia
+            calc_mode:
+              type: string
+              enum: [per_cita, total]
+              example: per_cita
+            num_citas:
+              type: integer
+              example: 12
+            cost_per_cita:
+              type: number
+              format: float
+              description: Requerido si calc_mode=per_cita
+              example: 300.0
             total_amount:
               type: number
               format: float
+              description: Requerido si calc_mode=total
               example: 4500.0
             down_payment:
               type: number
               format: float
               default: 0
               example: 900.0
-            installments:
-              type: integer
-              example: 12
             start_date:
               type: string
               format: date
               example: "2026-04-15"
+            end_date:
+              type: string
+              format: date
+              example: "2027-04-15"
             notes:
               type: string
     responses:
@@ -691,15 +718,50 @@ def create_payment_plan():
     """
     current = get_current_user()
     data = request.get_json()
-    required = ["patient_id", "treatment_plan_id", "name", "total_amount", "installments"]
+    required = ["patient_id", "treatment_plan_id", "name", "num_citas", "calc_mode"]
     for field in required:
         if data.get(field) is None:
             return jsonify({"error": f"Campo requerido: {field}"}), 400
 
-    installments = int(data["installments"])
-    total = float(data["total_amount"])
+    calc_mode = data["calc_mode"]
+    if calc_mode not in ("per_cita", "total"):
+        return jsonify({"error": "calc_mode debe ser 'per_cita' o 'total'"}), 400
+
+    num_citas = int(data["num_citas"])
+    if num_citas < 1:
+        return jsonify({"error": "La cantidad de citas debe ser al menos 1"}), 400
     down = float(data.get("down_payment", 0))
-    installment_amount = round((total - down) / installments, 2)
+
+    if calc_mode == "per_cita":
+        if data.get("cost_per_cita") is None:
+            return jsonify({"error": "Campo requerido: cost_per_cita"}), 400
+        cost_per_cita = float(data["cost_per_cita"])
+        total = round(down + num_citas * cost_per_cita, 2)
+    else:
+        if data.get("total_amount") is None:
+            return jsonify({"error": "Campo requerido: total_amount"}), 400
+        total = float(data["total_amount"])
+        cost_per_cita = round((total - down) / num_citas, 2)
+
+    if cost_per_cita <= 0:
+        return jsonify({"error": "El costo por cita debe ser positivo"}), 400
+    if total <= 0:
+        return jsonify({"error": "El monto total debe ser positivo"}), 400
+
+    start_date_val = None
+    end_date_val = None
+    if data.get("start_date"):
+        try:
+            start_date_val = date.fromisoformat(data["start_date"])
+        except ValueError:
+            return jsonify({"error": "Formato de fecha inválido"}), 400
+    if data.get("end_date"):
+        try:
+            end_date_val = date.fromisoformat(data["end_date"])
+        except ValueError:
+            return jsonify({"error": "Formato de fecha inválido"}), 400
+    if start_date_val and end_date_val and end_date_val < start_date_val:
+        return jsonify({"error": "La fecha de fin no puede ser anterior a la fecha de inicio"}), 400
 
     plan = PaymentPlan(
         clinic_id=current.clinic_id,
@@ -709,30 +771,21 @@ def create_payment_plan():
         name=data["name"],
         total_amount=total,
         down_payment=down,
-        installments=installments,
-        installment_amount=installment_amount,
-        total_paid=down,
+        installments=num_citas,
+        installment_amount=cost_per_cita,
+        total_paid=0,
+        start_date=start_date_val,
+        end_date=end_date_val,
         notes=data.get("notes"),
     )
 
-    if data.get("start_date"):
-        try:
-            plan.start_date = date.fromisoformat(data["start_date"])
-        except ValueError:
-            return jsonify({"error": "Formato de fecha inválido"}), 400
-
+    # A new plan is created "enabled" with nothing collected yet — total_paid starts at 0
+    # and the balance includes the down_payment. The enganche is registered afterwards
+    # like any other payment (POST /payment-plans/<id>/installment), not auto-marked as
+    # paid here. The paid_installments/partial_progress_amount derivation subtracts
+    # down_payment from total_paid, so the first `down` collected is attributed to the
+    # enganche and only money beyond that advances the citas.
     db.session.add(plan)
-    db.session.flush()  # get plan.id
-
-    if down > 0:
-        db.session.add(PaymentPlanInstallment(
-            clinic_id=current.clinic_id,
-            payment_plan_id=plan.id,
-            received_by_id=current.id,
-            amount=down,
-            notes="Pago inicial / enganche",
-        ))
-
     db.session.commit()
 
     return jsonify({"payment_plan": plan.to_dict(), "message": "Plan de pago creado"}), 201
@@ -750,9 +803,12 @@ def update_payment_plan(plan_id):
       - BearerAuth: []
     description: >
       Solo se pueden editar planes en estado `active`. El paciente y el plan de tratamiento
-      asociado no se pueden cambiar. Si se envía `total_amount`, `down_payment` o
-      `installments`, recalcula `installment_amount`; no afecta `total_paid`/`paid_installments`
-      ya registrados.
+      asociado no se pueden cambiar. `total_amount`, `down_payment`, `cost_per_cita` y
+      `calc_mode` solo se pueden modificar mientras `paid_installments == 0` (ningún pago de
+      cita registrado todavía) — una vez que hay pagos, el costo por cita queda fijo.
+      `num_citas` sí se puede aumentar en cualquier momento (nunca reducir por debajo de las
+      citas ya pagadas); si cambia solo la cantidad de citas, `total_amount` se recalcula
+      manteniendo fijo el costo por cita.
     parameters:
       - in: path
         name: plan_id
@@ -766,15 +822,24 @@ def update_payment_plan(plan_id):
           properties:
             name:
               type: string
+            calc_mode:
+              type: string
+              enum: [per_cita, total]
+            num_citas:
+              type: integer
+            cost_per_cita:
+              type: number
+              format: float
             total_amount:
               type: number
               format: float
             down_payment:
               type: number
               format: float
-            installments:
-              type: integer
             start_date:
+              type: string
+              format: date
+            end_date:
               type: string
               format: date
             notes:
@@ -790,7 +855,7 @@ def update_payment_plan(plan_id):
             message:
               type: string
       400:
-        description: Plan no activo, cuotas inválidas o fecha inválida
+        description: Plan no activo, cuotas inválidas, fecha inválida, o intento de modificar el costo por cita de un plan con pagos registrados
         schema:
           $ref: '#/definitions/Error'
       401:
@@ -823,17 +888,51 @@ def update_payment_plan(plan_id):
                 return jsonify({"error": "Formato de fecha inválido"}), 400
         else:
             plan.start_date = None
+    if "end_date" in data:
+        if data["end_date"]:
+            try:
+                plan.end_date = date.fromisoformat(data["end_date"])
+            except ValueError:
+                return jsonify({"error": "Formato de fecha inválido"}), 400
+        else:
+            plan.end_date = None
+    if plan.start_date and plan.end_date and plan.end_date < plan.start_date:
+        return jsonify({"error": "La fecha de fin no puede ser anterior a la fecha de inicio"}), 400
 
-    if any(f in data for f in ("total_amount", "down_payment", "installments")):
-        total = float(data.get("total_amount", plan.total_amount))
+    cost_field_names = ("total_amount", "down_payment", "cost_per_cita", "calc_mode")
+    cost_fields_present = any(f in data for f in cost_field_names)
+    num_citas_present = "num_citas" in data or "installments" in data
+
+    # Use total_paid > down_payment (not paid_installments > 0) as the "has this plan
+    # collected any cita money yet" check — a partial payment can leave paid_installments
+    # at 0 (no cita fully covered yet) while still having collected real money.
+    if cost_fields_present and float(plan.total_paid) > float(plan.down_payment):
+        return jsonify({"error": "No se puede modificar el costo por cita de un plan con pagos registrados"}), 400
+
+    if num_citas_present:
+        new_installments = int(data.get("num_citas", data.get("installments")))
+        if new_installments < 1:
+            return jsonify({"error": "La cantidad de citas debe ser al menos 1"}), 400
+        if new_installments < plan.paid_installments:
+            return jsonify({"error": "No se puede reducir la cantidad de citas por debajo de las ya pagadas"}), 400
+        plan.installments = new_installments
+
+    if cost_fields_present:
+        # Only reachable when total_paid == down_payment, i.e. no cita money collected yet (checked above).
         down = float(data.get("down_payment", plan.down_payment))
-        installments = int(data.get("installments", plan.installments))
-        if installments < 1:
-            return jsonify({"error": "Las cuotas deben ser al menos 1"}), 400
+        calc_mode = data.get("calc_mode")
+        if calc_mode == "per_cita" or (calc_mode is None and "cost_per_cita" in data and "total_amount" not in data):
+            cost_per_cita = float(data.get("cost_per_cita", plan.installment_amount))
+            total = round(down + plan.installments * cost_per_cita, 2)
+        else:
+            total = float(data.get("total_amount", plan.total_amount))
+            cost_per_cita = round((total - down) / plan.installments, 2)
         plan.total_amount = total
         plan.down_payment = down
-        plan.installments = installments
-        plan.installment_amount = round((total - down) / installments, 2)
+        plan.installment_amount = cost_per_cita
+    elif num_citas_present:
+        # Citas count changed but cost per cita stays fixed — total scales accordingly.
+        plan.total_amount = round(float(plan.down_payment) + plan.installments * float(plan.installment_amount), 2)
 
     db.session.commit()
     return jsonify({"payment_plan": plan.to_dict(), "message": "Plan de pago actualizado"}), 200
@@ -850,10 +949,12 @@ def register_installment(plan_id):
     security:
       - BearerAuth: []
     description: >
-      El paciente puede pagar el monto que desee (no tiene que ser exactamente
-      `installment_amount`). Incrementa `paid_installments` y suma el monto a `total_paid`.
-      Cuando `total_paid` alcanza `total_amount`, el plan pasa a estado `completed`,
-      sin importar cuántos pagos se hayan registrado.
+      Registra un pago contra el plan — completo (`count`, N citas al costo fijo por cita) o
+      parcial (`amount`, monto libre menor a una cuota). El costo por cita nunca se recalcula;
+      `paid_installments` es un valor derivado (citas completamente cubiertas por `total_paid`,
+      `floor((total_paid - down_payment) / installment_amount)`), no un contador independiente —
+      un pago parcial puede dejarlo sin cambios si no alcanza a completar la próxima cita. El
+      plan pasa a `completed` cuando `balance` llega a 0.
     parameters:
       - in: path
         name: plan_id
@@ -865,15 +966,18 @@ def register_installment(plan_id):
         schema:
           type: object
           properties:
+            count:
+              type: integer
+              description: "Pago completo: cantidad de citas a pagar de una vez (amount = count * installment_amount). No puede exceder el saldo pendiente."
             amount:
               type: number
               format: float
-              description: Por defecto, el valor de `installment_amount` del plan. Debe ser positivo y no exceder el saldo pendiente.
+              description: "Pago parcial: monto libre, puede ser menor a una cuota. Debe ser positivo y no exceder el saldo pendiente."
             notes:
               type: string
     responses:
       200:
-        description: Cuota registrada
+        description: Pago registrado
         schema:
           type: object
           properties:
@@ -882,7 +986,7 @@ def register_installment(plan_id):
             message:
               type: string
       400:
-        description: El plan ya está completamente pagado, o el monto es inválido/excede el saldo
+        description: El plan ya está completamente pagado, o el monto/cantidad de citas es inválido
         schema:
           $ref: '#/definitions/Error'
       401:
@@ -899,20 +1003,40 @@ def register_installment(plan_id):
           $ref: '#/definitions/Error'
     """
     current = get_current_user()
-    plan = PaymentPlan.query.get_or_404(plan_id)
+    # Row lock: without it, two concurrent payments against the same plan (two staff
+    # members, or a retried request) can both read the same pre-payment balance and
+    # both pass validation, over-crediting total_paid beyond total_amount — same class
+    # of race add_payment() already guards against for invoices.
+    plan = PaymentPlan.query.filter_by(id=plan_id).with_for_update().first()
+    if not plan:
+        return jsonify({"error": "Plan de pago no encontrado"}), 404
     data = request.get_json() or {}
 
     if plan.balance <= 0:
         return jsonify({"error": "El plan ya está completamente pagado"}), 400
 
-    amount = float(data.get("amount", plan.installment_amount))
-    if amount <= 0:
-        return jsonify({"error": "El monto debe ser positivo"}), 400
+    if "count" in data:
+        count = int(data["count"])
+        if count < 1:
+            return jsonify({"error": "La cantidad de citas a pagar debe ser al menos 1"}), 400
+        amount = round(count * float(plan.installment_amount), 2)
+        if amount <= 0:
+            return jsonify({"error": "El monto debe ser positivo"}), 400
+    else:
+        amount = float(data.get("amount", plan.installment_amount))
+        if amount <= 0:
+            return jsonify({"error": "El monto debe ser positivo"}), 400
+
     if amount > float(plan.balance):
         return jsonify({"error": f"El monto excede el saldo pendiente ({plan.balance})"}), 400
 
-    plan.paid_installments += 1
     plan.total_paid = float(plan.total_paid) + amount
+
+    # paid_installments is derived from the ledger (total_paid), not incremented directly —
+    # a partial payment can leave it unchanged if it doesn't fully cover the next cita.
+    if plan.installment_amount:
+        progress = float(plan.total_paid) - float(plan.down_payment)
+        plan.paid_installments = min(plan.installments, max(0, int((progress + 1e-6) // float(plan.installment_amount))))
 
     db.session.add(PaymentPlanInstallment(
         clinic_id=plan.clinic_id,
@@ -920,13 +1044,21 @@ def register_installment(plan_id):
         received_by_id=current.id,
         amount=amount,
         notes=data.get("notes"),
+        # Freeze the plan state as of this payment for the printed receipt (comprobante).
+        total_paid_after=round(float(plan.total_paid), 2),
+        balance_after=round(float(plan.balance), 2),
     ))
 
+    # balance<=0 is the ONLY completion criterion (not also paid_installments>=installments)
+    # — in calc_mode='total', cost_per_cita is a rounded derivative of total_amount, so
+    # installments*cost_per_cita can round below total_amount (e.g. 1000/3 -> 333.33*3 =
+    # 999.99). Completing on paid_installments reaching installments would silently write
+    # off that rounding remainder as "paid" while balance is still positive.
     if plan.balance <= 0:
         plan.status = PaymentPlanStatus.COMPLETED
 
     db.session.commit()
-    return jsonify({"payment_plan": plan.to_dict(), "message": "Cuota registrada"}), 200
+    return jsonify({"payment_plan": plan.to_dict(), "message": "Pago registrado"}), 200
 
 
 @billing_bp.route("/payment-plans/<int:plan_id>/installments", methods=["GET"])
@@ -1041,7 +1173,7 @@ def billing_summary():
         Invoice.status != InvoiceStatus.CANCELLED
     ).scalar() or 0
     pending = db.session.query(func.sum(Invoice.balance)).filter(
-        Invoice.status == InvoiceStatus.PENDING
+        Invoice.status.in_([InvoiceStatus.PENDING, InvoiceStatus.PARTIAL])
     ).scalar() or 0
 
     return jsonify({
@@ -1049,3 +1181,600 @@ def billing_summary():
         "total_collected": float(total_collected),
         "pending_balance": float(pending),
     }), 200
+
+
+# ─── PRESUPUESTOS ──────────────────────────────────────────────────────────────
+
+@billing_bp.route("/budgets", methods=["GET"])
+@clinical_access_required
+def list_budgets():
+    """
+    Listar presupuestos
+    ---
+    tags:
+      - Facturación
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: query
+        name: patient_id
+        type: integer
+      - in: query
+        name: status
+        type: string
+        enum: [draft, accepted, rejected]
+    responses:
+      200:
+        description: Lista de presupuestos (más recientes primero)
+        schema:
+          type: object
+          properties:
+            budgets:
+              type: array
+              items:
+                $ref: '#/definitions/Budget'
+            total:
+              type: integer
+      401:
+        description: Token requerido o inválido
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Acceso denegado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    patient_id = request.args.get("patient_id", type=int)
+    status = request.args.get("status")
+
+    query = Budget.query
+    if patient_id:
+        query = query.filter_by(patient_id=patient_id)
+    if status:
+        query = query.filter_by(status=status)
+
+    budgets = query.order_by(Budget.created_at.desc()).all()
+    return jsonify({"budgets": [b.to_dict() for b in budgets], "total": len(budgets)}), 200
+
+
+@billing_bp.route("/budgets/<int:budget_id>", methods=["GET"])
+@clinical_access_required
+def get_budget(budget_id):
+    """
+    Obtener presupuesto por ID
+    ---
+    tags:
+      - Facturación
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: budget_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Datos del presupuesto
+        schema:
+          type: object
+          properties:
+            budget:
+              $ref: '#/definitions/Budget'
+      401:
+        description: Token requerido o inválido
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Acceso denegado
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Presupuesto no encontrado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    budget = Budget.query.get_or_404(budget_id, description="Presupuesto no encontrado")
+    return jsonify({"budget": budget.to_dict()}), 200
+
+
+@billing_bp.route("/budgets", methods=["POST"])
+@clinical_access_required
+def create_budget():
+    """
+    Crear presupuesto
+    ---
+    tags:
+      - Facturación
+    security:
+      - BearerAuth: []
+    description: >
+      El plan de tratamiento suele no existir todavía (treatment_plan_id es opcional) —
+      normalmente se elige/crea recién al convertir un presupuesto Aceptado en un plan de
+      pago. `items` es una lista opcional, puramente descriptiva de lo observado/propuesto;
+      no condiciona `total_amount`, que se calcula igual que en un plan de pago según
+      `calc_mode` (`per_cita`: se envía `cost_per_cita` y se deriva `total_amount`; `total`:
+      se envía `total_amount` y se deriva `cost_per_cita`).
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [patient_id, name, num_citas, calc_mode]
+          properties:
+            patient_id:
+              type: integer
+            treatment_plan_id:
+              type: integer
+              description: Opcional — normalmente no existe todavía
+            name:
+              type: string
+              example: Presupuesto - Revisión general
+            calc_mode:
+              type: string
+              enum: [per_cita, total]
+            num_citas:
+              type: integer
+            cost_per_cita:
+              type: number
+              format: float
+              description: Requerido si calc_mode=per_cita
+            total_amount:
+              type: number
+              format: float
+              description: Requerido si calc_mode=total
+            down_payment:
+              type: number
+              format: float
+              default: 0
+            start_date:
+              type: string
+              format: date
+            end_date:
+              type: string
+              format: date
+            notes:
+              type: string
+            items:
+              type: array
+              items:
+                type: object
+                required: [description, unit_price]
+                properties:
+                  description:
+                    type: string
+                  quantity:
+                    type: integer
+                    default: 1
+                  unit_price:
+                    type: number
+                    format: float
+    responses:
+      201:
+        description: Presupuesto creado
+        schema:
+          type: object
+          properties:
+            budget:
+              $ref: '#/definitions/Budget'
+            message:
+              type: string
+      400:
+        description: Campo requerido faltante, fecha inválida o ítem inválido
+        schema:
+          $ref: '#/definitions/Error'
+      401:
+        description: Token requerido o inválido
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Acceso denegado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    current = get_current_user()
+    data = request.get_json()
+    required = ["patient_id", "name", "num_citas", "calc_mode"]
+    for field in required:
+        if data.get(field) is None:
+            return jsonify({"error": f"Campo requerido: {field}"}), 400
+
+    calc_mode = data["calc_mode"]
+    if calc_mode not in ("per_cita", "total"):
+        return jsonify({"error": "calc_mode debe ser 'per_cita' o 'total'"}), 400
+
+    num_citas = int(data["num_citas"])
+    if num_citas < 1:
+        return jsonify({"error": "La cantidad de citas debe ser al menos 1"}), 400
+    down = float(data.get("down_payment", 0))
+
+    if calc_mode == "per_cita":
+        if data.get("cost_per_cita") is None:
+            return jsonify({"error": "Campo requerido: cost_per_cita"}), 400
+        cost_per_cita = float(data["cost_per_cita"])
+        total = round(down + num_citas * cost_per_cita, 2)
+    else:
+        if data.get("total_amount") is None:
+            return jsonify({"error": "Campo requerido: total_amount"}), 400
+        total = float(data["total_amount"])
+        cost_per_cita = round((total - down) / num_citas, 2)
+
+    start_date_val = None
+    end_date_val = None
+    if data.get("start_date"):
+        try:
+            start_date_val = date.fromisoformat(data["start_date"])
+        except ValueError:
+            return jsonify({"error": "Formato de fecha inválido"}), 400
+    if data.get("end_date"):
+        try:
+            end_date_val = date.fromisoformat(data["end_date"])
+        except ValueError:
+            return jsonify({"error": "Formato de fecha inválido"}), 400
+    if start_date_val and end_date_val and end_date_val < start_date_val:
+        return jsonify({"error": "La fecha de fin no puede ser anterior a la fecha de inicio"}), 400
+
+    items_data = data.get("items") or []
+    for item_data in items_data:
+        if not item_data.get("description") or item_data.get("unit_price") is None:
+            return jsonify({"error": "Cada ítem requiere descripción y precio unitario"}), 400
+
+    budget = Budget(
+        clinic_id=current.clinic_id,
+        patient_id=data["patient_id"],
+        treatment_plan_id=data.get("treatment_plan_id"),
+        created_by_id=current.id,
+        name=data["name"],
+        total_amount=total,
+        down_payment=down,
+        num_citas=num_citas,
+        cost_per_cita=cost_per_cita,
+        start_date=start_date_val,
+        end_date=end_date_val,
+        notes=data.get("notes"),
+    )
+    db.session.add(budget)
+    db.session.flush()  # get budget.id
+
+    for item_data in items_data:
+        qty = item_data.get("quantity", 1)
+        unit_price = float(item_data["unit_price"])
+        db.session.add(BudgetItem(
+            clinic_id=current.clinic_id,
+            budget_id=budget.id,
+            description=item_data["description"],
+            quantity=qty,
+            unit_price=unit_price,
+            total=qty * unit_price,
+        ))
+
+    db.session.commit()
+    return jsonify({"budget": budget.to_dict(), "message": "Presupuesto creado"}), 201
+
+
+@billing_bp.route("/budgets/<int:budget_id>", methods=["PUT"])
+@clinical_access_required
+def update_budget(budget_id):
+    """
+    Actualizar presupuesto
+    ---
+    tags:
+      - Facturación
+    security:
+      - BearerAuth: []
+    description: >
+      Solo se pueden editar presupuestos en estado `draft` — una vez Aceptado o Rechazado
+      queda de solo lectura. Si se envían `items`, reemplaza la lista completa.
+    parameters:
+      - in: path
+        name: budget_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            treatment_plan_id:
+              type: integer
+            calc_mode:
+              type: string
+              enum: [per_cita, total]
+            num_citas:
+              type: integer
+            cost_per_cita:
+              type: number
+              format: float
+            total_amount:
+              type: number
+              format: float
+            down_payment:
+              type: number
+              format: float
+            start_date:
+              type: string
+              format: date
+            end_date:
+              type: string
+              format: date
+            notes:
+              type: string
+            items:
+              type: array
+              items:
+                type: object
+    responses:
+      200:
+        description: Presupuesto actualizado
+        schema:
+          type: object
+          properties:
+            budget:
+              $ref: '#/definitions/Budget'
+            message:
+              type: string
+      400:
+        description: Presupuesto no editable (no está en borrador), cuotas inválidas o fecha inválida
+        schema:
+          $ref: '#/definitions/Error'
+      401:
+        description: Token requerido o inválido
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Acceso denegado
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Presupuesto no encontrado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    budget = Budget.query.get_or_404(budget_id, description="Presupuesto no encontrado")
+    if budget.status != BudgetStatus.DRAFT:
+        return jsonify({"error": "Solo se pueden editar presupuestos en borrador"}), 400
+
+    data = request.get_json() or {}
+    if "name" in data:
+        budget.name = data["name"]
+    if "treatment_plan_id" in data:
+        budget.treatment_plan_id = data["treatment_plan_id"]
+    if "notes" in data:
+        budget.notes = data["notes"]
+    if "start_date" in data:
+        if data["start_date"]:
+            try:
+                budget.start_date = date.fromisoformat(data["start_date"])
+            except ValueError:
+                return jsonify({"error": "Formato de fecha inválido"}), 400
+        else:
+            budget.start_date = None
+    if "end_date" in data:
+        if data["end_date"]:
+            try:
+                budget.end_date = date.fromisoformat(data["end_date"])
+            except ValueError:
+                return jsonify({"error": "Formato de fecha inválido"}), 400
+        else:
+            budget.end_date = None
+    if budget.start_date and budget.end_date and budget.end_date < budget.start_date:
+        return jsonify({"error": "La fecha de fin no puede ser anterior a la fecha de inicio"}), 400
+
+    if any(f in data for f in ("total_amount", "down_payment", "cost_per_cita", "calc_mode", "num_citas")):
+        num_citas = int(data.get("num_citas", budget.num_citas))
+        if num_citas < 1:
+            return jsonify({"error": "La cantidad de citas debe ser al menos 1"}), 400
+        down = float(data.get("down_payment", budget.down_payment))
+        calc_mode = data.get("calc_mode")
+        if calc_mode == "per_cita" or (calc_mode is None and "cost_per_cita" in data and "total_amount" not in data):
+            cost_per_cita = float(data.get("cost_per_cita", budget.cost_per_cita))
+            total = round(down + num_citas * cost_per_cita, 2)
+        else:
+            total = float(data.get("total_amount", budget.total_amount))
+            cost_per_cita = round((total - down) / num_citas, 2)
+        budget.num_citas = num_citas
+        budget.down_payment = down
+        budget.total_amount = total
+        budget.cost_per_cita = cost_per_cita
+
+    if "items" in data:
+        items_data = data["items"] or []
+        for item_data in items_data:
+            if not item_data.get("description") or item_data.get("unit_price") is None:
+                return jsonify({"error": "Cada ítem requiere descripción y precio unitario"}), 400
+        budget.items.clear()
+        db.session.flush()
+        for item_data in items_data:
+            qty = item_data.get("quantity", 1)
+            unit_price = float(item_data["unit_price"])
+            budget.items.append(BudgetItem(
+                clinic_id=budget.clinic_id,
+                description=item_data["description"],
+                quantity=qty,
+                unit_price=unit_price,
+                total=qty * unit_price,
+            ))
+
+    db.session.commit()
+    return jsonify({"budget": budget.to_dict(), "message": "Presupuesto actualizado"}), 200
+
+
+@billing_bp.route("/budgets/<int:budget_id>/accept", methods=["POST"])
+@clinical_access_required
+def accept_budget(budget_id):
+    """
+    Aceptar presupuesto
+    ---
+    tags:
+      - Facturación
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: budget_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Presupuesto aceptado
+        schema:
+          type: object
+          properties:
+            budget:
+              $ref: '#/definitions/Budget'
+            message:
+              type: string
+      400:
+        description: El presupuesto no está en borrador
+        schema:
+          $ref: '#/definitions/Error'
+      401:
+        description: Token requerido o inválido
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Acceso denegado
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Presupuesto no encontrado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    budget = Budget.query.get_or_404(budget_id, description="Presupuesto no encontrado")
+    if budget.status != BudgetStatus.DRAFT:
+        return jsonify({"error": "Solo se pueden aceptar presupuestos en borrador"}), 400
+    budget.status = BudgetStatus.ACCEPTED
+    db.session.commit()
+    return jsonify({"budget": budget.to_dict(), "message": "Presupuesto aceptado"}), 200
+
+
+@billing_bp.route("/budgets/<int:budget_id>/reject", methods=["POST"])
+@clinical_access_required
+def reject_budget(budget_id):
+    """
+    Rechazar presupuesto
+    ---
+    tags:
+      - Facturación
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: budget_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Presupuesto rechazado
+        schema:
+          type: object
+          properties:
+            budget:
+              $ref: '#/definitions/Budget'
+            message:
+              type: string
+      400:
+        description: El presupuesto no está en borrador
+        schema:
+          $ref: '#/definitions/Error'
+      401:
+        description: Token requerido o inválido
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Acceso denegado
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Presupuesto no encontrado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    budget = Budget.query.get_or_404(budget_id, description="Presupuesto no encontrado")
+    if budget.status != BudgetStatus.DRAFT:
+        return jsonify({"error": "Solo se pueden rechazar presupuestos en borrador"}), 400
+    budget.status = BudgetStatus.REJECTED
+    db.session.commit()
+    return jsonify({"budget": budget.to_dict(), "message": "Presupuesto rechazado"}), 200
+
+
+@billing_bp.route("/budgets/<int:budget_id>/link-plan", methods=["POST"])
+@clinical_access_required
+def link_budget_plan(budget_id):
+    """
+    Vincular presupuesto aceptado a un plan de pago generado
+    ---
+    tags:
+      - Facturación
+    security:
+      - BearerAuth: []
+    description: >
+      Se llama después de crear el PaymentPlan precargado con las condiciones del
+      presupuesto. Copia `treatment_plan_id` desde el plan de pago recién creado
+      (nunca se confía en un valor enviado por el cliente para ese campo).
+    parameters:
+      - in: path
+        name: budget_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [payment_plan_id]
+          properties:
+            payment_plan_id:
+              type: integer
+    responses:
+      200:
+        description: Presupuesto vinculado al plan de pago
+        schema:
+          type: object
+          properties:
+            budget:
+              $ref: '#/definitions/Budget'
+            message:
+              type: string
+      400:
+        description: El presupuesto no está aceptado, ya fue convertido, el plan no existe, pertenece a otro paciente o ya está vinculado a otro presupuesto
+        schema:
+          $ref: '#/definitions/Error'
+      401:
+        description: Token requerido o inválido
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Acceso denegado
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Presupuesto no encontrado
+        schema:
+          $ref: '#/definitions/Error'
+    """
+    budget = Budget.query.get_or_404(budget_id, description="Presupuesto no encontrado")
+    if budget.status != BudgetStatus.ACCEPTED:
+        return jsonify({"error": "Solo se puede vincular un plan a un presupuesto aceptado"}), 400
+    if budget.converted_plan_id is not None:
+        return jsonify({"error": "Este presupuesto ya fue convertido a un plan de pago"}), 400
+
+    data = request.get_json() or {}
+    plan_id = data.get("payment_plan_id")
+    if not plan_id:
+        return jsonify({"error": "Campo requerido: payment_plan_id"}), 400
+
+    plan = PaymentPlan.query.get_or_404(plan_id, description="Plan de pago no encontrado")
+    if plan.patient_id != budget.patient_id:
+        return jsonify({"error": "El plan de pago no corresponde al mismo paciente del presupuesto"}), 400
+    if Budget.query.filter(Budget.converted_plan_id == plan.id, Budget.id != budget.id).first():
+        return jsonify({"error": "Este plan de pago ya está vinculado a otro presupuesto"}), 400
+
+    budget.converted_plan_id = plan.id
+    budget.treatment_plan_id = plan.treatment_plan_id
+    db.session.commit()
+    return jsonify({"budget": budget.to_dict(), "message": "Presupuesto vinculado al plan de pago"}), 200

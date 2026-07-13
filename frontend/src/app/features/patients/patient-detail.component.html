@@ -113,7 +113,7 @@
                     <td>
                       @if (a.treatment_plan_id) {
                         <button type="button" class="plan-link-btn" (click)="openPlanDetail(a.treatment_plan_id)">
-                          {{ a.treatment_plan_name }}{{ a.session_number ? ' (sesión ' + a.session_number + ')' : '' }}
+                          {{ a.treatment_plan_name }}{{ a.session_number ? ' (atención ' + a.session_number + ')' : '' }}
                         </button>
                       } @else {
                         <span class="text-muted">—</span>
@@ -142,7 +142,7 @@
                         </button>
                         @if (a.status === 'completed') {
                           @if (a.has_invoice) {
-                            <span class="pill green" title="Esta cita ya fue facturada">Facturada</span>
+                            <span class="pill green" title="Esta cita ya fue cobrada">Cobrada</span>
                           } @else {
                             <a [routerLink]="['/billing/invoices/new']"
                               [queryParams]="{ patient_id: patient()!.id, appointment_id: a.id }"
@@ -253,12 +253,159 @@
                     <div class="progress-bar">
                       <div class="progress-fill" [style.width]="plan.progress_percentage + '%'"></div>
                     </div>
-                    <span class="progress-text">{{ plan.completed_sessions }}/{{ plan.total_sessions || '?' }} sesiones · {{ plan.progress_percentage }}%</span>
+                    <span class="progress-text">{{ plan.completed_sessions }}/{{ plan.total_sessions || '?' }} atenciones · {{ plan.progress_percentage }}%</span>
                   </div>
                   @if (plan.notes) { <p class="plan-notes">{{ plan.notes }}</p> }
                 </div>
               }
             </div>
+          }
+        }
+
+        <!-- Billing tab (Pagos y Presupuestos) -->
+        @if (activeTab() === 'billing') {
+          <div class="billing-subtabs">
+            <button class="subtab" [class.active]="billingSubView() === 'invoices'" (click)="billingSubView.set('invoices')">
+              Comprobantes <span class="tab-badge">{{ invoices().length }}</span>
+            </button>
+            <button class="subtab" [class.active]="billingSubView() === 'plans'" (click)="billingSubView.set('plans')">
+              Planes de Pago <span class="tab-badge">{{ paymentPlans().length }}</span>
+            </button>
+            <button class="subtab" [class.active]="billingSubView() === 'budgets'" (click)="billingSubView.set('budgets')">
+              Presupuestos <span class="tab-badge">{{ budgets().length }}</span>
+            </button>
+          </div>
+
+          @if (billingSubView() === 'invoices') {
+            <div class="tab-section-header">
+              <span class="tab-section-title">{{ invoices().length }} comprobante(s)</span>
+              <a [routerLink]="['/billing/invoices/new']" [queryParams]="{ patient_id: patient()!.id }" class="btn btn-primary btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Nuevo Comprobante
+              </a>
+            </div>
+            @if (loadingInvoices()) {
+              <div class="loading-center"><div class="spinner-lg"></div></div>
+            } @else if (invoices().length === 0) {
+              <div class="empty-tab">Sin comprobantes registrados</div>
+            } @else {
+              <div class="table-wrapper">
+              <table class="table">
+                <thead>
+                  <tr><th>N° Comprobante</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th>Fecha</th><th class="col-actions">Acciones</th></tr>
+                </thead>
+                <tbody>
+                  @for (inv of invoices(); track inv.id) {
+                    <tr>
+                      <td><strong class="inv-num">{{ inv.invoice_number }}</strong></td>
+                      <td class="money">Bs {{ formatMoney(inv.total) }}</td>
+                      <td class="money green-text">Bs {{ formatMoney(inv.amount_paid) }}</td>
+                      <td class="money" [class.red-text]="inv.balance > 0">Bs {{ formatMoney(inv.balance) }}</td>
+                      <td><span class="status-badge" [class]="'inv-' + inv.status">{{ invStatusLabel(inv.status) }}</span></td>
+                      <td class="text-muted">{{ formatDate(inv.created_at) }}</td>
+                      <td class="col-actions">
+                        <a [routerLink]="['/billing/invoices', inv.id]" class="icon-btn" title="Ver comprobante">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                          </svg>
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+              </div>
+            }
+          }
+
+          @if (billingSubView() === 'plans') {
+            <div class="tab-section-header">
+              <span class="tab-section-title">{{ paymentPlans().length }} plan(es) de pago</span>
+              <a [routerLink]="['/billing/payment-plans/new']" [queryParams]="{ patient_id: patient()!.id }" class="btn btn-primary btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Nuevo Plan de Pago
+              </a>
+            </div>
+            @if (loadingPaymentPlans()) {
+              <div class="loading-center"><div class="spinner-lg"></div></div>
+            } @else if (paymentPlans().length === 0) {
+              <div class="empty-tab">Sin planes de pago registrados</div>
+            } @else {
+              <div class="plans-grid">
+                @for (plan of paymentPlans(); track plan.id) {
+                  <div class="plan-card">
+                    <div class="plan-top">
+                      <div>
+                        <span class="plan-name">{{ plan.name }}</span>
+                        @if (plan.treatment_plan_name) { <span class="plan-sub">{{ plan.treatment_plan_name }}</span> }
+                      </div>
+                      <span class="plan-status" [class]="'pstatus-' + plan.status">{{ paymentPlanStatusLabel(plan.status) }}</span>
+                    </div>
+                    <div class="amounts-row">
+                      <div class="amount-item"><span class="a-label">Total</span><span class="a-val">Bs {{ formatMoney(plan.total_amount) }}</span></div>
+                      <div class="amount-item"><span class="a-label">Pagado</span><span class="a-val green-text">Bs {{ formatMoney(plan.total_paid) }}</span></div>
+                      <div class="amount-item"><span class="a-label">Saldo</span><span class="a-val" [class.red-text]="plan.balance > 0">Bs {{ formatMoney(plan.balance) }}</span></div>
+                    </div>
+                    <div class="progress-row">
+                      <div class="progress-bar"><div class="progress-fill" [style.width]="plan.progress_percentage + '%'"></div></div>
+                      <span class="prog-txt">{{ plan.paid_installments }}/{{ plan.installments }} citas · {{ plan.progress_percentage }}%</span>
+                    </div>
+                    <div class="plan-actions">
+                      <a [routerLink]="['/billing/payment-plans', plan.id]" class="plan-action-link">Ver</a>
+                      @if (plan.status === 'active') {
+                        <a [routerLink]="['/billing/payment-plans', plan.id, 'edit']" class="plan-action-link">Editar</a>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+          @if (billingSubView() === 'budgets') {
+            <div class="tab-section-header">
+              <span class="tab-section-title">{{ budgets().length }} presupuesto(s)</span>
+              <a [routerLink]="['/billing/budgets/new']" [queryParams]="{ patient_id: patient()!.id }" class="btn btn-primary btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Nuevo Presupuesto
+              </a>
+            </div>
+            @if (loadingBudgets()) {
+              <div class="loading-center"><div class="spinner-lg"></div></div>
+            } @else if (budgets().length === 0) {
+              <div class="empty-tab">Sin presupuestos registrados</div>
+            } @else {
+              <div class="plans-grid">
+                @for (b of budgets(); track b.id) {
+                  <div class="plan-card">
+                    <div class="plan-top">
+                      <span class="plan-name">{{ b.name }}</span>
+                      <span class="plan-status" [class]="'bstatus-' + b.status">{{ budgetStatusLabel(b.status) }}</span>
+                    </div>
+                    <div class="amounts-row">
+                      <div class="amount-item"><span class="a-label">Total</span><span class="a-val">Bs {{ formatMoney(b.total_amount) }}</span></div>
+                      <div class="amount-item"><span class="a-label">Citas</span><span class="a-val">{{ b.num_citas }}</span></div>
+                      <div class="amount-item"><span class="a-label">Período</span><span class="a-val">{{ formatDateOnly(b.start_date) }}</span></div>
+                    </div>
+                    <div class="plan-actions">
+                      <a [routerLink]="['/billing/budgets', b.id]" class="plan-action-link">Ver</a>
+                      @if (b.status === 'accepted' && !b.converted_plan_id) {
+                        <a [routerLink]="['/billing/payment-plans/new']" [queryParams]="{ budget_id: b.id }" class="plan-action-link">Crear Plan de Pago</a>
+                      }
+                      @if (b.converted_plan_id) {
+                        <a [routerLink]="['/billing/payment-plans', b.converted_plan_id]" class="plan-action-link">Ver Plan de Pago</a>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           }
         }
 
@@ -329,23 +476,23 @@
               <div class="pd-progress-fill" [style.width]="selectedPlan()!.progress_percentage + '%'"></div>
             </div>
             <div class="pd-progress-stats">
-              <span>{{ selectedPlan()!.completed_sessions }} sesiones completadas</span>
-              <span>{{ selectedPlan()!.total_sessions || '?' }} sesiones planificadas</span>
+              <span>{{ selectedPlan()!.completed_sessions }} atenciones completadas</span>
+              <span>{{ selectedPlan()!.total_sessions || '?' }} atenciones planificadas</span>
             </div>
           </div>
 
-          <!-- Grid: sesiones + info -->
+          <!-- Grid: atenciones + info -->
           <div class="pd-grid">
-            <!-- Sesiones -->
+            <!-- atenciones -->
             <div class="pd-sessions-card">
               <div class="pd-card-header">
-                <h4>Historial de Sesiones</h4>
+                <h4>Historial de atenciones</h4>
                 <button type="button" class="pd-add-session-btn" (click)="openTreatmentFromPlan(selectedPlan()!)">
-                  + Registrar Sesión
+                  + Registrar Atención
                 </button>
               </div>
               @if (!selectedPlan()!.sessions || selectedPlan()!.sessions!.length === 0) {
-                <div class="empty-tab">Sin sesiones registradas aún</div>
+                <div class="empty-tab">Sin atenciones registradas aún</div>
               } @else {
                 <div class="pd-sessions-list">
                   @for (s of selectedPlan()!.sessions!; track s.id; let i = $index) {

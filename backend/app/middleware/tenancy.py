@@ -108,12 +108,12 @@ def _scoped_models():
     from app.models import (
         User, Patient, Appointment, Treatment, TreatmentPlan, TreatmentImage,
         Invoice, InvoiceItem, Payment, PaymentPlan, PaymentPlanInstallment, Consultorio,
-        AppointmentTypeCatalog, RolePermission, SubscriptionPayment,
+        AppointmentTypeCatalog, RolePermission, SubscriptionPayment, Budget, BudgetItem,
     )
     return (
         User, Patient, Appointment, Treatment, TreatmentPlan, TreatmentImage,
         Invoice, InvoiceItem, Payment, PaymentPlan, PaymentPlanInstallment, Consultorio,
-        AppointmentTypeCatalog, RolePermission, SubscriptionPayment,
+        AppointmentTypeCatalog, RolePermission, SubscriptionPayment, Budget, BudgetItem,
     )
 
 

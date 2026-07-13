@@ -14,6 +14,7 @@
         <p class="sub">Paciente: {{ plan()!.patient_name }} · {{ formatDate(plan()!.created_at) }}</p>
       </div>
       <div class="header-actions">
+        <button type="button" class="btn-print-plan" (click)="printPlan()">🖨️ Imprimir</button>
         @if (plan()!.status === 'active') {
           <a [routerLink]="['/billing/payment-plans', plan()!.id, 'edit']" class="btn-edit-plan">Editar</a>
         }
@@ -38,6 +39,12 @@
               <span class="ml">Fecha de Inicio</span>
               <span>{{ formatDateOnly(plan()!.start_date) }}</span>
             </div>
+            @if (plan()!.end_date) {
+              <div class="m-row">
+                <span class="ml">Fecha de Fin</span>
+                <span>{{ formatDateOnly(plan()!.end_date) }}</span>
+              </div>
+            }
             @if (plan()!.notes) {
               <div class="m-row col">
                 <span class="ml">Notas</span>
@@ -56,7 +63,7 @@
               <span class="a-val">Bs {{ formatMoney(plan()!.down_payment) }}</span>
             </div>
             <div class="amount-item">
-              <span class="a-label">Cuota de Referencia</span>
+              <span class="a-label">Costo por Cita</span>
               <span class="a-val">Bs {{ formatMoney(plan()!.installment_amount) }}</span>
             </div>
           </div>
@@ -70,7 +77,33 @@
 
           <div class="progress-section">
             <div class="progress-bar"><div class="progress-fill" [style.width]="plan()!.progress_percentage + '%'"></div></div>
-            <span class="prog-txt">{{ plan()!.paid_installments }}/{{ plan()!.installments }} cuotas registradas · {{ plan()!.progress_percentage }}%</span>
+            <span class="prog-txt">{{ plan()!.paid_installments }}/{{ plan()!.installments }} citas pagadas · {{ plan()!.progress_percentage }}%</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Citas del Plan</h3></div>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr><th>Cita</th><th>Monto</th><th>Estado</th></tr>
+              </thead>
+              <tbody>
+                @for (row of citasRows(); track $index) {
+                  <tr>
+                    <td>{{ row.label }}</td>
+                    <td class="money">Bs {{ formatMoney(row.amount) }}</td>
+                    <td>
+                      <span class="pill" [class.green]="row.status === 'paid'" [class.orange]="row.status === 'partial'" [class.gray]="row.status === 'pending'">
+                        @if (row.status === 'paid') { Pagada }
+                        @else if (row.status === 'partial') { Parcial (Bs {{ formatMoney(row.paidAmount) }} de Bs {{ formatMoney(row.amount) }}) }
+                        @else { Pendiente }
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -84,15 +117,24 @@
             <div class="table-wrapper">
             <table class="table">
               <thead>
-                <tr><th>Fecha</th><th>Monto</th><th>Registrado por</th><th>Notas</th></tr>
+                <tr><th>Fecha</th><th>Monto</th><th>Registrado por</th><th>Notas</th><th>Acciones</th></tr>
               </thead>
               <tbody>
-                @for (item of installments(); track item.id) {
+                @for (item of installments(); track $index) {
                   <tr>
                     <td>{{ formatDate(item.payment_date) }}</td>
                     <td class="money">Bs {{ formatMoney(item.amount) }}</td>
                     <td>{{ item.received_by || '—' }}</td>
                     <td class="text-muted">{{ item.notes || '—' }}</td>
+                    <td>
+                      @if (item.id) {
+                        <button type="button" class="btn-receipt" (click)="printReceipt(item.id)" title="Imprimir comprobante de pago">
+                          🖨️ Comprobante
+                        </button>
+                      } @else {
+                        <span class="text-muted">—</span>
+                      }
+                    </td>
                   </tr>
                 }
               </tbody>
@@ -105,18 +147,44 @@
       <div class="side-col">
         @if (plan()!.balance > 0 && plan()!.status === 'active') {
           <div class="payment-panel">
-            <h4>Registrar Pago de Cuota</h4>
+            <h4>Registrar Pago</h4>
+            <div class="calc-toggle">
+              <button type="button" class="toggle-btn" [class.active]="payType === 'completo'" (click)="payType = 'completo'">
+                Pago Completo
+              </button>
+              <button type="button" class="toggle-btn" [class.active]="payType === 'parcial'" (click)="payType = 'parcial'">
+                Pago Parcial
+              </button>
+            </div>
             <div class="pay-form">
+              @if (payType === 'completo') {
+                <div class="form-group">
+                  <label>Cantidad de Citas a Pagar</label>
+                  <input type="number" min="1" [max]="maxCompleteCitas()" step="1" [(ngModel)]="citasToRegister"/>
+                  <span class="hint">Quedan {{ remainingCitas() }} citas pendientes de {{ plan()!.installments }}. Costo por cita: Bs {{ formatMoney(plan()!.installment_amount) }}.</span>
+                </div>
+                <div class="pay-amount-display">
+                  <span class="pay-amount-label">Monto a pagar</span>
+                  <span class="pay-amount-val">Bs {{ formatMoney(registerPaymentAmount()) }}</span>
+                </div>
+              } @else {
+                <div class="form-group">
+                  <label>Monto a Pagar (Bs)</label>
+                  <input type="number" min="0.01" [max]="plan()!.balance" step="0.01" [(ngModel)]="partialAmount"/>
+                  <span class="hint">Puede ser cualquier monto hasta el saldo pendiente (Bs {{ formatMoney(plan()!.balance) }}), incluso menor a una cuota.</span>
+                </div>
+              }
               <div class="form-group">
-                <label>Monto a Pagar (Bs)</label>
-                <input type="number" min="0.01" [max]="plan()!.balance" step="0.01" [(ngModel)]="payAmount"/>
-                <span class="hint">El paciente puede pagar el monto que desee, hasta el saldo pendiente (Bs {{ formatMoney(plan()!.balance) }}).</span>
+                <label>Notas <span class="optional">(opcional)</span></label>
+                <textarea rows="2" [(ngModel)]="paymentNotes" placeholder="Observaciones del pago, método, referencia..."></textarea>
               </div>
-              <button class="pay-btn" (click)="registerPayment()" [disabled]="paying() || !payAmount || payAmount <= 0">
+              <button class="pay-btn" (click)="registerPayment()"
+                [disabled]="paying() || (payType === 'completo' ? (citasToRegister < 1 || citasToRegister > maxCompleteCitas()) : (partialAmount <= 0 || partialAmount > plan()!.balance))">
                 @if (paying()) { <span class="spinner-sm"></span> }
                 Registrar Pago
               </button>
               @if (payError()) { <p class="pay-error">{{ payError() }}</p> }
+              <p class="advance-note">Adelantar pagos no recalcula el costo por cita.</p>
             </div>
           </div>
         }

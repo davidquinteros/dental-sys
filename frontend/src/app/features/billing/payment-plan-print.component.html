@@ -1,0 +1,74 @@
+<div class="print-page plan-page">
+  @if (loading()) {
+    <p>Cargando...</p>
+  } @else if (error()) {
+    <p class="error-msg">{{ error() }}</p>
+  } @else if (plan() && patient() && clinic()) {
+    <app-print-clinic-header
+      [clinic]="clinic()!"
+      documentTitle="PLAN DE PAGO"
+      [issuedDate]="issuedDate">
+    </app-print-clinic-header>
+
+    <section class="patient-info">
+      <p><strong>Paciente:</strong> {{ patient()!.full_name }}</p>
+      <p><strong>C.I.:</strong> {{ patient()!.document_number }}</p>
+      <p><strong>Plan:</strong> {{ plan()!.name }}</p>
+      <p><strong>Tratamiento:</strong> {{ plan()!.treatment_plan_name || ('#' + plan()!.treatment_plan_id) }}</p>
+    </section>
+
+    <section class="conditions-section">
+      <h3>Condiciones</h3>
+      <div class="conditions-grid">
+        <div class="cond-item"><span class="cond-label">Período</span><span>{{ formatDateOnly(plan()!.start_date) }} – {{ formatDateOnly(plan()!.end_date) }}</span></div>
+        <div class="cond-item"><span class="cond-label">Cantidad de Citas</span><span>{{ plan()!.installments }}</span></div>
+        <div class="cond-item"><span class="cond-label">Costo por Cita</span><span>Bs {{ formatMoney(plan()!.installment_amount) }}</span></div>
+        <div class="cond-item"><span class="cond-label">Cuota Inicial</span><span>Bs {{ formatMoney(plan()!.down_payment) }}</span></div>
+        <div class="cond-item total"><span class="cond-label">Total</span><span>Bs {{ formatMoney(plan()!.total_amount) }}</span></div>
+      </div>
+    </section>
+
+    <section class="citas-section">
+      <h3>Citas y Cuotas</h3>
+      @if (citasRows().length === 0) {
+        <p class="empty-row">Sin citas registradas</p>
+      } @else {
+        <table class="citas-table">
+          <thead>
+            <tr><th>Cita</th><th>Monto</th><th>Estado</th></tr>
+          </thead>
+          <tbody>
+            @for (row of citasRows(); track $index) {
+              <tr>
+                <td>{{ row.label }}</td>
+                <td>Bs {{ formatMoney(row.amount) }}</td>
+                <td>
+                  @if (row.status === 'paid') { Pagada }
+                  @else if (row.status === 'partial') { Parcial (Bs {{ formatMoney(row.paidAmount) }} de Bs {{ formatMoney(row.amount) }}) }
+                  @else { Pendiente }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
+    <footer class="signatures-footer">
+      <div class="signature-block">
+        <div class="signature-line"></div>
+        <p class="signature-label">{{ patient()!.full_name }}</p>
+        <p class="signature-role">Paciente</p>
+      </div>
+      <div class="signature-block">
+        <div class="signature-line"></div>
+        <p class="signature-label">{{ clinic()!.name }}</p>
+        <p class="signature-role">Clínica</p>
+      </div>
+    </footer>
+
+    <div class="print-actions no-print">
+      <button type="button" (click)="print()">Imprimir</button>
+    </div>
+  }
+</div>

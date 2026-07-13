@@ -19,6 +19,7 @@
 .status-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
 .status-badge.big { font-size: 13px; padding: 5px 14px; }
 .inv-pending { background: #fffbeb; color: #b7791f; }
+.inv-partial { background: #ebf8ff; color: #2b6cb0; }
 .inv-paid { background: #f0fff4; color: #276749; }
 .inv-cancelled { background: #f7fafc; color: #a0aec0; }
 .inv-overdue { background: #fff5f5; color: #c53030; }
@@ -74,6 +75,12 @@
 .payment-panel { background: white; border-radius: 14px; padding: 18px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.07); border-top: 3px solid #4299e1; }
 .payment-panel h4 { font-size: 15px; font-weight: 600; color: #2d3748; margin: 0 0 14px; }
+.calc-toggle { display: flex; border: 1.5px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+.calc-toggle .toggle-btn { flex: 1; padding: 8px 10px; border: none; background: white; font-size: 12px; font-weight: 600;
+  color: #4a5568; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.calc-toggle .toggle-btn.active { background: #276749; color: white; }
+.calc-toggle .toggle-btn:not(.active):hover { background: #f7fafc; }
+.hint { font-size: 11px; color: #a0aec0; font-weight: 400; text-transform: none; }
 .pay-form { display: flex; flex-direction: column; gap: 12px; }
 .form-group { display: flex; flex-direction: column; gap: 4px; }
 label { font-size: 12px; font-weight: 600; color: #718096; text-transform: uppercase; }

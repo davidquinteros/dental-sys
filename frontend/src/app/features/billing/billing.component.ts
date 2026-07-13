@@ -2,8 +2,8 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { BillingService } from '../../core/services/api.service';
-import { Invoice, PaymentPlan } from '../../core/models';
-import { formatDate as fmtDate } from '../../core/util/date.util';
+import { Invoice, PaymentPlan, Budget } from '../../core/models';
+import { formatDate as fmtDate, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 
 @Component({
   selector: 'app-billing',
@@ -13,17 +13,20 @@ import { formatDate as fmtDate } from '../../core/util/date.util';
   styleUrl: './billing.component.css',
 })
 export class BillingComponent implements OnInit {
-  view = signal<'invoices' | 'plans'>('invoices');
+  view = signal<'invoices' | 'plans' | 'budgets'>('invoices');
   invoices = signal<Invoice[]>([]);
   paymentPlans = signal<PaymentPlan[]>([]);
+  budgets = signal<Budget[]>([]);
   summary = signal<any>(null);
   loadingInvoices = signal(true);
   loadingPlans = signal(true);
+  loadingBudgets = signal(true);
   statusFilter = signal('');
 
   statusFilters = [
     { value: '', label: 'Todas' },
     { value: 'pending', label: 'Pendientes' },
+    { value: 'partial', label: 'Parciales' },
     { value: 'paid', label: 'Pagadas' },
     { value: 'cancelled', label: 'Cancelada' },
   ];
@@ -33,6 +36,7 @@ export class BillingComponent implements OnInit {
   ngOnInit(): void {
     this.loadInvoices();
     this.loadPlans();
+    this.loadBudgets();
     this.billingService.getSummary().subscribe(res => this.summary.set(res));
   }
 
@@ -53,6 +57,13 @@ export class BillingComponent implements OnInit {
     });
   }
 
+  loadBudgets(): void {
+    this.billingService.getBudgets({ per_page: 100 }).subscribe({
+      next: res => { this.budgets.set(res.budgets); this.loadingBudgets.set(false); },
+      error: () => this.loadingBudgets.set(false),
+    });
+  }
+
   filteredInvoices() { return this.invoices(); }
 
   activePlans(): number { return this.paymentPlans().filter(p => p.status === 'active').length; }
@@ -63,14 +74,20 @@ export class BillingComponent implements OnInit {
   }
 
   formatDate(iso: string): string { return fmtDate(iso); }
+  formatDateOnly(iso?: string): string { return iso ? fmtDateOnly(iso) : '—'; }
 
   invStatusLabel(s: string): string {
-    const m: Record<string, string> = { pending: 'Pendiente', paid: 'Pagada', cancelled: 'Cancelada', overdue: 'Vencida' };
+    const m: Record<string, string> = { pending: 'Pendiente', partial: 'Parcial', paid: 'Pagada', cancelled: 'Cancelada', overdue: 'Vencida' };
     return m[s] ?? s;
   }
 
   planStatusLabel(s: string): string {
     const m: Record<string, string> = { active: 'Activo', completed: 'Completado', cancelled: 'Cancelado', defaulted: 'En mora' };
+    return m[s] ?? s;
+  }
+
+  budgetStatusLabel(s: string): string {
+    const m: Record<string, string> = { draft: 'Borrador', accepted: 'Aceptado', rejected: 'Rechazado' };
     return m[s] ?? s;
   }
 }

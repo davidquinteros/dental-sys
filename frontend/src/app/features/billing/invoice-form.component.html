@@ -3,9 +3,9 @@
     <div class="breadcrumb">
       <a routerLink="/billing" class="breadcrumb-link">Cobros</a>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      <span>Nueva Factura</span>
+      <span>Nuevo Comprobante</span>
     </div>
-    <h1 class="page-title">Crear Factura</h1>
+    <h1 class="page-title">Crear Comprobante</h1>
   </div>
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
@@ -52,7 +52,7 @@
     <!-- Items -->
     <div class="form-card">
       <div class="form-card-header">
-        <span>Ítems de la Factura</span>
+        <span>Ítems del Comprobante</span>
         <button type="button" class="add-item-btn" (click)="addItem()">+ Agregar ítem</button>
       </div>
       <div class="form-body">
@@ -99,7 +99,7 @@
 
         <div class="form-group">
           <label>Notas</label>
-          <textarea formControlName="notes" rows="2" placeholder="Notas adicionales en la factura..."></textarea>
+          <textarea formControlName="notes" rows="2" placeholder="Notas adicionales en el comprobante..."></textarea>
         </div>
       </div>
     </div>
@@ -110,7 +110,7 @@
       <a routerLink="/billing" class="btn btn-secondary">Cancelar</a>
       <button type="submit" class="btn btn-primary" [disabled]="saving() || !selectedPatient()">
         @if (saving()) { <span class="spinner-sm"></span> }
-        Crear Factura
+        Crear Comprobante
       </button>
     </div>
   </form>

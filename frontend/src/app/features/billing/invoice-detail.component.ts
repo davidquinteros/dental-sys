@@ -19,6 +19,8 @@ export class InvoiceDetailComponent implements OnInit {
   loading = signal(true);
   paying = signal(false);
   payError = signal('');
+  payType: 'completo' | 'parcial' = 'completo';
+  payAmount = 0;
   payMethod = 'cash';
   payReference = '';
 
@@ -51,7 +53,11 @@ export class InvoiceDetailComponent implements OnInit {
   ngOnInit(): void {
     const id = +this.route.snapshot.paramMap.get('id')!;
     this.billingService.getInvoice(id).subscribe({
-      next: res => { this.invoice.set(res.invoice); this.loading.set(false); },
+      next: res => {
+        this.invoice.set(res.invoice);
+        this.payAmount = res.invoice.balance;
+        this.loading.set(false);
+      },
       error: () => this.loading.set(false),
     });
   }
@@ -107,7 +113,7 @@ export class InvoiceDetailComponent implements OnInit {
   cancelInvoice(): void {
     const inv = this.invoice();
     if (!inv || inv.status !== 'pending') return;
-    if (!confirm(`¿Cancelar la factura ${inv.invoice_number}? Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`¿Cancelar el comprobante ${inv.invoice_number}? Esta acción no se puede deshacer.`)) return;
 
     this.cancelling.set(true);
     this.cancelError.set('');
@@ -117,7 +123,7 @@ export class InvoiceDetailComponent implements OnInit {
         this.cancelling.set(false);
       },
       error: err => {
-        this.cancelError.set(err.error?.error || 'Error al cancelar la factura');
+        this.cancelError.set(err.error?.error || 'Error al cancelar el comprobante');
         this.cancelling.set(false);
       },
     });
@@ -126,15 +132,18 @@ export class InvoiceDetailComponent implements OnInit {
   registerPayment(): void {
     const inv = this.invoice();
     if (!inv || inv.balance <= 0) return;
+    const amount = this.payType === 'completo' ? inv.balance : this.payAmount;
+    if (amount <= 0 || amount > inv.balance) return;
     this.paying.set(true);
     this.payError.set('');
     this.billingService.addPayment(inv.id, {
-      amount: inv.balance,
+      amount,
       method: this.payMethod,
       reference: this.payReference || undefined,
     }).subscribe({
       next: res => {
         this.invoice.set(res.invoice);
+        this.payAmount = res.invoice.balance;
         this.payReference = '';
         this.paying.set(false);
       },
@@ -151,7 +160,7 @@ export class InvoiceDetailComponent implements OnInit {
   formatDate(iso: string): string { return fmtDate(iso); }
   formatDateOnly(iso: string): string { return fmtDateOnly(iso); }
   invStatusLabel(s: string): string {
-    const m: Record<string, string> = { pending: 'Pendiente', paid: 'Pagada', cancelled: 'Cancelada', overdue: 'Vencida' };
+    const m: Record<string, string> = { pending: 'Pendiente', partial: 'Parcial', paid: 'Pagada', cancelled: 'Cancelada', overdue: 'Vencida' };
     return m[s] ?? s;
   }
 }

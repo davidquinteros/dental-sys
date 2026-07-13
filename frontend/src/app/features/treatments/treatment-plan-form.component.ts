@@ -18,6 +18,8 @@ export class TreatmentPlanFormComponent implements OnInit {
   @Input() embedded = false;
   /** Pre-selected patient for embedded mode (skips the patient search field). */
   @Input() presetPatient: Patient | null = null;
+  /** Pre-fills matching fields for embedded mode (e.g. inherited from a payment plan already being drafted). */
+  @Input() presetValues: { name?: string; start_date?: string; estimated_end_date?: string; total_sessions?: number } | null = null;
   @Output() saved = new EventEmitter<TreatmentPlan>();
   @Output() cancelled = new EventEmitter<void>();
 
@@ -56,6 +58,14 @@ export class TreatmentPlanFormComponent implements OnInit {
     this.userService.getDoctors().subscribe(res => this.doctors.set(res.doctors));
     if (this.embedded) {
       if (this.presetPatient) this.selectedPatient.set(this.presetPatient);
+      if (this.presetValues) {
+        this.form.patchValue({
+          name: this.presetValues.name ?? '',
+          start_date: this.presetValues.start_date ?? '',
+          estimated_end_date: this.presetValues.estimated_end_date ?? '',
+          total_sessions: this.presetValues.total_sessions ?? '',
+        });
+      }
     } else {
       const patientId = this.route.snapshot.queryParamMap.get('patient_id');
       if (patientId) {

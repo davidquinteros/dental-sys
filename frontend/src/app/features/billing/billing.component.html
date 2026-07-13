@@ -1,16 +1,17 @@
 <div class="page">
   <div class="page-header">
     <div>
-      <h1 class="page-title">Cobros y Facturación</h1>
-      <p class="page-subtitle">Gestión de facturas y planes de pago</p>
+      <h1 class="page-title">Cobros y Comprobantes</h1>
+      <p class="page-subtitle">Gestión de comprobantes y planes de pago</p>
     </div>
     <div class="header-actions">
+      <a routerLink="/billing/budgets/new" class="btn btn-secondary">Nuevo Presupuesto</a>
       <a routerLink="/billing/payment-plans/new" class="btn btn-secondary">Nuevo Plan de Pago</a>
       <a routerLink="/billing/invoices/new" class="btn btn-primary">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
-        Nueva Factura
+        Nuevo Comprobante
       </a>
     </div>
   </div>
@@ -36,7 +37,7 @@
         </svg>
       </div>
       <div>
-        <span class="sum-label">Total Facturado</span>
+        <span class="sum-label">Total Emitido</span>
         <span class="sum-val">Bs {{ formatMoney(summary()?.total_invoiced) }}</span>
       </div>
     </div>
@@ -70,10 +71,13 @@
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab" [class.active]="view() === 'invoices'" (click)="view.set('invoices')">
-      Facturas <span class="tab-badge">{{ invoices().length }}</span>
+      Comprobantes <span class="tab-badge">{{ invoices().length }}</span>
     </button>
     <button class="tab" [class.active]="view() === 'plans'" (click)="view.set('plans')">
       Planes de Pago <span class="tab-badge">{{ paymentPlans().length }}</span>
+    </button>
+    <button class="tab" [class.active]="view() === 'budgets'" (click)="view.set('budgets')">
+      Presupuestos <span class="tab-badge">{{ budgets().length }}</span>
     </button>
   </div>
 
@@ -96,15 +100,15 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
           </svg>
-          <h3>Sin facturas</h3>
-          <a routerLink="/billing/invoices/new" class="btn btn-primary">Crear Factura</a>
+          <h3>Sin comprobantes</h3>
+          <a routerLink="/billing/invoices/new" class="btn btn-primary">Crear Comprobante</a>
         </div>
       } @else {
         <div class="table-wrapper">
         <table class="table">
           <thead>
             <tr>
-              <th>N° Factura</th><th>Paciente</th><th>Total</th>
+              <th>N° Comprobante</th><th>Paciente</th><th>Total</th>
               <th>Pagado</th><th>Saldo</th><th>Estado</th><th>Fecha</th><th></th>
             </tr>
           </thead>
@@ -174,7 +178,7 @@
             </div>
             <div class="progress-row">
               <div class="progress-bar"><div class="progress-fill" [style.width]="plan.progress_percentage + '%'"></div></div>
-              <span class="prog-txt">{{ plan.paid_installments }}/{{ plan.installments }} cuotas · {{ plan.progress_percentage }}%</span>
+              <span class="prog-txt">{{ plan.paid_installments }}/{{ plan.installments }} citas · {{ plan.progress_percentage }}%</span>
             </div>
             @if (plan.status === 'active' && plan.balance > 0) {
               <a [routerLink]="['/billing/payment-plans', plan.id]" class="register-btn">Registrar Pago</a>
@@ -183,6 +187,57 @@
               <a [routerLink]="['/billing/payment-plans', plan.id]" class="plan-action-link">Ver</a>
               @if (plan.status === 'active') {
                 <a [routerLink]="['/billing/payment-plans', plan.id, 'edit']" class="plan-action-link">Editar</a>
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  @if (view() === 'budgets') {
+    <div class="plans-grid">
+      @if (loadingBudgets()) {
+        <div class="loading-state card"><div class="spinner-lg"></div></div>
+      } @else if (budgets().length === 0) {
+        <div class="empty-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <h3>Sin presupuestos</h3>
+          <a routerLink="/billing/budgets/new" class="btn btn-primary">Crear Presupuesto</a>
+        </div>
+      } @else {
+        @for (b of budgets(); track b.id) {
+          <div class="plan-card">
+            <div class="plan-top">
+              <div>
+                <span class="plan-name">{{ b.name }}</span>
+                <span class="plan-patient">{{ b.patient_name }}</span>
+              </div>
+              <span class="plan-status" [class]="'bstatus-' + b.status">{{ budgetStatusLabel(b.status) }}</span>
+            </div>
+            <div class="amounts-row">
+              <div class="amount-item">
+                <span class="a-label">Total</span>
+                <span class="a-val">Bs {{ formatMoney(b.total_amount) }}</span>
+              </div>
+              <div class="amount-item">
+                <span class="a-label">Citas</span>
+                <span class="a-val">{{ b.num_citas }}</span>
+              </div>
+              <div class="amount-item">
+                <span class="a-label">Período</span>
+                <span class="a-val">{{ formatDateOnly(b.start_date) }}</span>
+              </div>
+            </div>
+            <div class="plan-actions">
+              <a [routerLink]="['/billing/budgets', b.id]" class="plan-action-link">Ver</a>
+              @if (b.status === 'accepted' && !b.converted_plan_id) {
+                <a [routerLink]="['/billing/payment-plans/new']" [queryParams]="{ budget_id: b.id }" class="plan-action-link">Crear Plan de Pago</a>
+              }
+              @if (b.converted_plan_id) {
+                <a [routerLink]="['/billing/payment-plans', b.converted_plan_id]" class="plan-action-link">Ver Plan de Pago</a>
               }
             </div>
           </div>

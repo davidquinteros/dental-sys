@@ -109,7 +109,7 @@
             <th>Plan</th>
             <th>Duración</th>
             <th>Estado</th>
-            <th>Factura</th>
+            <th>Comprobante</th>
             <th></th>
           </tr>
         </thead>
@@ -139,7 +139,7 @@
               <td>
                 @if (appt.treatment_plan_id) {
                   <a [routerLink]="['/patients', appt.patient_id]" [queryParams]="{ tab: 'plans', planId: appt.treatment_plan_id }" class="patient-link">
-                    {{ appt.treatment_plan_name }}{{ appt.session_number ? ' (sesión ' + appt.session_number + ')' : '' }}
+                    {{ appt.treatment_plan_name }}{{ appt.session_number ? ' (atención ' + appt.session_number + ')' : '' }}
                   </a>
                 } @else {
                   <span class="text-muted">—</span>
@@ -161,7 +161,7 @@
               </td>
               <td>
                 @if (appt.has_invoice) {
-                  <span class="pill green">Facturada</span>
+                  <span class="pill green">Cobrada</span>
                 } @else if (appt.status === 'completed') {
                   <a [routerLink]="['/billing/invoices/new']" [queryParams]="{ appointment_id: appt.id, patient_id: appt.patient_id }" class="pill blue clickable">+ Cobrar</a>
                 } @else {

@@ -1,0 +1,88 @@
+<div class="print-page budget-page">
+  @if (loading()) {
+    <p>Cargando...</p>
+  } @else if (error()) {
+    <p class="error-msg">{{ error() }}</p>
+  } @else if (budget() && patient() && clinic()) {
+    <app-print-clinic-header
+      [clinic]="clinic()!"
+      documentTitle="PRESUPUESTO"
+      [issuedDate]="issuedDate">
+    </app-print-clinic-header>
+
+    <section class="patient-info">
+      <p><strong>Paciente:</strong> {{ patient()!.full_name }}</p>
+      <p><strong>C.I.:</strong> {{ patient()!.document_number }}</p>
+      <p><strong>Presupuesto:</strong> {{ budget()!.name }}</p>
+      @if (budget()!.treatment_plan_name) {
+        <p><strong>Tratamiento:</strong> {{ budget()!.treatment_plan_name }}</p>
+      }
+    </section>
+
+    @if (budget()!.items.length > 0) {
+      <section class="items-section">
+        <h3>Ítems Propuestos</h3>
+        <table class="items-table">
+          <thead>
+            <tr><th>Descripción</th><th>Cant.</th><th>P. Unit.</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+            @for (item of budget()!.items; track item.id) {
+              <tr>
+                <td>{{ item.description }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>Bs {{ formatMoney(item.unit_price) }}</td>
+                <td>Bs {{ formatMoney(item.total) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+
+    <section class="conditions-section">
+      <h3>Condiciones</h3>
+      <div class="conditions-grid">
+        <div class="cond-item"><span class="cond-label">Período</span><span>{{ formatDateOnly(budget()!.start_date) }} – {{ formatDateOnly(budget()!.end_date) }}</span></div>
+        <div class="cond-item"><span class="cond-label">Cantidad de Citas</span><span>{{ budget()!.num_citas }}</span></div>
+        <div class="cond-item"><span class="cond-label">Costo por Cita</span><span>Bs {{ formatMoney(budget()!.cost_per_cita) }}</span></div>
+        <div class="cond-item"><span class="cond-label">Cuota Inicial</span><span>Bs {{ formatMoney(budget()!.down_payment) }}</span></div>
+        <div class="cond-item total"><span class="cond-label">Total</span><span>Bs {{ formatMoney(budget()!.total_amount) }}</span></div>
+      </div>
+    </section>
+
+    <section class="citas-section">
+      <h3>Propuesta de Cuotas</h3>
+      <table class="citas-table">
+        <thead>
+          <tr><th>Cita</th><th>Monto</th></tr>
+        </thead>
+        <tbody>
+          @for (row of citasRows(); track $index) {
+            <tr>
+              <td>{{ row.label }}</td>
+              <td>Bs {{ formatMoney(row.amount) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <footer class="signatures-footer">
+      <div class="signature-block">
+        <div class="signature-line"></div>
+        <p class="signature-label">{{ patient()!.full_name }}</p>
+        <p class="signature-role">Paciente</p>
+      </div>
+      <div class="signature-block">
+        <div class="signature-line"></div>
+        <p class="signature-label">{{ clinic()!.name }}</p>
+        <p class="signature-role">Clínica</p>
+      </div>
+    </footer>
+
+    <div class="print-actions no-print">
+      <button type="button" (click)="print()">Imprimir</button>
+    </div>
+  }
+</div>

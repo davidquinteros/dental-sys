@@ -54,12 +54,15 @@
           @if (selectedPatient() && treatmentPlans().length > 0) {
             <div class="form-group">
               <label>Plan de Tratamiento Asociado <span class="req">*</span></label>
-              <select formControlName="treatment_plan_id" [class.error]="hasError('treatment_plan_id')">
-                <option value="">Seleccionar plan...</option>
-                @for (plan of treatmentPlans(); track plan.id) {
-                  <option [value]="plan.id">{{ plan.name }} ({{ plan.treatment_type }})</option>
-                }
-              </select>
+              <div class="select-row">
+                <select formControlName="treatment_plan_id" [class.error]="hasError('treatment_plan_id')">
+                  <option value="">Seleccionar plan...</option>
+                  @for (plan of treatmentPlans(); track plan.id) {
+                    <option [value]="plan.id">{{ plan.name }} ({{ plan.treatment_type }})</option>
+                  }
+                </select>
+                <button type="button" class="btn-new-plan" (click)="openPlanModal()">+ Nuevo plan</button>
+              </div>
               @if (hasError('treatment_plan_id')) { <span class="field-error">Requerido</span> }
             </div>
           } @else if (selectedPatient() && treatmentPlans().length === 0) {
@@ -69,7 +72,7 @@
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
               Este paciente no tiene planes de tratamiento activos.
-              <a [routerLink]="['/treatments/plans/new']" [queryParams]="{ patient_id: selectedPatient()!.id }">Crear plan</a>
+              <button type="button" class="link-btn" (click)="openPlanModal()">Crear plan</button>
             </div>
           }
         }
@@ -86,58 +89,7 @@
           @if (hasError('name')) { <span class="field-error">Requerido</span> }
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label>Monto Total (Bs) <span class="req">*</span></label>
-            <input formControlName="total_amount" type="number" min="0" step="0.01"
-              placeholder="0.00" (input)="recalc()" [class.error]="hasError('total_amount')"/>
-            @if (hasError('total_amount')) { <span class="field-error">Requerido</span> }
-          </div>
-          <div class="form-group">
-            <label>Pago Inicial / Enganche (Bs)</label>
-            <input formControlName="down_payment" type="number" min="0" step="0.01"
-              placeholder="0.00" (input)="recalc()"/>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Número de Cuotas <span class="req">*</span></label>
-            <select formControlName="installments" (change)="recalc()"
-              [class.error]="hasError('installments')">
-              @for (n of [1,2,3,4,6,8,10,12,18,24]; track n) {
-                <option [value]="n">{{ n }} cuota{{ n > 1 ? 's' : '' }}</option>
-              }
-            </select>
-            @if (hasError('installments')) { <span class="field-error">Requerido</span> }
-          </div>
-          <div class="form-group">
-            <label>Fecha de Inicio</label>
-            <input formControlName="start_date" type="date"/>
-          </div>
-        </div>
-
-        <!-- Calculated summary -->
-        @if (form.get('total_amount')?.value > 0) {
-          <div class="calc-summary">
-            <div class="calc-row">
-              <span>Monto total</span>
-              <span>Bs {{ formatMoney(form.get('total_amount')?.value) }}</span>
-            </div>
-            <div class="calc-row">
-              <span>Pago inicial</span>
-              <span>Bs {{ formatMoney(form.get('down_payment')?.value || 0) }}</span>
-            </div>
-            <div class="calc-row">
-              <span>Saldo a financiar</span>
-              <span>Bs {{ formatMoney(financeAmount()) }}</span>
-            </div>
-            <div class="calc-row highlight">
-              <span>Valor de cada cuota (x{{ form.get('installments')?.value }})</span>
-              <span>Bs {{ formatMoney(installmentAmount()) }}</span>
-            </div>
-          </div>
-        }
+        <app-billing-conditions-fields [form]="conditionsGroup" [costLocked]="costLocked()" [lockToTotal]="true"/>
 
         <div class="form-group">
           <label>Notas</label>
@@ -159,3 +111,37 @@
     </div>
   </form>
 </div>
+
+<!-- ── Modal Nuevo Plan de Tratamiento ──────────────────────────────────────── -->
+@if (showPlanModal()) {
+  <div class="modal-backdrop" (click)="showPlanModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+          <h3 class="modal-title">Nuevo Plan de Tratamiento</h3>
+        </div>
+        @if (selectedPatient()) { <span class="modal-patient-tag">{{ selectedPatient()!.full_name }}</span> }
+        <button type="button" class="modal-close" (click)="showPlanModal.set(false)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <app-treatment-plan-form
+          [embedded]="true"
+          [presetPatient]="selectedPatient()"
+          [presetValues]="planModalPreset()"
+          (saved)="onPlanCreated($event)"
+          (cancelled)="showPlanModal.set(false)">
+        </app-treatment-plan-form>
+      </div>
+    </div>
+  </div>
+}

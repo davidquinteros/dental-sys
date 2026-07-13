@@ -1,0 +1,60 @@
+<div [formGroup]="form" class="cond-block">
+  @if (costLocked) {
+    <p class="locked-hint">El costo por cita no se puede modificar porque el plan ya tiene pagos de citas registrados.</p>
+  }
+
+  <div class="calc-toggle">
+    <button type="button" class="toggle-btn" [class.active]="isPerCita()" [disabled]="costLocked || lockToTotal" (click)="setCalcMode('per_cita')">
+      Por costo de cita
+    </button>
+    <button type="button" class="toggle-btn" [class.active]="!isPerCita()" [disabled]="costLocked || lockToTotal" (click)="setCalcMode('total')">
+      Por monto total
+    </button>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Cantidad de Citas <span class="req">*</span></label>
+      <input formControlName="num_citas" type="number" min="1" step="1" placeholder="12"/>
+    </div>
+    <div class="form-group">
+      <label>Pago Inicial / Enganche (Bs)</label>
+      <input formControlName="down_payment" type="number" min="0" step="0.01" placeholder="0.00"
+        [readonly]="costLocked" [class.derived]="costLocked"/>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Costo por Cita (Bs) @if (isPerCita() && !costLocked) { <span class="req">*</span> }</label>
+      <input formControlName="cost_per_cita" type="number" min="0" step="0.01" placeholder="0.00"
+        [readonly]="!isPerCita() || costLocked" [class.derived]="!isPerCita() || costLocked"/>
+      @if (!isPerCita()) { <span class="derived-hint">Calculado automáticamente</span> }
+    </div>
+    <div class="form-group">
+      <label>Monto Total (Bs) @if (!isPerCita() && !costLocked && !totalReadonly) { <span class="req">*</span> }</label>
+      <input formControlName="total_amount" type="number" min="0" step="0.01" placeholder="0.00"
+        [readonly]="isPerCita() || costLocked || totalReadonly" [class.derived]="isPerCita() || costLocked || totalReadonly"/>
+      @if (isPerCita()) { <span class="derived-hint">Calculado automáticamente</span> }
+      @else if (totalReadonly) { <span class="derived-hint">Suma de los ítems propuestos</span> }
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>Fecha de Inicio</label>
+      <input formControlName="start_date" type="date"/>
+    </div>
+    <div class="form-group">
+      <label>Fecha de Fin</label>
+      <input formControlName="end_date" type="date"/>
+    </div>
+  </div>
+
+  <div class="calc-summary">
+    <div class="calc-row"><span>Cantidad de citas</span><span>{{ form.get('num_citas')?.value || 0 }}</span></div>
+    <div class="calc-row"><span>Costo por cita</span><span>Bs {{ formatMoney(form.get('cost_per_cita')?.value) }}</span></div>
+    <div class="calc-row"><span>Pago inicial</span><span>Bs {{ formatMoney(form.get('down_payment')?.value) }}</span></div>
+    <div class="calc-row highlight"><span>Monto total</span><span>Bs {{ formatMoney(form.get('total_amount')?.value) }}</span></div>
+  </div>
+</div>

@@ -1,0 +1,124 @@
+<div class="page">
+  <div class="page-header">
+    <div class="breadcrumb">
+      <a routerLink="/billing" class="breadcrumb-link">Cobros</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span>{{ isEditMode() ? 'Editar Presupuesto' : 'Nuevo Presupuesto' }}</span>
+    </div>
+    <h1 class="page-title">{{ isEditMode() ? 'Editar Presupuesto' : 'Crear Presupuesto' }}</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
+    <div class="form-card">
+      <div class="form-card-header">Paciente</div>
+      <div class="form-body">
+        @if (isEditMode()) {
+          <div class="form-group">
+            <label>Paciente</label>
+            <div class="locked-field">{{ selectedPatient()?.full_name || '—' }}</div>
+          </div>
+        } @else {
+          <div class="form-group">
+            <label>Paciente <span class="req">*</span></label>
+            <div class="search-select">
+              <input type="text" [(ngModel)]="patientSearch" [ngModelOptions]="{standalone:true}"
+                (input)="onPatientSearch()" placeholder="Buscar paciente..." [disabled]="!!selectedPatient()"/>
+              @if (selectedPatient()) {
+                <div class="selected-item">
+                  <span>{{ selectedPatient()!.full_name }} — {{ selectedPatient()!.document_number }}</span>
+                  <button type="button" (click)="clearPatient()">✕</button>
+                </div>
+              }
+              @if (patientResults().length > 0 && !selectedPatient()) {
+                <div class="dropdown">
+                  @for (p of patientResults(); track p.id) {
+                    <div class="dropdown-item" (click)="selectPatient(p)">
+                      <span class="dn">{{ p.full_name }}</span>
+                      <span class="dm">{{ p.document_number }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        @if (selectedPatient()) {
+          <div class="form-group">
+            <label>Plan de Tratamiento Asociado (opcional)</label>
+            <select formControlName="treatment_plan_id">
+              <option value="">Sin plan de tratamiento asignado todavía</option>
+              @for (plan of treatmentPlans(); track plan.id) {
+                <option [value]="plan.id">{{ plan.name }} ({{ plan.treatment_type }})</option>
+              }
+            </select>
+            <span class="hint">Normalmente se define recién al aceptar el presupuesto y generar el plan de pago.</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-card-header">Ítems Propuestos</div>
+      <div class="form-body">
+        @if (itemsArray.length > 0) {
+          <div class="items-header">
+            <span class="item-desc">Detalle</span>
+            <span class="col-h">Cantidad</span>
+            <span class="col-h">Precio</span>
+            <span class="col-h">Total</span>
+            <span></span>
+          </div>
+        }
+        <div formArrayName="items" class="items-list">
+          @for (item of itemsArray.controls; track $index; let i = $index) {
+            <div [formGroupName]="i" class="item-row">
+              <input formControlName="description" type="text" placeholder="Ej: Extracción pieza 18" class="item-desc"/>
+              <input formControlName="quantity" type="number" min="1" placeholder="1" class="item-qty"/>
+              <input formControlName="unit_price" type="number" min="0" step="0.01" placeholder="0.00" class="item-price"/>
+              <span class="item-total">Bs {{ itemTotal(i) }}</span>
+              <button type="button" class="del-btn" (click)="removeItem(i)">✕</button>
+            </div>
+          }
+        </div>
+        <button type="button" class="add-item-btn" (click)="addItem()">+ Agregar ítem</button>
+        @if (itemsArray.length > 0) {
+          <div class="items-subtotal">
+            <span>Subtotal de ítems</span>
+            <span>Bs {{ itemsSubtotal() }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-card-header">Condiciones del Presupuesto</div>
+      <div class="form-body">
+        <div class="form-group">
+          <label>Nombre del Presupuesto <span class="req">*</span></label>
+          <input formControlName="name" type="text" placeholder="Ej: Presupuesto - Revisión general"
+            [class.error]="hasError('name')"/>
+          @if (hasError('name')) { <span class="field-error">Requerido</span> }
+        </div>
+
+        <app-billing-conditions-fields [form]="conditionsGroup" [lockToTotal]="true" [totalReadonly]="true"/>
+
+        <div class="form-group">
+          <label>Notas</label>
+          <textarea formControlName="notes" rows="2"
+            placeholder="Lo observado en la revisión, condiciones acordadas..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    @if (errorMsg()) { <div class="alert-error">{{ errorMsg() }}</div> }
+
+    <div class="form-actions">
+      <a routerLink="/billing" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving() || !selectedPatient()">
+        @if (saving()) { <span class="spinner-sm"></span> }
+        {{ isEditMode() ? 'Guardar Cambios' : 'Crear Presupuesto' }}
+      </button>
+    </div>
+  </form>
+</div>

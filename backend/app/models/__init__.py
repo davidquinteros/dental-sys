@@ -10,6 +10,7 @@ from app.models.treatment_image import TreatmentImage
 from app.models.billing import (
     Invoice, InvoiceItem, Payment, PaymentPlan, PaymentPlanInstallment,
     InvoiceStatus, PaymentMethod, PaymentPlanStatus,
+    Budget, BudgetItem, BudgetStatus,
 )
 from app.models.permission import Page, RolePermission
 
@@ -24,6 +25,7 @@ __all__ = [
     "TreatmentImage",
     "Invoice", "InvoiceItem", "Payment", "PaymentPlan", "PaymentPlanInstallment",
     "InvoiceStatus", "PaymentMethod", "PaymentPlanStatus",
+    "Budget", "BudgetItem", "BudgetStatus",
     "Page", "RolePermission",
     "AppointmentTypeCatalog",
 ]

@@ -20,7 +20,12 @@ export class PaymentPlanDetailComponent implements OnInit {
   installments = signal<PaymentPlanInstallment[]>([]);
   loadingInstallments = signal(true);
 
-  payAmount = 0;
+  citasRows = signal<{ label: string; amount: number; status: 'paid' | 'partial' | 'pending'; paidAmount?: number }[]>([]);
+
+  payType: 'completo' | 'parcial' = 'completo';
+  citasToRegister = 1;
+  partialAmount = 0;
+  paymentNotes = '';
   paying = signal(false);
   payError = signal('');
 
@@ -36,7 +41,9 @@ export class PaymentPlanDetailComponent implements OnInit {
     this.billingService.getPaymentPlan(id).subscribe({
       next: res => {
         this.plan.set(res.payment_plan);
-        this.payAmount = Math.min(res.payment_plan.installment_amount, res.payment_plan.balance);
+        this.buildCitasRows(res.payment_plan);
+        this.citasToRegister = Math.min(1, this.maxCompleteCitas());
+        this.partialAmount = 0;
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
@@ -51,15 +58,72 @@ export class PaymentPlanDetailComponent implements OnInit {
     });
   }
 
+  private buildCitasRows(p: PaymentPlan): void {
+    const rows: { label: string; amount: number; status: 'paid' | 'partial' | 'pending'; paidAmount?: number }[] = [];
+    if (p.down_payment > 0) {
+      // The enganche is collected like any other payment, not pre-paid at creation.
+      // The derivation attributes the first `down_payment` of total_paid to it, so it's
+      // fully covered once total_paid >= down_payment, partial in between, else pending.
+      if (p.total_paid >= p.down_payment) {
+        rows.push({ label: 'Cuota inicial', amount: p.down_payment, status: 'paid' });
+      } else if (p.total_paid > 0) {
+        rows.push({ label: 'Cuota inicial', amount: p.down_payment, status: 'partial', paidAmount: p.total_paid });
+      } else {
+        rows.push({ label: 'Cuota inicial', amount: p.down_payment, status: 'pending' });
+      }
+    }
+    for (let i = 1; i <= p.installments; i++) {
+      if (i <= p.paid_installments) {
+        rows.push({ label: `Cita ${i}`, amount: p.installment_amount, status: 'paid' });
+      } else if (i === p.paid_installments + 1 && p.partial_progress_amount > 0) {
+        rows.push({ label: `Cita ${i}`, amount: p.installment_amount, status: 'partial', paidAmount: p.partial_progress_amount });
+      } else {
+        rows.push({ label: `Cita ${i}`, amount: p.installment_amount, status: 'pending' });
+      }
+    }
+    this.citasRows.set(rows);
+  }
+
+  remainingCitas(): number {
+    const p = this.plan();
+    return p ? Math.max(0, p.installments - p.paid_installments) : 0;
+  }
+
+  maxCompleteCitas(): number {
+    const p = this.plan();
+    if (!p || !p.installment_amount) return 0;
+    return Math.max(0, Math.floor((p.balance + 1e-6) / p.installment_amount));
+  }
+
+  registerPaymentAmount(): number {
+    const p = this.plan();
+    if (!p) return 0;
+    return Math.round(this.citasToRegister * p.installment_amount * 100) / 100;
+  }
+
   registerPayment(): void {
     const p = this.plan();
-    if (!p || p.balance <= 0 || !this.payAmount || this.payAmount <= 0) return;
+    if (!p || p.balance <= 0) return;
+
+    let payload: { count?: number; amount?: number; notes?: string };
+    if (this.payType === 'completo') {
+      if (this.citasToRegister < 1 || this.citasToRegister > this.maxCompleteCitas()) return;
+      payload = { count: this.citasToRegister };
+    } else {
+      if (this.partialAmount <= 0 || this.partialAmount > p.balance) return;
+      payload = { amount: this.partialAmount };
+    }
+    if (this.paymentNotes.trim()) payload.notes = this.paymentNotes.trim();
+
     this.paying.set(true);
     this.payError.set('');
-    this.billingService.registerInstallment(p.id, this.payAmount).subscribe({
+    this.billingService.registerInstallment(p.id, payload).subscribe({
       next: res => {
         this.plan.set(res.payment_plan);
-        this.payAmount = Math.min(res.payment_plan.installment_amount, res.payment_plan.balance);
+        this.buildCitasRows(res.payment_plan);
+        this.citasToRegister = Math.min(1, this.maxCompleteCitas());
+        this.partialAmount = 0;
+        this.paymentNotes = '';
         this.paying.set(false);
         this.loadInstallments(p.id);
       },
@@ -68,6 +132,18 @@ export class PaymentPlanDetailComponent implements OnInit {
         this.paying.set(false);
       },
     });
+  }
+
+  printPlan(): void {
+    const p = this.plan();
+    if (!p) return;
+    window.open(`/billing/payment-plans/${p.id}/imprimir`, '_blank');
+  }
+
+  printReceipt(installmentId: number): void {
+    const p = this.plan();
+    if (!p) return;
+    window.open(`/billing/payment-plans/${p.id}/comprobante/${installmentId}/imprimir`, '_blank');
   }
 
   formatMoney(val?: number | null): string {

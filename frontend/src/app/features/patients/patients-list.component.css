@@ -41,6 +41,8 @@
 .table tbody tr:hover td { background: #f7fafc; }
 
 .patient-cell { display: flex; align-items: center; gap: 12px; }
+.patient-cell-link { text-decoration: none; }
+.patient-cell-link:hover .patient-name { text-decoration: underline; color: #2b6cb0; }
 .patient-avatar { width: 36px; height: 36px; border-radius: 50%;
   background: linear-gradient(135deg, #4299e1, #3182ce); display: flex;
   align-items: center; justify-content: center; font-size: 13px;

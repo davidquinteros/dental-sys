@@ -5,7 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   Patient, Appointment, Treatment, TreatmentPlan, TreatmentImage,
   Invoice, Payment, PaymentPlan, PaymentPlanInstallment, DashboardData, User, Consultorio, AppointmentTypeItem,
-  ClinicInfo,
+  ClinicInfo, Budget,
 } from '../models';
 
 const API = environment.apiUrl;
@@ -230,8 +230,8 @@ export class BillingService {
     return this.http.put<{ payment_plan: PaymentPlan }>(`${API}/billing/payment-plans/${id}`, data);
   }
 
-  registerInstallment(planId: number, amount?: number): Observable<any> {
-    return this.http.post(`${API}/billing/payment-plans/${planId}/installment`, { amount });
+  registerInstallment(planId: number, payload: { count?: number; amount?: number; notes?: string }): Observable<any> {
+    return this.http.post(`${API}/billing/payment-plans/${planId}/installment`, payload);
   }
 
   getPlanInstallments(planId: number): Observable<{ installments: PaymentPlanInstallment[] }> {
@@ -240,6 +240,39 @@ export class BillingService {
 
   getSummary(): Observable<any> {
     return this.http.get(`${API}/billing/summary`);
+  }
+
+  // ─── Budgets (Presupuestos) ──────────────────────────────────────────────────
+  getBudgets(params: Record<string, any> = {}): Observable<{ budgets: Budget[]; total: number }> {
+    let httpParams = new HttpParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) httpParams = httpParams.set(k, v);
+    });
+    return this.http.get<{ budgets: Budget[]; total: number }>(`${API}/billing/budgets`, { params: httpParams });
+  }
+
+  getBudget(id: number): Observable<{ budget: Budget }> {
+    return this.http.get<{ budget: Budget }>(`${API}/billing/budgets/${id}`);
+  }
+
+  createBudget(data: any): Observable<{ budget: Budget }> {
+    return this.http.post<{ budget: Budget }>(`${API}/billing/budgets`, data);
+  }
+
+  updateBudget(id: number, data: any): Observable<{ budget: Budget }> {
+    return this.http.put<{ budget: Budget }>(`${API}/billing/budgets/${id}`, data);
+  }
+
+  acceptBudget(id: number): Observable<{ budget: Budget }> {
+    return this.http.post<{ budget: Budget }>(`${API}/billing/budgets/${id}/accept`, {});
+  }
+
+  rejectBudget(id: number): Observable<{ budget: Budget }> {
+    return this.http.post<{ budget: Budget }>(`${API}/billing/budgets/${id}/reject`, {});
+  }
+
+  linkBudgetPlan(budgetId: number, paymentPlanId: number): Observable<{ budget: Budget }> {
+    return this.http.post<{ budget: Budget }>(`${API}/billing/budgets/${budgetId}/link-plan`, { payment_plan_id: paymentPlanId });
   }
 }
 

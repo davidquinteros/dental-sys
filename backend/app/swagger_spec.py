@@ -297,6 +297,43 @@ SWAGGER_TEMPLATE = {
                 "received_by": {"type": "string", "nullable": True, "example": "Lucía Fernández"},
             },
         },
+        "BudgetItem": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer"},
+                "description": {"type": "string", "example": "Extracción pieza 18"},
+                "quantity": {"type": "integer", "example": 1},
+                "unit_price": {"type": "number", "format": "float", "example": 350.0},
+                "total": {"type": "number", "format": "float", "example": 350.0},
+            },
+        },
+        "Budget": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer"},
+                "patient_id": {"type": "integer"},
+                "patient_name": {"type": "string"},
+                "treatment_plan_id": {"type": "integer", "nullable": True},
+                "treatment_plan_name": {"type": "string", "nullable": True},
+                "name": {"type": "string", "example": "Presupuesto - Revisión general"},
+                "total_amount": {"type": "number", "format": "float", "example": 1700.0},
+                "down_payment": {"type": "number", "format": "float", "example": 200.0},
+                "num_citas": {"type": "integer", "example": 6},
+                "cost_per_cita": {"type": "number", "format": "float", "example": 250.0},
+                "items": {"type": "array", "items": {"$ref": "#/definitions/BudgetItem"}},
+                "items_subtotal": {"type": "number", "format": "float", "example": 900.0},
+                "status": {
+                    "type": "string",
+                    "enum": ["draft", "accepted", "rejected"],
+                    "example": "draft",
+                },
+                "start_date": {"type": "string", "format": "date", "nullable": True},
+                "end_date": {"type": "string", "format": "date", "nullable": True},
+                "notes": {"type": "string", "nullable": True},
+                "converted_plan_id": {"type": "integer", "nullable": True},
+                "created_at": {"type": "string", "format": "date-time"},
+            },
+        },
         "Clinic": {
             "type": "object",
             "properties": {

@@ -128,7 +128,7 @@
                     <span class="appt-type">{{ appointmentTypeLabel(appt.appointment_type) }}</span>
                     @if (appt.treatment_plan_id) {
                       <a class="appt-plan" [routerLink]="['/patients', appt.patient_id]" [queryParams]="{ tab: 'plans', planId: appt.treatment_plan_id }">
-                        {{ appt.treatment_plan_name }}{{ appt.session_number ? ' (sesión ' + appt.session_number + ')' : '' }}
+                        {{ appt.treatment_plan_name }}{{ appt.session_number ? ' (atención ' + appt.session_number + ')' : '' }}
                       </a>
                     }
                   </div>
@@ -203,7 +203,7 @@
                       <span class="upcoming-meta">{{ formatTime(appt.scheduled_at) }} · Dr. {{ appt.doctor_name.split(' ')[0] }}</span>
                       @if (appt.treatment_plan_id) {
                         <a class="upcoming-plan" [routerLink]="['/patients', appt.patient_id]" [queryParams]="{ tab: 'plans', planId: appt.treatment_plan_id }">
-                          {{ appt.treatment_plan_name }}{{ appt.session_number ? ' (sesión ' + appt.session_number + ')' : '' }}
+                          {{ appt.treatment_plan_name }}{{ appt.session_number ? ' (atención ' + appt.session_number + ')' : '' }}
                         </a>
                       }
                     </div>

@@ -63,6 +63,7 @@
 .text-muted { color: #a0aec0; font-size: 13px; }
 .status-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
 .inv-pending { background: #fffbeb; color: #b7791f; }
+.inv-partial { background: #ebf8ff; color: #2b6cb0; }
 .inv-paid { background: #f0fff4; color: #276749; }
 .inv-cancelled { background: #f7fafc; color: #a0aec0; }
 .inv-overdue { background: #fff5f5; color: #c53030; }
@@ -85,6 +86,9 @@
 .pstatus-completed { background: #f0fff4; color: #276749; }
 .pstatus-cancelled { background: #fff5f5; color: #c53030; }
 .pstatus-defaulted { background: #fefcbf; color: #744210; }
+.bstatus-draft { background: #fffbeb; color: #b7791f; }
+.bstatus-accepted { background: #f0fff4; color: #276749; }
+.bstatus-rejected { background: #fff5f5; color: #c53030; }
 .amounts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .amount-item { background: #f7fafc; border-radius: 8px; padding: 10px 12px; }
 .a-label { display: block; font-size: 11px; color: #a0aec0; text-transform: uppercase; font-weight: 600; }

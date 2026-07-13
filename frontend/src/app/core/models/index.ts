@@ -201,7 +201,7 @@ export interface TreatmentPlan {
 }
 
 // ─── Billing Models ────────────────────────────────────────────────────────────
-export type InvoiceStatus = 'pending' | 'paid' | 'cancelled' | 'overdue';
+export type InvoiceStatus = 'pending' | 'partial' | 'paid' | 'cancelled' | 'overdue';
 // card/transfer/other are legacy values on existing payments; new payments only offer cash/qr.
 export type PaymentMethod = 'cash' | 'qr' | 'card' | 'transfer' | 'other';
 
@@ -236,6 +236,8 @@ export interface PaymentPlanInstallment {
   payment_plan_id: number;
   amount: number;
   notes?: string;
+  total_paid_after?: number | null;
+  balance_after?: number | null;
   payment_date: string;
   received_by?: string;
 }
@@ -263,12 +265,45 @@ export interface PaymentPlan {
   installments: number;
   installment_amount: number;
   paid_installments: number;
+  partial_progress_amount: number;
   total_paid: number;
   balance: number;
   progress_percentage: number;
   status: string;
   start_date?: string;
+  end_date?: string;
   notes?: string;
+  created_at: string;
+}
+
+export type BudgetStatus = 'draft' | 'accepted' | 'rejected';
+
+export interface BudgetItem {
+  id?: number;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+export interface Budget {
+  id: number;
+  patient_id: number;
+  patient_name: string;
+  treatment_plan_id?: number;
+  treatment_plan_name?: string;
+  name: string;
+  total_amount: number;
+  down_payment: number;
+  num_citas: number;
+  cost_per_cita: number;
+  items: BudgetItem[];
+  items_subtotal: number;
+  status: BudgetStatus;
+  start_date?: string;
+  end_date?: string;
+  notes?: string;
+  converted_plan_id?: number;
   created_at: string;
 }
 

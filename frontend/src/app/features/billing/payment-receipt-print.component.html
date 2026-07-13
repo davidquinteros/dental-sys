@@ -1,0 +1,58 @@
+<div class="print-page receipt-page">
+  @if (loading()) {
+    <p>Cargando...</p>
+  } @else if (error()) {
+    <p class="error-msg">{{ error() }}</p>
+  } @else if (plan() && installment() && patient() && clinic()) {
+    <app-print-clinic-header
+      [clinic]="clinic()!"
+      documentTitle="COMPROBANTE DE PAGO"
+      [issuedDate]="issuedDate">
+    </app-print-clinic-header>
+
+    <section class="patient-info">
+      <p><strong>Paciente:</strong> {{ patient()!.full_name }}</p>
+      <p><strong>C.I.:</strong> {{ patient()!.document_number }}</p>
+      <p><strong>Plan de Pago:</strong> {{ plan()!.name }}</p>
+      <p><strong>Tratamiento:</strong> {{ plan()!.treatment_plan_name || ('#' + plan()!.treatment_plan_id) }}</p>
+    </section>
+
+    <section class="payment-section">
+      <h3>Detalle del Pago</h3>
+      <div class="payment-grid">
+        <div class="pay-item"><span class="pay-label">Fecha de Pago</span><span>{{ formatDate(installment()!.payment_date) }}</span></div>
+        <div class="pay-item"><span class="pay-label">Registrado por</span><span>{{ installment()!.received_by || '—' }}</span></div>
+        @if (installment()!.notes) {
+          <div class="pay-item notes"><span class="pay-label">Notas</span><span>{{ installment()!.notes }}</span></div>
+        }
+        <div class="pay-item amount"><span class="pay-label">Monto Pagado</span><span>Bs {{ formatMoney(installment()!.amount) }}</span></div>
+      </div>
+    </section>
+
+    <section class="summary-section">
+      <h3>Estado del Plan (al momento del pago)</h3>
+      <div class="summary-grid">
+        <div class="sum-item"><span class="sum-label">Total del Plan</span><span>Bs {{ formatMoney(planTotalAtPayment()) }}</span></div>
+        <div class="sum-item"><span class="sum-label">Total Pagado</span><span>Bs {{ formatMoney(totalPaidAtPayment()) }}</span></div>
+        <div class="sum-item balance"><span class="sum-label">Saldo Pendiente</span><span>Bs {{ formatMoney(balanceAtPayment()) }}</span></div>
+      </div>
+    </section>
+
+    <footer class="signatures-footer">
+      <div class="signature-block">
+        <div class="signature-line"></div>
+        <p class="signature-label">{{ patient()!.full_name }}</p>
+        <p class="signature-role">Paciente</p>
+      </div>
+      <div class="signature-block">
+        <div class="signature-line"></div>
+        <p class="signature-label">{{ clinic()!.name }}</p>
+        <p class="signature-role">Clínica</p>
+      </div>
+    </footer>
+
+    <div class="print-actions no-print">
+      <button type="button" (click)="print()">Imprimir</button>
+    </div>
+  }
+</div>

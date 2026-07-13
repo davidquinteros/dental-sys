@@ -1,8 +1,8 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
-import { PatientService, TreatmentService, AppointmentService } from '../../core/services/api.service';
-import { Patient, Appointment, Treatment, TreatmentPlan } from '../../core/models';
+import { PatientService, TreatmentService, AppointmentService, BillingService } from '../../core/services/api.service';
+import { Patient, Appointment, Treatment, TreatmentPlan, Invoice, PaymentPlan, Budget } from '../../core/models';
 import { formatDate as fmtDate, formatDateTime as fmtDateTime, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 import { OdontogramComponent } from './odontogram.component';
 import { TreatmentFormComponent } from '../treatments/treatment-form.component';
@@ -30,6 +30,15 @@ export class PatientDetailComponent implements OnInit {
   loading = signal(true);
   activeTab = signal('odontogram');
 
+  // Billing tab (Pagos y Presupuestos)
+  invoices = signal<Invoice[]>([]);
+  paymentPlans = signal<PaymentPlan[]>([]);
+  budgets = signal<Budget[]>([]);
+  loadingInvoices = signal(true);
+  loadingPaymentPlans = signal(true);
+  loadingBudgets = signal(true);
+  billingSubView = signal<'invoices' | 'plans' | 'budgets'>('invoices');
+
   // Treatment modal (form delegated to <app-treatment-form embedded>)
   showTreatmentModal = signal(false);
   treatmentPlanPreset = signal<number | null>(null);
@@ -56,6 +65,7 @@ export class PatientDetailComponent implements OnInit {
       { key: 'appointments', label: 'Citas', count: this.appointments().length },
       { key: 'treatments', label: 'Atenciones', count: this.treatments().length },
       { key: 'plans', label: 'Planes de Tratamiento', count: this.plans().length },
+      { key: 'billing', label: 'Pagos y Presupuestos' },
       { key: 'notes', label: 'Historia Médica' },
     ];
   }
@@ -69,6 +79,7 @@ export class PatientDetailComponent implements OnInit {
     private patientService: PatientService,
     private treatmentService: TreatmentService,
     private apptService: AppointmentService,
+    private billingService: BillingService,
   ) {}
 
   ngOnInit(): void {
@@ -89,6 +100,44 @@ export class PatientDetailComponent implements OnInit {
       },
       error: () => this.loading.set(false),
     });
+
+    this.loadBillingData(id);
+  }
+
+  // ── Billing tab (Pagos y Presupuestos) ──────────────────────────────────────
+  loadBillingData(patientId: number): void {
+    this.billingService.getInvoices({ patient_id: patientId, per_page: 100 }).subscribe({
+      next: res => { this.invoices.set(res.invoices); this.loadingInvoices.set(false); },
+      error: () => this.loadingInvoices.set(false),
+    });
+    this.billingService.getPaymentPlans({ patient_id: patientId, per_page: 100 }).subscribe({
+      next: res => { this.paymentPlans.set(res.payment_plans); this.loadingPaymentPlans.set(false); },
+      error: () => this.loadingPaymentPlans.set(false),
+    });
+    this.billingService.getBudgets({ patient_id: patientId, per_page: 100 }).subscribe({
+      next: res => { this.budgets.set(res.budgets); this.loadingBudgets.set(false); },
+      error: () => this.loadingBudgets.set(false),
+    });
+  }
+
+  formatMoney(val?: number | null): string {
+    if (val === undefined || val === null) return '0';
+    return new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+  }
+
+  invStatusLabel(s: string): string {
+    const m: Record<string, string> = { pending: 'Pendiente', partial: 'Parcial', paid: 'Pagada', cancelled: 'Cancelada', overdue: 'Vencida' };
+    return m[s] ?? s;
+  }
+
+  paymentPlanStatusLabel(s: string): string {
+    const m: Record<string, string> = { active: 'Activo', completed: 'Completado', cancelled: 'Cancelado', defaulted: 'En mora' };
+    return m[s] ?? s;
+  }
+
+  budgetStatusLabel(s: string): string {
+    const m: Record<string, string> = { draft: 'Borrador', accepted: 'Aceptado', rejected: 'Rechazado' };
+    return m[s] ?? s;
   }
 
   initials(p: Patient): string { return `${p.first_name[0]}${p.last_name[0]}`.toUpperCase(); }
@@ -98,7 +147,7 @@ export class PatientDetailComponent implements OnInit {
   printMedicalHistory(): void {
     window.open(`/patients/${this.patient()!.id}/historia/imprimir`, '_blank');
   }
-  formatDateOnly(iso: string): string { return fmtDateOnly(iso); }
+  formatDateOnly(iso?: string): string { return iso ? fmtDateOnly(iso) : '—'; }
 
   typeLabel(t: string): string {
     const m: Record<string, string> = {

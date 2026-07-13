@@ -17,7 +17,7 @@
         @if (invoice()!.status === 'pending') {
           <button type="button" class="btn-cancel-invoice" (click)="cancelInvoice()" [disabled]="cancelling()">
             @if (cancelling()) { <span class="spinner-sm"></span> }
-            Cancelar Factura
+            Cancelar Comprobante
           </button>
         }
         <span class="status-badge big" [class]="'inv-' + invoice()!.status">{{ invStatusLabel(invoice()!.status) }}</span>
@@ -110,11 +110,27 @@
         @if (invoice()!.balance > 0 && invoice()!.status !== 'cancelled') {
           <div class="payment-panel">
             <h4>Registrar Pago</h4>
+            <div class="calc-toggle">
+              <button type="button" class="toggle-btn" [class.active]="payType === 'completo'" (click)="payType = 'completo'">
+                Pago Completo
+              </button>
+              <button type="button" class="toggle-btn" [class.active]="payType === 'parcial'" (click)="payType = 'parcial'">
+                Pago Parcial
+              </button>
+            </div>
             <div class="pay-form">
-              <div class="pay-amount-display">
-                <span class="pay-amount-label">Monto total a pagar</span>
-                <span class="pay-amount-val">Bs {{ formatMoney(invoice()!.balance) }}</span>
-              </div>
+              @if (payType === 'completo') {
+                <div class="pay-amount-display">
+                  <span class="pay-amount-label">Monto total a pagar</span>
+                  <span class="pay-amount-val">Bs {{ formatMoney(invoice()!.balance) }}</span>
+                </div>
+              } @else {
+                <div class="form-group">
+                  <label>Monto a Pagar (Bs)</label>
+                  <input type="number" min="0.01" [max]="invoice()!.balance" step="0.01" [(ngModel)]="payAmount"/>
+                  <span class="hint">Puede ser cualquier monto hasta el saldo pendiente (Bs {{ formatMoney(invoice()!.balance) }}).</span>
+                </div>
+              }
               <div class="form-group">
                 <label>Método de Pago</label>
                 <select [(ngModel)]="payMethod">
@@ -126,9 +142,10 @@
                 <label>Referencia</label>
                 <input type="text" [(ngModel)]="payReference" placeholder="N° transacción (opcional)"/>
               </div>
-              <button class="pay-btn" (click)="registerPayment()" [disabled]="paying()">
+              <button class="pay-btn" (click)="registerPayment()"
+                [disabled]="paying() || (payType === 'parcial' && (payAmount <= 0 || payAmount > invoice()!.balance))">
                 @if (paying()) { <span class="spinner-sm"></span> }
-                Registrar Pago Completo
+                Registrar Pago
               </button>
               @if (payError()) { <p class="pay-error">{{ payError() }}</p> }
             </div>
@@ -141,7 +158,7 @@
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
               <polyline points="22 4 12 14.01 9 11.01"/>
             </svg>
-            <span>Factura pagada completamente</span>
+            <span>Comprobante pagado completamente</span>
           </div>
         }
 

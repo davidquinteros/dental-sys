@@ -28,6 +28,27 @@ export const routes: Routes = [
     data: { pageKey: 'patients' },
   },
   {
+    path: 'billing/payment-plans/:id/imprimir',
+    loadComponent: () =>
+      import('./features/billing/payment-plan-print.component').then(m => m.PaymentPlanPrintComponent),
+    canActivate: [roleGuard],
+    data: { pageKey: 'billing' },
+  },
+  {
+    path: 'billing/budgets/:id/imprimir',
+    loadComponent: () =>
+      import('./features/billing/budget-print.component').then(m => m.BudgetPrintComponent),
+    canActivate: [roleGuard],
+    data: { pageKey: 'billing' },
+  },
+  {
+    path: 'billing/payment-plans/:id/comprobante/:installmentId/imprimir',
+    loadComponent: () =>
+      import('./features/billing/payment-receipt-print.component').then(m => m.PaymentReceiptPrintComponent),
+    canActivate: [roleGuard],
+    data: { pageKey: 'billing' },
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./shared/components/layout/layout.component').then(m => m.LayoutComponent),

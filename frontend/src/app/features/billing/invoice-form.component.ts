@@ -106,7 +106,7 @@ export class InvoiceFormComponent implements OnInit {
 
     this.billingService.createInvoice(payload).subscribe({
       next: res => this.router.navigate(['/billing/invoices', res.invoice.id]),
-      error: err => { this.errorMsg.set(err.error?.error || 'Error al crear la factura'); this.saving.set(false); },
+      error: err => { this.errorMsg.set(err.error?.error || 'Error al crear el comprobante'); this.saving.set(false); },
     });
   }
 }

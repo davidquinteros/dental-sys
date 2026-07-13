@@ -71,13 +71,13 @@
           @for (patient of patients(); track patient.id) {
             <tr>
               <td>
-                <div class="patient-cell">
+                <a [routerLink]="['/patients', patient.id]" class="patient-cell patient-cell-link">
                   <div class="patient-avatar">{{ initials(patient) }}</div>
                   <div class="patient-info">
                     <span class="patient-name">{{ patient.full_name }}</span>
                     <span class="patient-email">{{ patient.email || '—' }}</span>
                   </div>
-                </div>
+                </a>
               </td>
               <td>{{ patient.document_number }}</td>
               <td>{{ patient.age ? patient.age + ' años' : '—' }}</td>

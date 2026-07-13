@@ -1,14 +1,16 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { BillingService, PatientService, TreatmentService } from '../../core/services/api.service';
 import { Patient, TreatmentPlan } from '../../core/models';
+import { BillingConditionsFieldsComponent } from '../../shared/components/billing-conditions-fields/billing-conditions-fields.component';
+import { TreatmentPlanFormComponent } from '../treatments/treatment-plan-form.component';
 
 @Component({
   selector: 'app-payment-plan-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, BillingConditionsFieldsComponent, TreatmentPlanFormComponent],
   templateUrl: './payment-plan-form.component.html',
   styleUrl: './payment-plan-form.component.css',
 })
@@ -24,7 +26,11 @@ export class PaymentPlanFormComponent implements OnInit {
 
   isEditMode = signal(false);
   planTreatmentLabel = signal('');
+  costLocked = signal(false);
+  showPlanModal = signal(false);
+  planModalPreset = signal<{ name?: string; start_date?: string; estimated_end_date?: string; total_sessions?: number }>({});
   private planId: number | null = null;
+  private budgetId: number | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -37,12 +43,21 @@ export class PaymentPlanFormComponent implements OnInit {
     this.form = this.fb.group({
       name: ['', Validators.required],
       treatment_plan_id: ['', Validators.required],
-      total_amount: ['', [Validators.required, Validators.min(1)]],
-      down_payment: [0],
-      installments: [3, Validators.required],
-      start_date: [''],
+      conditions: this.fb.group({
+        calc_mode: ['total'],
+        num_citas: [3, Validators.required],
+        cost_per_cita: [0],
+        total_amount: [0],
+        down_payment: [0],
+        start_date: [''],
+        end_date: [''],
+      }),
       notes: [''],
     });
+  }
+
+  get conditionsGroup(): FormGroup {
+    return this.form.get('conditions') as FormGroup;
   }
 
   ngOnInit(): void {
@@ -57,15 +72,43 @@ export class PaymentPlanFormComponent implements OnInit {
       this.billingService.getPaymentPlan(this.planId).subscribe(res => {
         const plan = res.payment_plan;
         this.planTreatmentLabel.set(plan.treatment_plan_name || `Plan #${plan.treatment_plan_id}`);
+        this.costLocked.set(plan.paid_installments > 0);
         this.patientService.getById(plan.patient_id).subscribe(pres => this.selectedPatient.set(pres.patient));
         this.form.patchValue({
           name: plan.name,
           treatment_plan_id: plan.treatment_plan_id,
-          total_amount: plan.total_amount,
-          down_payment: plan.down_payment,
-          installments: plan.installments,
-          start_date: plan.start_date,
           notes: plan.notes,
+          conditions: {
+            calc_mode: 'total',
+            num_citas: plan.installments,
+            cost_per_cita: plan.installment_amount,
+            total_amount: plan.total_amount,
+            down_payment: plan.down_payment,
+            start_date: plan.start_date || '',
+            end_date: plan.end_date || '',
+          },
+        });
+      });
+      return;
+    }
+
+    const budgetId = this.route.snapshot.queryParamMap.get('budget_id');
+    if (budgetId) {
+      this.budgetId = +budgetId;
+      this.billingService.getBudget(this.budgetId).subscribe(res => {
+        const budget = res.budget;
+        this.patientService.getById(budget.patient_id).subscribe(pres => this.selectPatient(pres.patient));
+        this.form.patchValue({
+          name: budget.name,
+          conditions: {
+            calc_mode: 'total',
+            num_citas: budget.num_citas,
+            cost_per_cita: budget.cost_per_cita,
+            total_amount: budget.total_amount,
+            down_payment: budget.down_payment,
+            start_date: budget.start_date || '',
+            end_date: budget.end_date || '',
+          },
         });
       });
       return;
@@ -107,39 +150,50 @@ export class PaymentPlanFormComponent implements OnInit {
     this.form.patchValue({ treatment_plan_id: '' });
   }
 
-  recalc(): void { /* computed via getters */ }
-
-  financeAmount(): number {
-    const total = parseFloat(this.form.get('total_amount')?.value) || 0;
-    const down = parseFloat(this.form.get('down_payment')?.value) || 0;
-    return Math.max(0, total - down);
+  openPlanModal(): void {
+    const cond = this.conditionsGroup.value;
+    this.planModalPreset.set({
+      name: this.form.get('name')?.value || undefined,
+      start_date: cond.start_date || undefined,
+      estimated_end_date: cond.end_date || undefined,
+      total_sessions: cond.num_citas || undefined,
+    });
+    this.showPlanModal.set(true);
   }
 
-  installmentAmount(): number {
-    const installments = parseInt(this.form.get('installments')?.value) || 1;
-    return installments > 0 ? this.financeAmount() / installments : 0;
+  onPlanCreated(plan: TreatmentPlan): void {
+    this.treatmentPlans.update(list => [plan, ...list]);
+    this.form.patchValue({ treatment_plan_id: plan.id });
+    this.showPlanModal.set(false);
   }
 
   hasError(f: string): boolean { const c = this.form.get(f); return !!(c?.invalid && c?.touched); }
-
-  formatMoney(val: number): string {
-    return new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
-  }
 
   onSubmit(): void {
     if (this.form.invalid || !this.selectedPatient()) { this.form.markAllAsTouched(); return; }
     this.saving.set(true);
     const val = this.form.value;
+    const cond = val.conditions;
 
     if (this.isEditMode()) {
-      const payload = {
+      const payload: any = {
         name: val.name,
-        total_amount: parseFloat(val.total_amount),
-        down_payment: parseFloat(val.down_payment) || 0,
-        installments: +val.installments,
-        start_date: val.start_date || null,
+        num_citas: +cond.num_citas,
+        start_date: cond.start_date || null,
+        end_date: cond.end_date || null,
         notes: val.notes || null,
       };
+      // Cost fields are only accepted by the backend while paid_installments == 0 —
+      // omit them entirely once locked so editing name/notes/dates/num_citas still works.
+      if (!this.costLocked()) {
+        payload.calc_mode = cond.calc_mode;
+        payload.down_payment = parseFloat(cond.down_payment) || 0;
+        if (cond.calc_mode === 'per_cita') {
+          payload.cost_per_cita = parseFloat(cond.cost_per_cita) || 0;
+        } else {
+          payload.total_amount = parseFloat(cond.total_amount) || 0;
+        }
+      }
       this.billingService.updatePaymentPlan(this.planId!, payload).subscribe({
         next: () => this.router.navigate(['/billing/payment-plans', this.planId]),
         error: err => { this.errorMsg.set(err.error?.error || 'Error al guardar'); this.saving.set(false); },
@@ -147,18 +201,36 @@ export class PaymentPlanFormComponent implements OnInit {
       return;
     }
 
-    const payload = {
+    const payload: any = {
       patient_id: this.selectedPatient()!.id,
       treatment_plan_id: +val.treatment_plan_id,
       name: val.name,
-      total_amount: parseFloat(val.total_amount),
-      down_payment: parseFloat(val.down_payment) || 0,
-      installments: +val.installments,
-      start_date: val.start_date || undefined,
+      calc_mode: cond.calc_mode,
+      num_citas: +cond.num_citas,
+      down_payment: parseFloat(cond.down_payment) || 0,
+      start_date: cond.start_date || undefined,
+      end_date: cond.end_date || undefined,
       notes: val.notes || undefined,
     };
+    if (cond.calc_mode === 'per_cita') {
+      payload.cost_per_cita = parseFloat(cond.cost_per_cita) || 0;
+    } else {
+      payload.total_amount = parseFloat(cond.total_amount) || 0;
+    }
     this.billingService.createPaymentPlan(payload).subscribe({
-      next: () => this.router.navigate(['/billing']),
+      next: res => {
+        const planId = res.payment_plan.id;
+        if (this.budgetId) {
+          this.billingService.linkBudgetPlan(this.budgetId, planId).subscribe({
+            next: () => this.router.navigate(['/billing/payment-plans', planId]),
+            // The plan was already created successfully — still navigate there even if
+            // linking the budget back failed, rather than stranding the user on the form.
+            error: () => this.router.navigate(['/billing/payment-plans', planId]),
+          });
+        } else {
+          this.router.navigate(['/billing']);
+        }
+      },
       error: err => { this.errorMsg.set(err.error?.error || 'Error al crear'); this.saving.set(false); },
     });
   }
