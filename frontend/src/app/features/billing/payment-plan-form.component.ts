@@ -6,11 +6,12 @@ import { BillingService, PatientService, TreatmentService } from '../../core/ser
 import { Patient, TreatmentPlan } from '../../core/models';
 import { BillingConditionsFieldsComponent } from '../../shared/components/billing-conditions-fields/billing-conditions-fields.component';
 import { TreatmentPlanFormComponent } from '../treatments/treatment-plan-form.component';
+import { ConfirmBackdropCloseDirective } from '../../shared/directives/confirm-backdrop-close.directive';
 
 @Component({
   selector: 'app-payment-plan-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, BillingConditionsFieldsComponent, TreatmentPlanFormComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, BillingConditionsFieldsComponent, TreatmentPlanFormComponent, ConfirmBackdropCloseDirective],
   templateUrl: './payment-plan-form.component.html',
   styleUrl: './payment-plan-form.component.css',
 })

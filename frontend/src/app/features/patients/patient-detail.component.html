@@ -437,7 +437,7 @@
 
 <!-- ── Modal Detalle Plan de Tratamiento ────────────────────────────────────── -->
 @if (showPlanDetailModal()) {
-  <div class="modal-backdrop" (click)="showPlanDetailModal.set(false)">
+  <div class="modal-backdrop" appConfirmBackdropClose confirmMessage="¿Cerrar esta ventana?" (confirmedClose)="showPlanDetailModal.set(false)">
     <div class="modal modal-wide" (click)="$event.stopPropagation()">
 
       @if (planDetailLoading()) {
@@ -572,7 +572,7 @@
 
 <!-- ── Modal Detalle Atención ───────────────────────────────────────────────── -->
 @if (showTreatmentDetailModal()) {
-  <div class="modal-backdrop" (click)="showTreatmentDetailModal.set(false)">
+  <div class="modal-backdrop" appConfirmBackdropClose confirmMessage="¿Cerrar esta ventana?" (confirmedClose)="showTreatmentDetailModal.set(false)">
     <div class="modal modal-wide" (click)="$event.stopPropagation()">
       <div class="modal-body">
         <app-treatment-detail
@@ -587,7 +587,7 @@
 
 <!-- ── Modal Nuevo Plan de Tratamiento ──────────────────────────────────────── -->
 @if (showPlanModal()) {
-  <div class="modal-backdrop" (click)="showPlanModal.set(false)">
+  <div class="modal-backdrop" appConfirmBackdropClose (confirmedClose)="showPlanModal.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
 
       <div class="modal-header">
@@ -620,7 +620,7 @@
 
 <!-- ── Modal Nueva Atención ─────────────────────────────────────────────────── -->
 @if (showTreatmentModal()) {
-  <div class="modal-backdrop" (click)="showTreatmentModal.set(false)">
+  <div class="modal-backdrop" appConfirmBackdropClose (confirmedClose)="showTreatmentModal.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
 
       <div class="modal-header">
@@ -654,7 +654,7 @@
 
 <!-- ── Modal Editar Cita ────────────────────────────────────────────────────── -->
 @if (showAppointmentModal()) {
-  <div class="modal-backdrop" (click)="showAppointmentModal.set(false)">
+  <div class="modal-backdrop" appConfirmBackdropClose (confirmedClose)="showAppointmentModal.set(false)">
     <div class="modal modal-wide" (click)="$event.stopPropagation()">
 
       <div class="modal-header">

@@ -229,7 +229,7 @@
 
 <!-- ── Quick patient creation modal ──────────────────────────────────────────── -->
 @if (showPatientModal()) {
-  <div class="modal-backdrop" (click)="showPatientModal.set(false)">
+  <div class="modal-backdrop" appConfirmBackdropClose (confirmedClose)="showPatientModal.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3 class="modal-title">Nuevo Paciente Rápido</h3>

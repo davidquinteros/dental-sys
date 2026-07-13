@@ -114,7 +114,7 @@
 
 <!-- ── Modal Nuevo Plan de Tratamiento ──────────────────────────────────────── -->
 @if (showPlanModal()) {
-  <div class="modal-backdrop" (click)="showPlanModal.set(false)">
+  <div class="modal-backdrop" appConfirmBackdropClose (confirmedClose)="showPlanModal.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
 
       <div class="modal-header">

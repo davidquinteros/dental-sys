@@ -10,6 +10,7 @@ import { TreatmentPlanFormComponent } from '../treatments/treatment-plan-form.co
 import { TreatmentDetailComponent } from '../treatments/treatment-detail.component';
 import { MedicalHistoryComponent } from './medical-history.component';
 import { AppointmentFormComponent } from '../appointments/appointment-form.component';
+import { ConfirmBackdropCloseDirective } from '../../shared/directives/confirm-backdrop-close.directive';
 
 @Component({
   selector: 'app-patient-detail',
@@ -17,7 +18,7 @@ import { AppointmentFormComponent } from '../appointments/appointment-form.compo
   imports: [
     CommonModule, RouterLink, OdontogramComponent,
     TreatmentFormComponent, TreatmentPlanFormComponent, TreatmentDetailComponent, MedicalHistoryComponent,
-    AppointmentFormComponent,
+    AppointmentFormComponent, ConfirmBackdropCloseDirective,
   ],
   templateUrl: './patient-detail.component.html',
   styleUrl: './patient-detail.component.css',

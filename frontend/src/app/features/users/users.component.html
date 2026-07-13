@@ -70,7 +70,7 @@
 
   <!-- Modal -->
   @if (showModal()) {
-    <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-overlay" appConfirmBackdropClose (confirmedClose)="closeModal()">
       <div class="modal" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <h3>{{ editingUser() ? 'Editar Usuario' : 'Nuevo Usuario' }}</h3>
@@ -165,7 +165,7 @@
 
   <!-- Reset password modal -->
   @if (resetPasswordUser()) {
-    <div class="modal-overlay" (click)="closeResetPassword()">
+    <div class="modal-overlay" appConfirmBackdropClose (confirmedClose)="closeResetPassword()">
       <div class="modal" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <h3>Restaurar Contraseña</h3>

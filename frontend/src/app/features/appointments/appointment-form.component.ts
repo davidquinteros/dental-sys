@@ -9,11 +9,12 @@ import {
 import { AuthService } from '../../core/services/auth.service';
 import { Appointment, Patient, User, Consultorio, AppointmentTypeItem, TreatmentPlan } from '../../core/models';
 import { CalendarComponent } from '../calendar/calendar.component';
+import { ConfirmBackdropCloseDirective } from '../../shared/directives/confirm-backdrop-close.directive';
 
 @Component({
   selector: 'app-appointment-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, CalendarComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, CalendarComponent, ConfirmBackdropCloseDirective],
   templateUrl: './appointment-form.component.html',
   styleUrl: './appointment-form.component.css',
 })

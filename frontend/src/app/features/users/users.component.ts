@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { UserService } from '../../core/services/api.service';
 import { User } from '../../core/models';
+import { ConfirmBackdropCloseDirective } from '../../shared/directives/confirm-backdrop-close.directive';
 
 export function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
   const value: string = control.value || '';
@@ -17,7 +18,7 @@ export function passwordStrengthValidator(control: AbstractControl): ValidationE
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ConfirmBackdropCloseDirective],
   templateUrl: './users.component.html',
   styleUrl: './users.component.css',
 })
