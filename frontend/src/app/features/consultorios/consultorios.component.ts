@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ConsultorioService } from '../../core/services/api.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { Consultorio } from '../../core/models';
 
 const PRESET_COLORS = [
@@ -31,7 +32,7 @@ export class ConsultoriosComponent implements OnInit {
 
   readonly presetColors = PRESET_COLORS;
 
-  constructor(private service: ConsultorioService) {}
+  constructor(private service: ConsultorioService, private confirmService: ConfirmService) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -84,8 +85,13 @@ export class ConsultoriosComponent implements OnInit {
 
   // ── Delete ─────────────────────────────────────────────────────────────────
 
-  remove(c: Consultorio): void {
-    if (!confirm(`¿Desactivar el "${c.name}"? Las citas existentes no se verán afectadas.`)) return;
+  async remove(c: Consultorio): Promise<void> {
+    const ok = await this.confirmService.confirm({
+      title: 'Desactivar consultorio',
+      message: `¿Desactivar el "${c.name}"? Las citas existentes no se verán afectadas.`,
+      confirmText: 'Desactivar', danger: true,
+    });
+    if (!ok) return;
     this.service.delete(c.id).subscribe({
       next: () => { this.flash('Consultorio desactivado'); this.load(); },
       error: err => this.errorMsg.set(err.error?.error || 'Error al eliminar'),

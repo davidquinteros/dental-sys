@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { firstValueFrom } from 'rxjs';
 import { TreatmentService } from '../../core/services/api.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { TreatmentImage } from '../../core/models';
 import { compressImage } from '../../shared/utils/image-compression';
 
@@ -38,7 +39,7 @@ export class TreatmentImagesComponent implements OnInit, OnDestroy {
 
   private objectUrls: string[] = [];
 
-  constructor(private svc: TreatmentService, private sanitizer: DomSanitizer) {}
+  constructor(private svc: TreatmentService, private sanitizer: DomSanitizer, private confirmService: ConfirmService) {}
 
   ngOnInit(): void {
     this.reload();
@@ -117,8 +118,13 @@ export class TreatmentImagesComponent implements OnInit, OnDestroy {
   open(img: TreatmentImage): void { this.active.set(img); }
   close(): void { this.active.set(null); }
 
-  remove(img: TreatmentImage): void {
-    if (!confirm('¿Eliminar esta foto? Esta acción no se puede deshacer.')) return;
+  async remove(img: TreatmentImage): Promise<void> {
+    const ok = await this.confirmService.confirm({
+      title: 'Eliminar foto',
+      message: '¿Eliminar esta foto? Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar', danger: true,
+    });
+    if (!ok) return;
     this.svc.deleteImage(img.id).subscribe({
       next: () => { this.close(); this.reload(); },
       error: () => this.error.set('No se pudo eliminar la imagen'),

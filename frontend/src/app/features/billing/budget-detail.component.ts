@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { BillingService } from '../../core/services/api.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { Budget } from '../../core/models';
 import { formatDate as fmtDate, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 
@@ -18,7 +19,7 @@ export class BudgetDetailComponent implements OnInit {
   acting = signal(false);
   actionError = signal('');
 
-  constructor(private route: ActivatedRoute, private billingService: BillingService) {}
+  constructor(private route: ActivatedRoute, private billingService: BillingService, private confirmService: ConfirmService) {}
 
   ngOnInit(): void {
     const id = +this.route.snapshot.paramMap.get('id')!;
@@ -44,10 +45,15 @@ export class BudgetDetailComponent implements OnInit {
     });
   }
 
-  reject(): void {
+  async reject(): Promise<void> {
     const b = this.budget();
     if (!b) return;
-    if (!confirm('¿Rechazar este presupuesto? Esta acción no se puede deshacer.')) return;
+    const ok = await this.confirmService.confirm({
+      title: 'Rechazar presupuesto',
+      message: '¿Rechazar este presupuesto? Esta acción no se puede deshacer.',
+      confirmText: 'Rechazar', danger: true,
+    });
+    if (!ok) return;
     this.acting.set(true);
     this.actionError.set('');
     this.billingService.rejectBudget(b.id).subscribe({

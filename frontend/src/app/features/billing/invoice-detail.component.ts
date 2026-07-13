@@ -4,6 +4,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ReactiveFormsModule, FormBuilder, FormArray, FormGroup, Validators } from '@angular/forms';
 import { BillingService } from '../../core/services/api.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { Invoice } from '../../core/models';
 import { formatDate as fmtDate, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 
@@ -36,6 +37,7 @@ export class InvoiceDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private billingService: BillingService,
     private fb: FormBuilder,
+    private confirmService: ConfirmService,
   ) {
     this.itemsForm = this.fb.group({ items: this.fb.array([]) });
   }
@@ -110,10 +112,15 @@ export class InvoiceDetailComponent implements OnInit {
     });
   }
 
-  cancelInvoice(): void {
+  async cancelInvoice(): Promise<void> {
     const inv = this.invoice();
     if (!inv || inv.status !== 'pending') return;
-    if (!confirm(`¿Cancelar el comprobante ${inv.invoice_number}? Esta acción no se puede deshacer.`)) return;
+    const ok = await this.confirmService.confirm({
+      title: 'Cancelar comprobante',
+      message: `¿Cancelar el comprobante ${inv.invoice_number}? Esta acción no se puede deshacer.`,
+      confirmText: 'Cancelar comprobante', cancelText: 'Volver', danger: true,
+    });
+    if (!ok) return;
 
     this.cancelling.set(true);
     this.cancelError.set('');

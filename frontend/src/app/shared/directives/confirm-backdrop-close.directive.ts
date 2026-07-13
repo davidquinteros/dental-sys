@@ -1,10 +1,11 @@
 import { Directive, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import { ConfirmService } from '../../core/services/confirm.service';
 
 /**
  * Put on a modal's backdrop element. A click on the backdrop itself (not on the
- * modal content inside it) pops a native confirm() dialog, and only emits
- * `confirmedClose` if the user accepts — so clicking outside a modal no longer
- * closes it by accident. Replaces a plain `(click)="closeModal()"` on the backdrop.
+ * modal content inside it) pops the app's custom confirm dialog (ConfirmService),
+ * and only emits `confirmedClose` if the user accepts — so clicking outside a modal
+ * no longer closes it by accident. Replaces a plain `(click)="closeModal()"`.
  *
  *   <div class="modal-backdrop" appConfirmBackdropClose (confirmedClose)="showModal.set(false)">
  *     <div class="modal" (click)="$event.stopPropagation()"> ... </div>
@@ -24,11 +25,13 @@ export class ConfirmBackdropCloseDirective {
   /** Emitted only when the user clicks the backdrop AND confirms. */
   @Output() confirmedClose = new EventEmitter<void>();
 
+  constructor(private confirmService: ConfirmService) {}
+
   @HostListener('click', ['$event'])
   onBackdropClick(event: MouseEvent): void {
     if (event.target !== event.currentTarget) return; // click landed on modal content, ignore
-    if (window.confirm(this.confirmMessage)) {
-      this.confirmedClose.emit();
-    }
+    this.confirmService
+      .confirm({ title: 'Cerrar ventana', message: this.confirmMessage })
+      .then(ok => { if (ok) this.confirmedClose.emit(); });
   }
 }

@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AppointmentTypeService } from '../../core/services/api.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { AppointmentTypeItem } from '../../core/models';
 
 const PRESET_COLORS = [
@@ -32,7 +33,7 @@ export class AppointmentTypesComponent implements OnInit {
 
   readonly presetColors = PRESET_COLORS;
 
-  constructor(private service: AppointmentTypeService) {}
+  constructor(private service: AppointmentTypeService, private confirmService: ConfirmService) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -79,8 +80,13 @@ export class AppointmentTypesComponent implements OnInit {
     });
   }
 
-  remove(t: AppointmentTypeItem): void {
-    if (!confirm(`¿Desactivar el tipo "${t.label}"? Las citas existentes no se verán afectadas.`)) return;
+  async remove(t: AppointmentTypeItem): Promise<void> {
+    const ok = await this.confirmService.confirm({
+      title: 'Desactivar tipo de cita',
+      message: `¿Desactivar el tipo "${t.label}"? Las citas existentes no se verán afectadas.`,
+      confirmText: 'Desactivar', danger: true,
+    });
+    if (!ok) return;
     this.service.delete(t.id).subscribe({
       next: () => { this.flash('Tipo desactivado'); this.load(); },
       error: err => this.errorMsg.set(err.error?.error || 'Error al desactivar'),

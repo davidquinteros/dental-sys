@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PermissionService } from '../../core/services/permission.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import {
   AppPage, PermissionMatrix, PermissionMatrixResponse, PagePermissions,
 } from '../../core/models';
@@ -42,7 +43,7 @@ export class PermissionsComponent implements OnInit {
 
   roleLabels = ROLE_LABELS;
 
-  constructor(private permissionService: PermissionService) {}
+  constructor(private permissionService: PermissionService, private confirmService: ConfirmService) {}
 
   ngOnInit(): void {
     this.load();
@@ -145,8 +146,13 @@ export class PermissionsComponent implements OnInit {
     });
   }
 
-  deletePage(page: AppPage): void {
-    if (!confirm(`¿Eliminar la página "${page.label}"? Esta acción no se puede deshacer.`)) return;
+  async deletePage(page: AppPage): Promise<void> {
+    const ok = await this.confirmService.confirm({
+      title: 'Eliminar página',
+      message: `¿Eliminar la página "${page.label}"? Esta acción no se puede deshacer.`,
+      confirmText: 'Eliminar', danger: true,
+    });
+    if (!ok) return;
     this.permissionService.deletePage(page.id).subscribe({
       next: () => this.load(),
       error: (err) => this.errorMsg.set(err.error?.error || 'Error al eliminar'),
