@@ -17,6 +17,7 @@ export class BudgetFormComponent implements OnInit {
   form: FormGroup;
   saving = signal(false);
   errorMsg = signal('');
+  itemsError = signal(false);
   selectedPatient = signal<Patient | null>(null);
   patientResults = signal<Patient[]>([]);
   treatmentPlans = signal<TreatmentPlan[]>([]);
@@ -67,7 +68,7 @@ export class BudgetFormComponent implements OnInit {
     });
   }
 
-  addItem(): void { this.itemsArray.push(this.newItemGroup()); }
+  addItem(): void { this.itemsArray.push(this.newItemGroup()); this.itemsError.set(false); }
   removeItem(i: number): void { this.itemsArray.removeAt(i); }
 
   itemTotal(i: number): number {
@@ -156,7 +157,11 @@ export class BudgetFormComponent implements OnInit {
   hasError(f: string): boolean { const c = this.form.get(f); return !!(c?.invalid && c?.touched); }
 
   onSubmit(): void {
-    if (this.form.invalid || !this.selectedPatient()) { this.form.markAllAsTouched(); return; }
+    if (this.itemsArray.length === 0) { this.itemsError.set(true); }
+    if (this.form.invalid || !this.selectedPatient() || this.itemsArray.length === 0) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.saving.set(true);
     const val = this.form.value;
     const cond = val.conditions;

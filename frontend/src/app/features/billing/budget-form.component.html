@@ -82,6 +82,9 @@
           }
         </div>
         <button type="button" class="add-item-btn" (click)="addItem()">+ Agregar ítem</button>
+        @if (itemsError() && itemsArray.length === 0) {
+          <span class="field-error">Debe agregar al menos un ítem</span>
+        }
         @if (itemsArray.length > 0) {
           <div class="items-subtotal">
             <span>Subtotal de ítems</span>

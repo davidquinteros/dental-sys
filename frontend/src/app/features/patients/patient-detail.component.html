@@ -140,18 +140,32 @@
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                           </svg>
                         </button>
+                        <button type="button" class="icon-btn" title="Registrar atención" (click)="openTreatmentFromAppointment(a)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                          </svg>
+                        </button>
                         @if (a.status === 'completed') {
                           @if (a.has_invoice) {
                             <span class="pill green" title="Esta cita ya fue cobrada">Cobrada</span>
                           } @else {
-                            <a [routerLink]="['/billing/invoices/new']"
-                              [queryParams]="{ patient_id: patient()!.id, appointment_id: a.id }"
-                              class="icon-btn" title="Registrar pago">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="1" x2="12" y2="23"/>
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                              </svg>
-                            </a>
+                            @if (a.treatment_plan_id && paymentPlanForTreatmentPlan(a.treatment_plan_id); as plan) {
+                              <a [routerLink]="['/billing/payment-plans', plan.id]" class="icon-btn" title="Ver plan de pago">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <line x1="12" y1="1" x2="12" y2="23"/>
+                                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                              </a>
+                            } @else {
+                              <a [routerLink]="['/billing/invoices/new']"
+                                [queryParams]="{ patient_id: patient()!.id, appointment_id: a.id }"
+                                class="icon-btn" title="Registrar pago">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <line x1="12" y1="1" x2="12" y2="23"/>
+                                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                              </a>
+                            }
                           }
                         }
                       </div>
@@ -204,12 +218,23 @@
                     <td class="notes-cell">{{ t.diagnosis || '—' }}</td>
                     <td class="notes-cell">{{ t.next_steps || '—' }}</td>
                     <td class="col-actions">
-                      <button type="button" class="icon-btn" title="Ver detalle de la atención" (click)="openTreatmentDetail(t.id)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                          <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                      </button>
+                      <div class="row-actions">
+                        <button type="button" class="icon-btn" title="Ver detalle de la atención" (click)="openTreatmentDetail(t.id)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                          </svg>
+                        </button>
+                        @if (t.has_prescription) {
+                          <button type="button" class="icon-btn" title="Imprimir receta" (click)="printReceta(t.id)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <polyline points="6 9 6 2 18 2 18 9"/>
+                              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                              <rect x="6" y="14" width="12" height="8"/>
+                            </svg>
+                          </button>
+                        }
+                      </div>
                     </td>
                   </tr>
                 }
@@ -643,6 +668,7 @@
           [embedded]="true"
           [presetPatient]="patient()"
           [presetPlanId]="treatmentPlanPreset()"
+          [presetAppointmentId]="treatmentAppointmentPreset()"
           (saved)="onTreatmentSaved($event)"
           (cancelled)="showTreatmentModal.set(false)">
         </app-treatment-form>

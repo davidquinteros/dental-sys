@@ -149,15 +149,27 @@
           <div class="payment-panel">
             <h4>Registrar Pago</h4>
             <div class="calc-toggle">
-              <button type="button" class="toggle-btn" [class.active]="payType === 'completo'" (click)="payType = 'completo'">
-                Pago Completo
-              </button>
-              <button type="button" class="toggle-btn" [class.active]="payType === 'parcial'" (click)="payType = 'parcial'">
-                Pago Parcial
-              </button>
+              @if (downPaymentPending()) {
+                <button type="button" class="toggle-btn active">
+                  Pago Inicial
+                </button>
+              } @else {
+                <button type="button" class="toggle-btn" [class.active]="payType === 'completo'" (click)="selectPayType('completo')">
+                  Pago Completo
+                </button>
+                <button type="button" class="toggle-btn" [class.active]="payType === 'parcial'" (click)="selectPayType('parcial')">
+                  Pago Parcial
+                </button>
+              }
             </div>
             <div class="pay-form">
-              @if (payType === 'completo') {
+              @if (downPaymentPending()) {
+                <div class="form-group">
+                  <label>Monto del Pago Inicial (Bs)</label>
+                  <input type="number" min="0.01" [max]="pendingDownPayment()" step="0.01" [(ngModel)]="initialAmount"/>
+                  <span class="hint">Debe registrarse el pago inicial (enganche) antes de poder registrar pagos de citas. Pendiente: Bs {{ formatMoney(pendingDownPayment()) }} de Bs {{ formatMoney(plan()!.down_payment) }}.</span>
+                </div>
+              } @else if (payType === 'completo') {
                 <div class="form-group">
                   <label>Cantidad de Citas a Pagar</label>
                   <input type="number" min="1" [max]="maxCompleteCitas()" step="1" [(ngModel)]="citasToRegister"/>
@@ -179,7 +191,7 @@
                 <textarea rows="2" [(ngModel)]="paymentNotes" placeholder="Observaciones del pago, método, referencia..."></textarea>
               </div>
               <button class="pay-btn" (click)="registerPayment()"
-                [disabled]="paying() || (payType === 'completo' ? (citasToRegister < 1 || citasToRegister > maxCompleteCitas()) : (partialAmount <= 0 || partialAmount > plan()!.balance))">
+                [disabled]="paying() || (payType === 'completo' ? (citasToRegister < 1 || citasToRegister > maxCompleteCitas()) : payType === 'inicial' ? (initialAmount <= 0 || initialAmount > pendingDownPayment()) : (partialAmount <= 0 || partialAmount > plan()!.balance))">
                 @if (paying()) { <span class="spinner-sm"></span> }
                 Registrar Pago
               </button>

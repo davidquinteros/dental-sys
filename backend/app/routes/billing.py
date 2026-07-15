@@ -954,7 +954,9 @@ def register_installment(plan_id):
       `paid_installments` es un valor derivado (citas completamente cubiertas por `total_paid`,
       `floor((total_paid - down_payment) / installment_amount)`), no un contador independiente —
       un pago parcial puede dejarlo sin cambios si no alcanza a completar la próxima cita. El
-      plan pasa a `completed` cuando `balance` llega a 0.
+      plan pasa a `completed` cuando `balance` llega a 0. Si el pago inicial (`down_payment`)
+      todavía no está cubierto (`total_paid < down_payment`), un pago `count` (citas completas)
+      se rechaza con 400 — el pago inicial debe registrarse primero, vía `amount`.
     parameters:
       - in: path
         name: plan_id
@@ -986,7 +988,9 @@ def register_installment(plan_id):
             message:
               type: string
       400:
-        description: El plan ya está completamente pagado, o el monto/cantidad de citas es inválido
+        description: >
+          El plan ya está completamente pagado, el monto/cantidad de citas es inválido,
+          o se intentó un pago de citas completas (`count`) antes de cubrir el pago inicial
         schema:
           $ref: '#/definitions/Error'
       401:
@@ -1015,7 +1019,11 @@ def register_installment(plan_id):
     if plan.balance <= 0:
         return jsonify({"error": "El plan ya está completamente pagado"}), 400
 
+    down_payment_pending = float(plan.down_payment) > 0 and float(plan.total_paid) < float(plan.down_payment)
+
     if "count" in data:
+        if down_payment_pending:
+            return jsonify({"error": "Debe registrarse el pago inicial (cuota inicial) antes de pagar citas completas"}), 400
         count = int(data["count"])
         if count < 1:
             return jsonify({"error": "La cantidad de citas a pagar debe ser al menos 1"}), 400

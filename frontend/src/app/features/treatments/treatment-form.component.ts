@@ -20,6 +20,8 @@ export class TreatmentFormComponent implements OnInit {
   @Input() presetPatient: Patient | null = null;
   /** Pre-fills the associated treatment plan ID for embedded mode. */
   @Input() presetPlanId: number | null = null;
+  /** Pre-fills the associated appointment (cita de referencia) for embedded mode. */
+  @Input() presetAppointmentId: number | null = null;
   @Output() saved = new EventEmitter<Treatment>();
   @Output() cancelled = new EventEmitter<void>();
 
@@ -108,7 +110,7 @@ export class TreatmentFormComponent implements OnInit {
     if (this.embedded) {
       if (this.presetPatient) {
         this.selectedPatient.set(this.presetPatient);
-        this.loadPatientLinks(this.presetPatient.id, null, this.presetPlanId);
+        this.loadPatientLinks(this.presetPatient.id, this.presetAppointmentId, this.presetPlanId);
       }
       return;
     }

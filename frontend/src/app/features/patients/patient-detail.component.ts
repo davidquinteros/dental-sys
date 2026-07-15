@@ -43,6 +43,7 @@ export class PatientDetailComponent implements OnInit {
   // Treatment modal (form delegated to <app-treatment-form embedded>)
   showTreatmentModal = signal(false);
   treatmentPlanPreset = signal<number | null>(null);
+  treatmentAppointmentPreset = signal<number | null>(null);
 
   // Plan modal (form delegated to <app-treatment-plan-form embedded>)
   showPlanModal = signal(false);
@@ -69,6 +70,12 @@ export class PatientDetailComponent implements OnInit {
       { key: 'billing', label: 'Pagos y Presupuestos' },
       { key: 'notes', label: 'Historia Médica' },
     ];
+  }
+
+  /** Payment plan billing a given treatment plan, if one was created for it — used to
+   * route the Citas tab's "Registrar pago" action to the plan instead of a one-off invoice. */
+  paymentPlanForTreatmentPlan(treatmentPlanId: number): PaymentPlan | undefined {
+    return this.paymentPlans().find(p => p.treatment_plan_id === treatmentPlanId);
   }
 
   activePlans(): number {
@@ -176,6 +183,15 @@ export class PatientDetailComponent implements OnInit {
   // ── Treatment modal ──────────────────────────────────────────────────────────
   openTreatmentModal(): void {
     this.treatmentPlanPreset.set(null);
+    this.treatmentAppointmentPreset.set(null);
+    this.showTreatmentModal.set(true);
+  }
+
+  /** "Registrar atención" action from the Citas tab — inherits the appointment as the
+   * cita de referencia and its treatment plan (if any) so the atención comes pre-linked. */
+  openTreatmentFromAppointment(appt: Appointment): void {
+    this.treatmentPlanPreset.set(appt.treatment_plan_id ?? null);
+    this.treatmentAppointmentPreset.set(appt.id);
     this.showTreatmentModal.set(true);
   }
 
@@ -183,11 +199,26 @@ export class PatientDetailComponent implements OnInit {
     this.treatments.update(list => [treatment, ...list]);
     this.showTreatmentModal.set(false);
     this.activeTab.set('treatments');
+
+    // Once the atención is registered against a cita still scheduled/confirmed, move it
+    // to "en curso" — it no longer makes sense to leave it as merely programmed/confirmed.
+    if (treatment.appointment_id) {
+      const appt = this.appointments().find(a => a.id === treatment.appointment_id);
+      if (appt && (appt.status === 'scheduled' || appt.status === 'confirmed')) {
+        this.apptService.update(appt.id, { status: 'in_progress' as any }).subscribe({
+          next: res => this.appointments.update(list => list.map(a => a.id === appt.id ? res.appointment : a)),
+        });
+      }
+    }
   }
 
   openTreatmentDetail(treatmentId: number): void {
     this.selectedTreatmentId.set(treatmentId);
     this.showTreatmentDetailModal.set(true);
+  }
+
+  printReceta(treatmentId: number): void {
+    window.open(`/treatments/${treatmentId}/receta`, '_blank');
   }
 
   // ── Plan detail modal ─────────────────────────────────────────────────────────

@@ -291,6 +291,8 @@ def update_patient(patient_id):
               type: string
             last_name:
               type: string
+            document_number:
+              type: string
             phone:
               type: string
             phone_emergency:
@@ -341,9 +343,25 @@ def update_patient(patient_id):
         description: Paciente no encontrado
         schema:
           $ref: '#/definitions/Error'
+      409:
+        description: Ya existe un paciente con ese número de documento
+        schema:
+          $ref: '#/definitions/Error'
     """
     patient = Patient.query.get_or_404(patient_id, description="Paciente no encontrado")
     data = request.get_json()
+
+    if "document_number" in data:
+        new_document_number = (data["document_number"] or "").strip()
+        if not new_document_number:
+            return jsonify({"error": "Campo requerido: document_number"}), 400
+        existing = Patient.query.filter(
+            Patient.document_number == new_document_number,
+            Patient.id != patient_id,
+        ).first()
+        if existing:
+            return jsonify({"error": "Ya existe un paciente con ese número de documento"}), 409
+        patient.document_number = new_document_number
 
     updatable = [
         "first_name", "last_name", "phone", "phone_emergency",

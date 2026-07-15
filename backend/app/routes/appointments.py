@@ -171,7 +171,7 @@ def list_appointments():
         except ValueError:
             pass
 
-    pagination = query.order_by(Appointment.scheduled_at).paginate(
+    pagination = query.order_by(Appointment.scheduled_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
 
