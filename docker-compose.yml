@@ -46,6 +46,12 @@ services:
 
   frontend:
     build: ./frontend
+    # Imagen publicada por .github/workflows/build-images.yml (los runners de
+    # GitHub construyen donde npm no está bloqueado). En una red que bloquea
+    # registry.npmjs.org: `docker compose pull frontend` y luego `up -d` SIN
+    # --build. En una red normal, `docker compose build frontend` sigue
+    # funcionando y produce una imagen local con este mismo nombre.
+    image: ghcr.io/davidquinteros/dental-frontend:dev
     container_name: dental_frontend
     restart: unless-stopped
     depends_on:
@@ -58,6 +64,8 @@ services:
 
   admin-frontend:
     build: ./admin-frontend
+    # Ver comentario en el servicio frontend — mismo flujo via ghcr.io.
+    image: ghcr.io/davidquinteros/dental-admin-frontend:dev
     container_name: dental_admin_frontend
     restart: unless-stopped
     depends_on:
