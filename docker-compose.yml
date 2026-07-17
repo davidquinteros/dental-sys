@@ -1,4 +1,27 @@
 services:
+  # Postgres LOCAL opcional, para redes que bloquean el puerto 5432 saliente
+  # (p. ej. la red corporativa donde a veces se desarrolla — ahí Supabase es
+  # inalcanzable). NO arranca con `docker compose up` normal: requiere
+  # `docker compose --profile localdb up -d`, con el .env apuntando a este
+  # servicio (host `db`, ver .env.example). El flujo por defecto (base de
+  # testing compartida en Supabase) queda intacto.
+  # Credenciales fijas de desarrollo local: el puerto no se publica al host,
+  # solo es alcanzable desde la red interna de compose. El init-script crea
+  # el rol restringido dental_app (mismo esquema de dos roles que Supabase —
+  # RLS no aplica al dueño de las tablas, ver CLAUDE.md).
+  db:
+    image: postgres:16-alpine
+    container_name: dental_db
+    profiles: ["localdb"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dental_user
+      POSTGRES_PASSWORD: dental_pass
+      POSTGRES_DB: dental_clinic_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/create_app_role.sql:/docker-entrypoint-initdb.d/10_create_app_role.sql:ro
+
   backend:
     build: ./backend
     container_name: dental_backend
@@ -77,5 +100,6 @@ services:
       - admin_frontend_node_modules:/app/node_modules
 
 volumes:
+  postgres_data:
   frontend_node_modules:
   admin_frontend_node_modules:

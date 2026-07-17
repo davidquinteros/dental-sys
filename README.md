@@ -90,7 +90,12 @@ Y un tercer nivel, totalmente separado de lo anterior: el **operador de la plata
 docker compose up -d --build
 ```
 
-Levanta backend (`:5000`), `frontend/` (`:4200`) y `admin-frontend/` (`:4300`) juntos. Requiere un archivo `.env` en la raíz con `DATABASE_URL`/`MIGRATIONS_DATABASE_URL` apuntando a un Postgres (ver más abajo) — no incluye un contenedor de base de datos propio.
+Levanta backend (`:5000`), `frontend/` (`:4200`) y `admin-frontend/` (`:4300`) juntos. Requiere un archivo `.env` en la raíz con `DATABASE_URL`/`MIGRATIONS_DATABASE_URL` apuntando a un Postgres (ver más abajo) — no incluye un contenedor de base de datos propio por defecto.
+
+Dos variantes para redes restringidas (proxies corporativos — detalle completo en `CLAUDE.md`, sección "Restricted/corporate networks"):
+
+- **Postgres local opcional**: `docker compose --profile localdb up -d` agrega un contenedor `db` para desarrollar donde un Postgres externo es inalcanzable (p. ej. puerto 5432 saliente bloqueado). Requiere apuntar el `.env` al servicio `db` y bootstrapear la base una vez (`init_db.py` + `flask db stamp head` con el rol de migraciones, luego `flask seed`).
+- **Imágenes de frontend pre-construidas**: si `registry.npmjs.org` está bloqueado, `.github/workflows/build-images.yml` construye las imágenes en GitHub Actions y las publica en GHCR; en la máquina restringida basta `docker compose pull frontend admin-frontend` y `docker compose up -d` (sin `--build`).
 
 ```bash
 docker compose exec backend flask db upgrade                # aplicar migraciones

@@ -1,0 +1,6 @@
+# Los scripts de shell corren dentro de contenedores Linux (y backend/ está
+# bind-mounteado, así que el contenedor ve el archivo tal cual está en disco):
+# con core.autocrlf=true en Windows, un checkout los convertía a CRLF y el
+# exec del contenedor fallaba con "no such file or directory" (el shebang
+# quedaba apuntando a "/bin/sh\r"). Forzar LF evita eso en cualquier máquina.
+*.sh text eol=lf

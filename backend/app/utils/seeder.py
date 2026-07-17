@@ -251,6 +251,20 @@ def seed_db(clinic_id: int = 1):
     print("🌱 Seeding database...")
     _bypass_rls()
 
+    # ─── Clinic #1 (get-or-create) ──────────────────────────────────────────
+    # En una base fresca la clínica demo no existe todavía y todo lo demás
+    # (permisos, usuarios, pacientes) la referencia por FK — mismo patrón
+    # get-or-create que seed_demo_clinic_b. En testing/prod ya existe y esto
+    # es un no-op.
+    from app.models.clinic import Clinic
+    clinic = db.session.get(Clinic, clinic_id)
+    if not clinic:
+        clinic = Clinic(name="Clínica Demo", slug="clinica-demo")
+        db.session.add(clinic)
+        db.session.flush()  # get clinic.id
+        clinic_id = clinic.id
+        print(f"  ✓ Clínica Demo creada (id={clinic_id})")
+
     # ─── Pages & permissions ────────────────────────────────────────────────
     seed_pages(clinic_id)
 
