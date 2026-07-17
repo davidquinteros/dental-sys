@@ -105,12 +105,19 @@ Derivarlo (no guardarlo) hace que **anular un comprobante devuelva sus ítems a 
 
 Ver la maqueta HTML (link arriba) para el detalle visual con los componentes reales. Resumen de los cambios por pantalla:
 
-### 1. `budget-form` — tarjeta nueva + check de financiación
-Tarjeta **"Tratamiento Propuesto"** entre Paciente e Ítems: `doctor_id` (select, requerido), `treatment_type` (select, default "Atención General"), `tooth_number`. El `treatment_plan_id` se muda ahí, relabelado *"Vincular a un plan existente (opcional) — si lo dejás vacío se creará uno al aceptar"*.
+### 1. `budget-form` — 3 tarjetas + barra de financiación colapsada
 
-En Condiciones, un check **"Financiar con plan de pago"** (control top-level, no dentro de `conditions`) que muestra/oculta el `<app-billing-conditions-fields>` existente. El `@if` alrededor del componente compartido es seguro: deriva en `ngOnInit` + una suscripción con `takeUntilDestroyed`, así que destruirlo y recrearlo re-deriva limpio. **No requiere cambios en el componente compartido.**
+El formulario queda: **Paciente** → **Tratamiento Propuesto** → **Ítems Propuestos** → **barra de financiación**.
 
-Ojo: `conditions.num_citas` tiene `Validators.required` con default `3`, así que el form queda válido con la financiación apagada — pero `onSubmit` no debe *enviar* esos campos, y el backend debe **NULLear las cinco columnas cuando `use_payment_plan` es false**, sin importar qué llegue.
+Tarjeta nueva **"Tratamiento Propuesto"** entre Paciente e Ítems, que absorbe `name` y `notes` (hoy viven en Condiciones): `name` arriba de todo, `doctor_id` (select, requerido), `treatment_type` (select, default "Atención General"), `tooth_number`, el `treatment_plan_id` relabelado *"Vincular a un plan existente — si lo dejás vacío se creará uno al aceptar"*, y `notes` al pie.
+
+**La card "Condiciones" desaparece como tal**: su cuerpo se colapsa y el check **"Financiar con plan de pago" vive en su cabecera** (`.form-head` convertida en `<label>` clickeable). Sin tildar, el formulario **no muestra ni un solo campo de cuotas** — que es el caso del 90% de los presupuestos. Tildado, la misma card expande su cuerpo con el `<app-billing-conditions-fields>` existente.
+
+**Detalles de implementación:**
+- El check es un control **top-level** del FormGroup (`use_payment_plan`), no va dentro de `conditions`.
+- `.form-head` tiene `border-bottom: 1px solid #f0f4f8` → colapsada, la card debe perder ese borde o queda una línea flotando bajo la nada. El `<label>` debe envolver la cabecera entera (clickeable completa, no sólo el cuadradito de 15px).
+- El `@if` alrededor del componente compartido es seguro: deriva en `ngOnInit` + una suscripción con `takeUntilDestroyed`, así que destruirlo y recrearlo re-deriva limpio. **No requiere cambios en `billing-conditions-fields`.**
+- Ojo: `conditions.num_citas` tiene `Validators.required` con default `3`, así que el form queda válido con la financiación apagada — pero `onSubmit` no debe *enviar* esos campos, y el backend debe **NULLear las cinco columnas cuando `use_payment_plan` es false**, sin importar qué llegue.
 
 ### 2. `budget-detail` — el cambio grande
 - Fila de montos condicional: financiado → los 4 items de hoy; sin financiar → **En ítems pagados / En cobro / Pendiente / Total** + barra de avance de 3 segmentos.

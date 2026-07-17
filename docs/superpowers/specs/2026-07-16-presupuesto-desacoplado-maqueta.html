@@ -359,20 +359,18 @@
   }
   .add-btn:hover { border-color: #4299e1; background: #ebf8ff; }
 
-  .checkbox-row {
-    display: flex; align-items: flex-start; gap: 10px; padding: 12px 13px; border-radius: 10px;
-    border: 1.5px solid #e2e8f0; cursor: pointer; user-select: none; background: #fff;
+  /* Card de financiación: la cabecera ES el check. Colapsada, la card se reduce
+     a esa sola fila — el 90% de los presupuestos no ve ni un campo de cuotas. */
+  .fin-head {
+    display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;
+    border-bottom: none;   /* colapsada no debe dejar una línea flotando bajo la nada */
   }
-  .checkbox-row:hover { border-color: #cbd5e0; background: #fafcfe; }
-  .checkbox-row input { margin-top: 2px; width: 15px; height: 15px; accent-color: #4299e1; flex: none; cursor: pointer; }
-  .cbx-txt { font-size: 13.5px; font-weight: 600; color: #2d3748; }
-  .cbx-hint { font-size: 11.5px; color: #a0aec0; font-weight: 400; margin-top: 2px; }
-  .checkbox-row:has(input:checked) { border-color: #4299e1; background: #f7fbff; }
+  .fin-head:hover { background: #fafcfe; }
+  .fin-head input { width: 15px; height: 15px; accent-color: #4299e1; cursor: pointer; flex: none; }
+  .fin-hint { margin-left: auto; font-size: 11.5px; color: #a0aec0; font-weight: 400; }
+  .fin-card:has(#finChk:checked) .fin-head { border-bottom: 1px solid #f0f4f8; }
+  .fin-card:has(#finChk:checked) { box-shadow: 0 1px 3px rgba(0,0,0,.07), inset 3px 0 0 #4299e1; }
 
-  .conditions-block {
-    margin-top: 13px; padding: 15px; border-radius: 10px; background: #f7fafc; border: 1px solid #e2e8f0;
-  }
-  .conditions-block[hidden] { display: none; }
   .calc-summary { margin-top: 11px; padding-top: 11px; border-top: 1px dashed #cbd5e0; display: flex; flex-direction: column; gap: 5px; }
   .calc-row { display: flex; justify-content: space-between; font-size: 12.5px; color: #718096; }
   .calc-row.highlight { font-size: 14px; font-weight: 700; color: #2b6cb0; padding-top: 5px; }
@@ -545,7 +543,7 @@
     <div class="screen-cap">
       <h2>Formulario de presupuesto</h2>
       <span class="route">/billing/budgets/new</span>
-      <p>Tarjeta clínica nueva + la financiación pasa a ser un check.</p>
+      <p>3 tarjetas + una barra de financiación colapsada.</p>
     </div>
 
     <div class="device">
@@ -591,6 +589,11 @@
               Tratamiento Propuesto <span class="new-mark">★ nueva tarjeta</span>
             </div>
             <div class="form-body">
+              <div class="form-group" style="margin-bottom:13px" data-new>
+                <label>Nombre del presupuesto <span class="req">*</span></label>
+                <input class="fld" value="Rehabilitación superior">
+                <span class="hint">Será también el nombre del plan de tratamiento.</span>
+              </div>
               <div class="form-row">
                 <div class="form-group">
                   <label>Médico responsable <span class="req">*</span></label>
@@ -634,6 +637,10 @@
                 <span>Al <b>aceptar</b> el presupuesto se creará automáticamente el plan de tratamiento
                   con estos datos, y el paciente podrá agendar sus citas contra él.</span>
               </div>
+              <div class="form-group" style="margin-top:13px" data-new>
+                <label>Notas</label>
+                <textarea class="fld" rows="2" placeholder="Observaciones para el paciente..."></textarea>
+              </div>
             </div>
           </div>
 
@@ -671,61 +678,45 @@
             </div>
           </div>
 
-          <div class="form-card">
-            <div class="form-head">Condiciones</div>
-            <div class="form-body">
-              <div class="form-group" style="margin-bottom:13px">
-                <label>Nombre del presupuesto <span class="req">*</span></label>
-                <input class="fld" value="Rehabilitación superior">
-              </div>
-
-              <label class="checkbox-row" data-new>
-                <input type="checkbox" id="finChk">
-                <span>
-                  <span class="cbx-txt">Financiar con plan de pago <span class="new-mark">★ nuevo</span></span>
-                  <span class="cbx-hint">Sin tildar, el presupuesto no pide cuotas ni período, y el paciente
-                    paga por ítem a medida que avanza.</span>
-                </span>
-              </label>
-
-              <div class="conditions-block" id="condBlock" hidden>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>Cantidad de citas <span class="req">*</span></label>
-                    <input class="fld" type="number" id="fCitas" value="6">
-                  </div>
-                  <div class="form-group">
-                    <label>Cuota inicial</label>
-                    <input class="fld" type="number" id="fDown" value="500">
-                  </div>
+          <div class="form-card fin-card" id="finCard" data-new>
+            <label class="form-head fin-head">
+              <input type="checkbox" id="finChk">
+              <span>Financiar con plan de pago</span>
+              <span class="new-mark">★ nuevo</span>
+              <span class="fin-hint">Opcional — sin tildar, el paciente paga por ítem</span>
+            </label>
+            <div class="form-body" id="condBlock" hidden>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Cantidad de citas <span class="req">*</span></label>
+                  <input class="fld" type="number" id="fCitas" value="6">
                 </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>Costo por cita</label>
-                    <input class="fld ro" id="fCost" value="300,00" readonly>
-                    <span class="hint">Calculado automáticamente</span>
-                  </div>
-                  <div class="form-group">
-                    <label>Monto total</label>
-                    <input class="fld ro" value="2.300,00" readonly>
-                    <span class="hint">Suma de los ítems propuestos</span>
-                  </div>
-                </div>
-                <div class="form-row">
-                  <div class="form-group"><label>Fecha de inicio</label><input class="fld" type="date" value="2026-08-01"></div>
-                  <div class="form-group"><label>Fecha de fin</label><input class="fld" type="date" value="2026-11-30"></div>
-                </div>
-                <div class="calc-summary">
-                  <div class="calc-row"><span>Cantidad de citas</span><span id="sCitas">6</span></div>
-                  <div class="calc-row"><span>Costo por cita</span><span id="sCost">Bs 300,00</span></div>
-                  <div class="calc-row"><span>Cuota inicial</span><span id="sDown">Bs 500,00</span></div>
-                  <div class="calc-row highlight"><span>Monto total</span><span>Bs 2.300,00</span></div>
+                <div class="form-group">
+                  <label>Cuota inicial</label>
+                  <input class="fld" type="number" id="fDown" value="500">
                 </div>
               </div>
-
-              <div class="form-group" style="margin-top:13px">
-                <label>Notas</label>
-                <textarea class="fld" rows="2" placeholder="Observaciones para el paciente..."></textarea>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Costo por cita</label>
+                  <input class="fld ro" id="fCost" value="300,00" readonly>
+                  <span class="hint">Calculado automáticamente</span>
+                </div>
+                <div class="form-group">
+                  <label>Monto total</label>
+                  <input class="fld ro" value="2.300,00" readonly>
+                  <span class="hint">Suma de los ítems propuestos</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>Fecha de inicio</label><input class="fld" type="date" value="2026-08-01"></div>
+                <div class="form-group"><label>Fecha de fin</label><input class="fld" type="date" value="2026-11-30"></div>
+              </div>
+              <div class="calc-summary">
+                <div class="calc-row"><span>Cantidad de citas</span><span id="sCitas">6</span></div>
+                <div class="calc-row"><span>Costo por cita</span><span id="sCost">Bs 300,00</span></div>
+                <div class="calc-row"><span>Cuota inicial</span><span id="sDown">Bs 500,00</span></div>
+                <div class="calc-row highlight"><span>Monto total</span><span>Bs 2.300,00</span></div>
               </div>
             </div>
           </div>
@@ -739,10 +730,12 @@
     </div>
 
     <p class="flow-caption">
-      <b>Probá el check.</b> Tildado, aparece el bloque de cuotas que ya existe hoy
-      (<code>billing-conditions-fields</code>, reusado sin tocarlo). Sin tildar, esos campos quedan
-      <code>NULL</code> en la base y no se imprimen. Es la única diferencia entre «presupuesto suelto»
-      y «presupuesto financiado».
+      <b>Probá el check de la última barra.</b> La card de Condiciones se reduce a su cabecera: sin tildar,
+      el formulario no muestra <b>ni un solo campo de cuotas</b>, y esos campos quedan <code>NULL</code> en la
+      base y no se imprimen. Tildado, la misma card expande el bloque que ya existe hoy
+      (<code>billing-conditions-fields</code>, reusado sin tocarlo). Es la única diferencia entre
+      «presupuesto suelto» y «presupuesto financiado». El nombre y las notas se mudaron a
+      <b>Tratamiento Propuesto</b> para que la card colapsada no deje campos huérfanos.
     </p>
   </section>
 
