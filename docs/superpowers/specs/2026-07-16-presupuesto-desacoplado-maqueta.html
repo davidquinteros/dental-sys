@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  Maqueta de revisión — Presupuesto desacoplado del Plan de Pago (2026-07-16).
+  Acompaña a 2026-07-16-presupuesto-desacoplado-plan-pago-design.md.
+  Standalone y sin dependencias externas: abrir con doble click.
+  Usa los tokens reales de frontend/src/styles.css y budget-detail.component.css.
+-->
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; }
+</style>
+</head>
+<body>
+<title>DentalSys — Maqueta: Presupuesto desacoplado del Plan de Pago</title>
+
+<style>
+  /* ─────────────────────────────────────────────────────────────────────────
+     Los tokens de .screen replican el sistema real de frontend/src/styles.css
+     y budget-detail.component.css (paleta Chakra, tarjetas 14px, badges 20px,
+     stack de fuentes del sistema). Las pantallas van SIEMPRE en claro: la app
+     es light-only, así que la maqueta miente si se invierte. Sólo el marco
+     (shell) sigue el tema del visor.
+     ───────────────────────────────────────────────────────────────────────── */
+  :root {
+    --shell-bg: #eef1f6;
+    --shell-panel: #ffffff;
+    --shell-text: #232b39;
+    --shell-muted: #667085;
+    --shell-line: #dbe2ec;
+    --shell-accent: #2b6cb0;
+    --shell-new: #b7791f;
+    --shell-new-bg: #fffbeb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --shell-bg: #12161d;
+      --shell-panel: #1a202a;
+      --shell-text: #e6ebf2;
+      --shell-muted: #97a2b4;
+      --shell-line: #2b3341;
+      --shell-accent: #7fb3e8;
+      --shell-new: #e0b155;
+      --shell-new-bg: #2a2313;
+    }
+  }
+  :root[data-theme="dark"] {
+    --shell-bg: #12161d;
+    --shell-panel: #1a202a;
+    --shell-text: #e6ebf2;
+    --shell-muted: #97a2b4;
+    --shell-line: #2b3341;
+    --shell-accent: #7fb3e8;
+    --shell-new: #e0b155;
+    --shell-new-bg: #2a2313;
+  }
+  :root[data-theme="light"] {
+    --shell-bg: #eef1f6;
+    --shell-panel: #ffffff;
+    --shell-text: #232b39;
+    --shell-muted: #667085;
+    --shell-line: #dbe2ec;
+    --shell-accent: #2b6cb0;
+    --shell-new: #b7791f;
+    --shell-new-bg: #fffbeb;
+  }
+
+  body {
+    background: var(--shell-bg);
+    color: var(--shell-text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1220px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  /* ── Shell ───────────────────────────────────────────────────────────── */
+  .doc-head { margin-bottom: 22px; }
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--shell-accent); margin-bottom: 8px;
+  }
+  .doc-title {
+    font-size: clamp(23px, 3vw, 31px); font-weight: 700; letter-spacing: -.02em;
+    text-wrap: balance; margin-bottom: 8px; line-height: 1.2;
+  }
+  .doc-sub { color: var(--shell-muted); font-size: 15px; max-width: 68ch; }
+  .doc-sub strong { color: var(--shell-text); font-weight: 600; }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    padding: 10px; margin-bottom: 18px;
+    background: var(--shell-panel); border: 1px solid var(--shell-line); border-radius: 12px;
+    position: sticky; top: 10px; z-index: 30;
+  }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
+  .tab {
+    padding: 7px 13px; border-radius: 8px; border: 1px solid transparent;
+    background: transparent; color: var(--shell-muted);
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px; transition: .13s;
+  }
+  .tab:hover { color: var(--shell-text); background: color-mix(in srgb, var(--shell-line) 45%, transparent); }
+  .tab[aria-selected="true"] {
+    background: var(--shell-accent); color: #fff; border-color: var(--shell-accent);
+  }
+  .tab-n {
+    font-size: 10px; font-weight: 700; opacity: .65; font-variant-numeric: tabular-nums;
+  }
+  .hl-toggle {
+    display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+    font-size: 12px; font-weight: 600; color: var(--shell-muted);
+    padding: 7px 11px; border-radius: 8px; border: 1px solid var(--shell-line);
+    user-select: none; white-space: nowrap;
+  }
+  .hl-toggle:hover { color: var(--shell-text); }
+  .hl-toggle input { accent-color: var(--shell-new); width: 14px; height: 14px; }
+
+  .note {
+    display: flex; gap: 11px; padding: 13px 15px; margin-bottom: 18px;
+    background: var(--shell-new-bg); border: 1px solid color-mix(in srgb, var(--shell-new) 32%, transparent);
+    border-radius: 11px; font-size: 13.5px; color: var(--shell-text);
+  }
+  .note b { color: var(--shell-new); }
+
+  .screen { display: none; }
+  .screen.on { display: block; animation: fade .22s ease-out; }
+  @keyframes fade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .screen.on { animation: none; } }
+
+  .screen-cap {
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 11px; padding-left: 2px;
+  }
+  .screen-cap h2 { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .screen-cap p { font-size: 13px; color: var(--shell-muted); margin: 0; }
+  .route {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px; color: var(--shell-muted);
+    background: color-mix(in srgb, var(--shell-line) 40%, transparent);
+    padding: 2px 7px; border-radius: 5px;
+  }
+
+  /* ── El "monitor": todo lo de adentro es la app real, siempre en claro ── */
+  .device {
+    border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--shell-line);
+    box-shadow: 0 14px 40px -18px rgba(10, 22, 44, .45);
+    background: #f0f4f8;
+    color-scheme: light;
+  }
+  .chrome {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 13px; background: #e4eaf2; border-bottom: 1px solid #d3dce8;
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .urlbar {
+    flex: 1; margin-left: 6px; padding: 4px 11px; border-radius: 6px;
+    background: #fff; border: 1px solid #d3dce8;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px; color: #718096; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .app { display: grid; grid-template-columns: 186px 1fr; min-height: 560px; }
+
+  /* Sidebar */
+  .side { background: #1a202c; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .brand {
+    color: #fff; font-size: 14px; font-weight: 700; padding: 4px 10px 16px;
+    display: flex; align-items: center; gap: 8px; letter-spacing: -.01em;
+  }
+  .brand-mark {
+    width: 22px; height: 22px; border-radius: 6px; background: #4299e1;
+    display: grid; place-items: center; font-size: 12px; flex: none;
+  }
+  .nav {
+    padding: 8px 10px; border-radius: 8px; color: #a0aec0; font-size: 12.5px; font-weight: 500;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .nav.on { background: #2d3748; color: #fff; font-weight: 600; }
+  .nav-ic { width: 15px; text-align: center; opacity: .85; font-size: 12px; }
+  .side-foot {
+    margin-top: auto; padding: 10px; border-top: 1px solid #2d3748;
+    color: #718096; font-size: 11px; display: flex; align-items: center; gap: 8px;
+  }
+  .avatar {
+    width: 24px; height: 24px; border-radius: 50%; background: #4299e1; color: #fff;
+    display: grid; place-items: center; font-size: 10px; font-weight: 700; flex: none;
+  }
+
+  /* Página */
+  .page { padding: 24px 26px; overflow-x: auto; }
+
+  /* ── Componentes reales de la app ────────────────────────────────────── */
+  .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #718096; margin-bottom: 12px; }
+  .breadcrumb .bl { color: #4299e1; }
+  .header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+  .page-title { font-size: 22px; font-weight: 700; color: #1a202c; margin: 0 0 4px; letter-spacing: -.015em; }
+  .sub { font-size: 14px; color: #718096; margin: 0; }
+  .header-actions { display: flex; align-items: center; gap: 10px; }
+
+  .btn-print, .btn-edit {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 15px; border-radius: 10px;
+    font-size: 13px; font-weight: 600; border: 1.5px solid #4299e1; color: #2b6cb0;
+    background: #fff; cursor: pointer; font-family: inherit;
+  }
+  .btn-print:hover, .btn-edit:hover { background: #ebf8ff; }
+
+  .status-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+  .status-badge.big { font-size: 13px; padding: 5px 14px; }
+  .bstatus-draft { background: #fffbeb; color: #b7791f; }
+  .bstatus-accepted { background: #f0fff4; color: #276749; }
+  .bstatus-pending { background: #fffbeb; color: #b7791f; }
+  .bstatus-partial { background: #fffaf0; color: #c05621; }
+  .bstatus-paid { background: #f0fff4; color: #276749; }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 280px; gap: 18px; align-items: start; }
+  .main-col, .side-col { display: flex; flex-direction: column; gap: 16px; }
+  .card { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.07); overflow: hidden; }
+  .card-header { padding: 13px 20px; border-bottom: 1px solid #f0f4f8; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .card-header h3 { font-size: 15px; font-weight: 600; color: #2d3748; margin: 0; }
+  .info-body { padding: 4px 20px; }
+
+  .m-row { padding: 9px 0; border-bottom: 1px solid #f0f4f8; font-size: 13.5px; color: #2d3748; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .m-row:last-child { border-bottom: none; }
+  .ml { font-size: 11px; color: #a0aec0; text-transform: uppercase; font-weight: 600; letter-spacing: .03em; }
+  .link { color: #4299e1; }
+  .text-muted { color: #a0aec0; font-size: 13px; }
+
+  .table { width: 100%; border-collapse: collapse; }
+  .table th {
+    padding: 9px 16px; font-size: 10.5px; font-weight: 600; color: #718096;
+    text-transform: uppercase; letter-spacing: .04em; background: #f7fafc;
+    border-bottom: 1px solid #e2e8f0; text-align: left; white-space: nowrap;
+  }
+  .table td { padding: 10px 16px; font-size: 13.5px; color: #4a5568; border-bottom: 1px solid #f0f4f8; vertical-align: middle; }
+  .table tr:last-child td { border-bottom: none; }
+  .table .num { text-align: right; }
+  .money { font-variant-numeric: tabular-nums; font-weight: 600; color: #2d3748; }
+  .items-subtotal-row {
+    display: flex; justify-content: space-between; padding: 11px 20px;
+    font-size: 14px; font-weight: 700; color: #2d3748; border-top: 1px solid #e2e8f0;
+  }
+
+  .amounts-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 14px 20px; border-top: 1px solid #e2e8f0; }
+  .amount-item { background: #f7fafc; border-radius: 8px; padding: 9px 11px; }
+  .amount-item.total { background: #ebf8ff; }
+  .a-label { display: block; font-size: 10.5px; color: #a0aec0; text-transform: uppercase; font-weight: 600; letter-spacing: .03em; }
+  .a-val { display: block; font-size: 15px; font-weight: 700; color: #2d3748; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .amount-item.total .a-val { color: #2b6cb0; }
+
+  .action-panel {
+    background: #fff; border-radius: 14px; padding: 17px; box-shadow: 0 1px 3px rgba(0,0,0,.07);
+    border-top: 3px solid #4299e1; display: flex; flex-direction: column; gap: 9px;
+  }
+  .action-panel.accepted { border-top-color: #276749; }
+  .action-panel h4 { font-size: 14.5px; font-weight: 600; color: #2d3748; margin: 0 0 2px; }
+  .panel-hint { font-size: 12px; color: #718096; margin: 0; line-height: 1.45; }
+  .btn-accept, .btn-convert, .btn-cobrar {
+    padding: 11px; background: #276749; color: #fff; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; text-align: center;
+  }
+  .btn-cobrar { background: #2b6cb0; }
+  .btn-reject {
+    padding: 11px; background: #fff; color: #c53030; border: 1.5px solid #fc8181; border-radius: 10px;
+    font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn-secondary-link {
+    font-size: 12.5px; font-weight: 600; color: #4299e1; text-align: center;
+    padding: 7px; border-radius: 8px; border: 1px dashed #bee3f8; cursor: pointer;
+  }
+  .btn-secondary-link:hover { background: #ebf8ff; }
+  .converted-badge {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 15px;
+    background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 12px;
+    color: #276749; font-size: 13px; font-weight: 600; text-align: center;
+  }
+
+  /* Estado del ítem */
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600;
+    padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+  }
+  .pill-paid { background: #f0fff4; color: #276749; }
+  .pill-billing { background: #fffaf0; color: #c05621; }
+  .pill-pending { background: #edf2f7; color: #718096; }
+  .pill-sub { display: block; font-size: 10.5px; color: #a0aec0; margin-top: 3px; font-weight: 500; }
+  .pill-sub a { color: #4299e1; }
+
+  /* Barra de avance de 3 segmentos */
+  .progress-card { padding: 15px 17px; }
+  .progress-card h4 { font-size: 14.5px; font-weight: 600; color: #2d3748; margin: 0 0 3px; }
+  .pc-pct { font-size: 25px; font-weight: 700; color: #276749; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .pc-pct small { font-size: 12px; font-weight: 600; color: #a0aec0; margin-left: 4px; }
+  .bar { display: flex; height: 9px; border-radius: 20px; overflow: hidden; background: #edf2f7; margin: 9px 0 12px; }
+  .bar i { display: block; height: 100%; }
+  .seg-paid { background: #276749; }
+  .seg-billing { background: #ed8936; }
+  .legend-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12.5px; padding: 5px 0; border-bottom: 1px solid #f0f4f8;
+  }
+  .legend-row:last-of-type { border-bottom: none; }
+  .lg-key { display: inline-flex; align-items: center; gap: 7px; color: #4a5568; }
+  .swatch { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+  .lg-val { font-variant-numeric: tabular-nums; font-weight: 600; color: #2d3748; }
+  .pc-total {
+    display: flex; justify-content: space-between; margin-top: 8px; padding-top: 10px;
+    border-top: 1px solid #e2e8f0; font-size: 13.5px; font-weight: 700; color: #2d3748;
+  }
+
+  /* Formularios */
+  .form-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.07); overflow: hidden; margin-bottom: 16px; }
+  .form-head {
+    padding: 13px 20px; border-bottom: 1px solid #f0f4f8; font-size: 14.5px;
+    font-weight: 600; color: #2d3748; display: flex; align-items: center; gap: 9px;
+  }
+  .form-body { padding: 17px 20px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 13px; }
+  .form-row:last-child { margin-bottom: 0; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .form-group label { font-size: 12px; font-weight: 600; color: #4a5568; }
+  .req { color: #e53e3e; }
+  .fld {
+    padding: 9px 11px; border: 1.5px solid #e2e8f0; border-radius: 9px; background: #fff;
+    font-size: 13.5px; color: #2d3748; font-family: inherit; width: 100%;
+  }
+  .fld:focus { outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66,153,225,.15); }
+  .fld.ro { background: #f7fafc; color: #718096; }
+  select.fld { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #a0aec0 50%), linear-gradient(135deg, #a0aec0 50%, transparent 50%); background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 30px; }
+  .hint { font-size: 11.5px; color: #a0aec0; }
+  .locked-field {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 12px; background: #f7fafc; border: 1.5px solid #e2e8f0;
+    border-radius: 9px; font-size: 13.5px; color: #2d3748; font-weight: 500;
+  }
+  .info-msg {
+    display: flex; gap: 8px; padding: 10px 12px; background: #ebf8ff; border: 1px solid #bee3f8;
+    border-radius: 9px; font-size: 12px; color: #2c5282; line-height: 1.45;
+  }
+
+  .items-header {
+    display: grid; grid-template-columns: 1fr 82px 104px 92px 30px; gap: 9px; padding: 0 0 7px;
+    font-size: 10.5px; font-weight: 600; color: #a0aec0; text-transform: uppercase; letter-spacing: .04em;
+  }
+  .item-row { display: grid; grid-template-columns: 1fr 82px 104px 92px 30px; gap: 9px; align-items: center; margin-bottom: 8px; }
+  .item-total { font-size: 13.5px; font-weight: 600; color: #2d3748; text-align: right; font-variant-numeric: tabular-nums; }
+  .del-btn {
+    width: 28px; height: 28px; border-radius: 7px; border: 1px solid #fed7d7; background: #fff;
+    color: #c53030; cursor: pointer; font-size: 13px; line-height: 1; display: grid; place-items: center;
+  }
+  .del-btn:hover { background: #fff5f5; }
+  .add-btn {
+    padding: 8px 13px; border: 1.5px dashed #cbd5e0; background: #fff; border-radius: 9px;
+    color: #4299e1; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 4px;
+  }
+  .add-btn:hover { border-color: #4299e1; background: #ebf8ff; }
+
+  .checkbox-row {
+    display: flex; align-items: flex-start; gap: 10px; padding: 12px 13px; border-radius: 10px;
+    border: 1.5px solid #e2e8f0; cursor: pointer; user-select: none; background: #fff;
+  }
+  .checkbox-row:hover { border-color: #cbd5e0; background: #fafcfe; }
+  .checkbox-row input { margin-top: 2px; width: 15px; height: 15px; accent-color: #4299e1; flex: none; cursor: pointer; }
+  .cbx-txt { font-size: 13.5px; font-weight: 600; color: #2d3748; }
+  .cbx-hint { font-size: 11.5px; color: #a0aec0; font-weight: 400; margin-top: 2px; }
+  .checkbox-row:has(input:checked) { border-color: #4299e1; background: #f7fbff; }
+
+  .conditions-block {
+    margin-top: 13px; padding: 15px; border-radius: 10px; background: #f7fafc; border: 1px solid #e2e8f0;
+  }
+  .conditions-block[hidden] { display: none; }
+  .calc-summary { margin-top: 11px; padding-top: 11px; border-top: 1px dashed #cbd5e0; display: flex; flex-direction: column; gap: 5px; }
+  .calc-row { display: flex; justify-content: space-between; font-size: 12.5px; color: #718096; }
+  .calc-row.highlight { font-size: 14px; font-weight: 700; color: #2b6cb0; padding-top: 5px; }
+  .calc-row span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  /* Selector de ítems del presupuesto */
+  .pick-row {
+    display: grid; grid-template-columns: 18px 1fr auto; gap: 11px; align-items: center;
+    padding: 11px 13px; border-radius: 10px; border: 1.5px solid #e2e8f0;
+    margin-bottom: 8px; cursor: pointer; background: #fff;
+  }
+  .pick-row:hover:not(.off) { border-color: #90cdf4; background: #f7fbff; }
+  .pick-row:has(input:checked) { border-color: #4299e1; background: #ebf8ff; }
+  .pick-row.off { opacity: .62; cursor: not-allowed; background: #f7fafc; }
+  .pick-row input { width: 16px; height: 16px; accent-color: #4299e1; cursor: pointer; }
+  .pick-row.off input { cursor: not-allowed; }
+  .pk-name { font-size: 13.5px; font-weight: 600; color: #2d3748; }
+  .pk-meta { font-size: 11.5px; color: #a0aec0; margin-top: 2px; }
+  .pk-amt { font-size: 13.5px; font-weight: 700; color: #2d3748; font-variant-numeric: tabular-nums; text-align: right; }
+
+  .totals-box { padding: 14px 20px; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 7px; }
+  .t-row { display: flex; justify-content: space-between; font-size: 13.5px; color: #718096; align-items: center; }
+  .t-row span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; color: #2d3748; }
+  .t-row.grand { font-size: 16px; font-weight: 700; color: #2d3748; padding-top: 9px; border-top: 1px solid #e2e8f0; }
+  .t-row.grand span:last-child { color: #2b6cb0; font-size: 19px; }
+
+  .form-foot { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
+  .btn-cancel {
+    padding: 10px 18px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #fff;
+    color: #718096; font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn-submit {
+    padding: 10px 20px; border-radius: 10px; border: none; background: #2b6cb0; color: #fff;
+    font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn-submit:hover { background: #2c5282; }
+  .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Panel de pago */
+  .calc-toggle { display: flex; gap: 6px; padding: 3px; background: #f0f4f8; border-radius: 9px; }
+  .toggle-btn {
+    flex: 1; padding: 7px; border: none; background: transparent; border-radius: 7px;
+    font-size: 12px; font-weight: 600; color: #718096; cursor: pointer; font-family: inherit;
+  }
+  .toggle-btn.active { background: #fff; color: #2b6cb0; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .pay-amount-display {
+    padding: 11px; background: #ebf8ff; border-radius: 9px; text-align: center;
+    font-size: 19px; font-weight: 700; color: #2b6cb0; font-variant-numeric: tabular-nums;
+  }
+  .pay-btn {
+    padding: 11px; background: #276749; color: #fff; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .src-tag { font-size: 10.5px; color: #a0aec0; margin-top: 2px; }
+  .src-tag.b { color: #2b6cb0; font-weight: 600; }
+
+  /* Impreso */
+  .paper-wrap { background: #e4eaf2; padding: 26px; display: flex; justify-content: center; }
+  .paper {
+    background: #fff; width: 100%; max-width: 620px; padding: 34px 40px;
+    box-shadow: 0 3px 14px rgba(0,0,0,.13); font-size: 13px; color: #2d3748;
+  }
+  .p-head { display: flex; gap: 14px; align-items: center; padding-bottom: 13px; border-bottom: 2px solid #2d3748; }
+  .p-logo {
+    width: 46px; height: 46px; border-radius: 9px; background: #ebf8ff; border: 1px solid #bee3f8;
+    display: grid; place-items: center; color: #2b6cb0; font-weight: 700; font-size: 16px; flex: none;
+  }
+  .p-clinic { font-size: 15px; font-weight: 700; color: #1a202c; }
+  .p-contact { font-size: 11px; color: #718096; margin-top: 2px; }
+  .p-doctype { text-align: center; margin: 18px 0; }
+  .p-doctype h1 { font-size: 15px; font-weight: 700; letter-spacing: .13em; color: #1a202c; }
+  .p-doctype p { font-size: 11px; color: #718096; margin-top: 3px; }
+  .p-info { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 18px; margin-bottom: 18px; font-size: 12px; }
+  .p-info b { color: #718096; font-weight: 600; }
+  .p-sec { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #718096; margin: 16px 0 7px; }
+  .p-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .p-table th { text-align: left; padding: 6px 0; border-bottom: 1px solid #2d3748; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: #718096; }
+  .p-table td { padding: 6px 0; border-bottom: 1px solid #edf2f7; }
+  .p-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .p-total { display: flex; justify-content: space-between; padding: 9px 0; border-top: 2px solid #2d3748; margin-top: 3px; font-weight: 700; font-size: 14px; }
+  .p-note { margin-top: 16px; padding: 10px 12px; background: #f7fafc; border-left: 3px solid #4299e1; font-size: 11.5px; color: #4a5568; line-height: 1.5; }
+  .p-signs { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 44px; text-align: center; font-size: 11px; color: #718096; }
+  .p-sign-line { border-top: 1px solid #2d3748; padding-top: 5px; }
+
+  /* Marcador de "nuevo" */
+  .new-mark {
+    display: inline-flex; align-items: center; gap: 3px; font-size: 9.5px; font-weight: 700;
+    color: #b7791f; background: #fffbeb; border: 1px solid #f6e05e;
+    padding: 1px 6px; border-radius: 20px; text-transform: uppercase; letter-spacing: .05em;
+    vertical-align: middle; white-space: nowrap;
+  }
+  body:not(.hl) .new-mark { display: none; }
+  body.hl [data-new] {
+    outline: 2px dashed #d69e2e; outline-offset: 3px; border-radius: 10px;
+    background-color: #fffdf5;
+  }
+  body.hl .table [data-new] { outline-offset: -2px; }
+
+  .state-switch {
+    display: flex; gap: 5px; padding: 9px 13px; background: #fff; border-bottom: 1px solid #e2e8f0;
+    align-items: center; flex-wrap: wrap;
+  }
+  .ss-label { font-size: 11px; font-weight: 700; color: #a0aec0; text-transform: uppercase; letter-spacing: .05em; margin-right: 3px; }
+  .ss-btn {
+    padding: 5px 11px; border-radius: 7px; border: 1px solid #e2e8f0; background: #fff;
+    font-size: 12px; font-weight: 600; color: #718096; cursor: pointer; font-family: inherit;
+  }
+  .ss-btn:hover { border-color: #90cdf4; color: #2b6cb0; }
+  .ss-btn.on { background: #2b6cb0; border-color: #2b6cb0; color: #fff; }
+
+  .flow-caption {
+    margin-top: 13px; padding: 12px 15px; background: var(--shell-panel);
+    border: 1px solid var(--shell-line); border-radius: 11px;
+    font-size: 13px; color: var(--shell-muted); line-height: 1.55;
+  }
+  .flow-caption b { color: var(--shell-text); }
+  .flow-caption code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px;
+    background: color-mix(in srgb, var(--shell-line) 40%, transparent); padding: 1px 5px; border-radius: 4px;
+  }
+
+  @media (max-width: 1080px) {
+    .app { grid-template-columns: 1fr; }
+    .side { display: none; }
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 720px) {
+    .amounts-row { grid-template-columns: 1fr 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .toolbar { position: static; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="doc-head">
+    <div class="eyebrow">DentalSys · Maqueta de revisión</div>
+    <h1 class="doc-title">Presupuesto desacoplado del Plan de Pago</h1>
+    <p class="doc-sub">
+      El presupuesto deja de ser un cronograma de cuotas y pasa a ser <strong>la propuesta clínica y el tablero
+      de avance del cobro</strong>. El paciente hace los tratamientos por citas independientes, y cada pago cubre
+      ítems concretos del presupuesto — más los adicionales que surjan en el momento.
+    </p>
+  </header>
+
+  <div class="note">
+    <span>👁</span>
+    <div>
+      Las pantallas usan los colores, tipografías y componentes <b>reales</b> de la app.
+      Activá <b>«Resaltar cambios»</b> para ver exactamente qué es nuevo y qué ya existe hoy.
+      Los checkboxes, los totales y los estados <b>funcionan de verdad</b>: probalos.
+    </div>
+  </div>
+
+  <nav class="toolbar">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-s="form"><span class="tab-n">1</span> Formulario</button>
+      <button class="tab" role="tab" aria-selected="false" data-s="detail"><span class="tab-n">2</span> Detalle del presupuesto</button>
+      <button class="tab" role="tab" aria-selected="false" data-s="cobro"><span class="tab-n">3</span> Cobrar ítems</button>
+      <button class="tab" role="tab" aria-selected="false" data-s="comp"><span class="tab-n">4</span> Comprobante</button>
+      <button class="tab" role="tab" aria-selected="false" data-s="print"><span class="tab-n">5</span> Impreso</button>
+    </div>
+    <label class="hl-toggle">
+      <input type="checkbox" id="hlChk"> Resaltar cambios
+    </label>
+  </nav>
+
+  <!-- ══════════ 1. FORMULARIO ══════════ -->
+  <section class="screen on" id="s-form">
+    <div class="screen-cap">
+      <h2>Formulario de presupuesto</h2>
+      <span class="route">/billing/budgets/new</span>
+      <p>Tarjeta clínica nueva + la financiación pasa a ser un check.</p>
+    </div>
+
+    <div class="device">
+      <div class="chrome">
+        <span class="dot" style="background:#fc8181"></span>
+        <span class="dot" style="background:#f6e05e"></span>
+        <span class="dot" style="background:#68d391"></span>
+        <span class="urlbar">localhost:4200/billing/budgets/new?patient_id=8</span>
+      </div>
+      <div class="app">
+        <aside class="side">
+          <div class="brand"><span class="brand-mark">🦷</span> DentalSys</div>
+          <div class="nav"><span class="nav-ic">▦</span> Dashboard</div>
+          <div class="nav"><span class="nav-ic">👥</span> Pacientes</div>
+          <div class="nav"><span class="nav-ic">📅</span> Citas</div>
+          <div class="nav"><span class="nav-ic">🗓</span> Calendario</div>
+          <div class="nav"><span class="nav-ic">🩺</span> Tratamientos</div>
+          <div class="nav on"><span class="nav-ic">💳</span> Cobros</div>
+          <div class="side-foot"><span class="avatar">DG</span> Dra. García</div>
+        </aside>
+
+        <div class="page">
+          <div class="breadcrumb"><span class="bl">Cobros</span> › Nuevo Presupuesto</div>
+          <div class="header-row">
+            <div>
+              <h1 class="page-title">Nuevo Presupuesto</h1>
+              <p class="sub">Propuesta de tratamiento para el paciente</p>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <div class="form-head">Paciente</div>
+            <div class="form-body">
+              <div class="locked-field">
+                <span>Juan Pérez · CI 4821993</span>
+                <span class="text-muted">Cambiar</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-card" data-new>
+            <div class="form-head">
+              Tratamiento Propuesto <span class="new-mark">★ nueva tarjeta</span>
+            </div>
+            <div class="form-body">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Médico responsable <span class="req">*</span></label>
+                  <select class="fld">
+                    <option>Dra. García</option>
+                    <option>Dr. Morales</option>
+                  </select>
+                  <span class="hint">Será el doctor del plan de tratamiento.</span>
+                </div>
+                <div class="form-group">
+                  <label>Tipo de tratamiento <span class="req">*</span></label>
+                  <select class="fld">
+                    <option selected>Atención General</option>
+                    <option>Endodoncia</option>
+                    <option>Ortodoncia</option>
+                    <option>Implante</option>
+                    <option>Periodoncia</option>
+                    <option>Prótesis</option>
+                    <option>Cirugía</option>
+                    <option>Blanqueamiento</option>
+                    <option>Otro</option>
+                  </select>
+                  <span class="hint">Por defecto «Atención General». Se puede cambiar después.</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Pieza dental</label>
+                  <input class="fld" value="24" placeholder="Ej: 24 (notación FDI)">
+                </div>
+                <div class="form-group">
+                  <label>Vincular a un plan existente</label>
+                  <select class="fld">
+                    <option selected>Sin plan — se creará uno al aceptar</option>
+                    <option>Ortodoncia completa (activo)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="info-msg" style="margin-top:4px">
+                <span>ℹ</span>
+                <span>Al <b>aceptar</b> el presupuesto se creará automáticamente el plan de tratamiento
+                  con estos datos, y el paciente podrá agendar sus citas contra él.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <div class="form-head">Ítems Propuestos</div>
+            <div class="form-body">
+              <div class="items-header">
+                <span>Detalle</span><span>Cantidad</span><span>Precio</span><span style="text-align:right">Total</span><span></span>
+              </div>
+              <div class="item-row">
+                <input class="fld" value="Corona pieza 24">
+                <input class="fld" value="1" type="number">
+                <input class="fld" value="800.00" type="number">
+                <span class="item-total">800,00</span>
+                <button class="del-btn" aria-label="Quitar ítem">✕</button>
+              </div>
+              <div class="item-row">
+                <input class="fld" value="Corona pieza 25">
+                <input class="fld" value="1" type="number">
+                <input class="fld" value="800.00" type="number">
+                <span class="item-total">800,00</span>
+                <button class="del-btn" aria-label="Quitar ítem">✕</button>
+              </div>
+              <div class="item-row">
+                <input class="fld" value="Endodoncia pieza 26">
+                <input class="fld" value="1" type="number">
+                <input class="fld" value="700.00" type="number">
+                <span class="item-total">700,00</span>
+                <button class="del-btn" aria-label="Quitar ítem">✕</button>
+              </div>
+              <button class="add-btn">+ Agregar ítem</button>
+              <div class="items-subtotal-row" style="margin-top:11px; border-top:1px solid #e2e8f0">
+                <span>Subtotal</span><span class="money">Bs 2.300,00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <div class="form-head">Condiciones</div>
+            <div class="form-body">
+              <div class="form-group" style="margin-bottom:13px">
+                <label>Nombre del presupuesto <span class="req">*</span></label>
+                <input class="fld" value="Rehabilitación superior">
+              </div>
+
+              <label class="checkbox-row" data-new>
+                <input type="checkbox" id="finChk">
+                <span>
+                  <span class="cbx-txt">Financiar con plan de pago <span class="new-mark">★ nuevo</span></span>
+                  <span class="cbx-hint">Sin tildar, el presupuesto no pide cuotas ni período, y el paciente
+                    paga por ítem a medida que avanza.</span>
+                </span>
+              </label>
+
+              <div class="conditions-block" id="condBlock" hidden>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Cantidad de citas <span class="req">*</span></label>
+                    <input class="fld" type="number" id="fCitas" value="6">
+                  </div>
+                  <div class="form-group">
+                    <label>Cuota inicial</label>
+                    <input class="fld" type="number" id="fDown" value="500">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Costo por cita</label>
+                    <input class="fld ro" id="fCost" value="300,00" readonly>
+                    <span class="hint">Calculado automáticamente</span>
+                  </div>
+                  <div class="form-group">
+                    <label>Monto total</label>
+                    <input class="fld ro" value="2.300,00" readonly>
+                    <span class="hint">Suma de los ítems propuestos</span>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label>Fecha de inicio</label><input class="fld" type="date" value="2026-08-01"></div>
+                  <div class="form-group"><label>Fecha de fin</label><input class="fld" type="date" value="2026-11-30"></div>
+                </div>
+                <div class="calc-summary">
+                  <div class="calc-row"><span>Cantidad de citas</span><span id="sCitas">6</span></div>
+                  <div class="calc-row"><span>Costo por cita</span><span id="sCost">Bs 300,00</span></div>
+                  <div class="calc-row"><span>Cuota inicial</span><span id="sDown">Bs 500,00</span></div>
+                  <div class="calc-row highlight"><span>Monto total</span><span>Bs 2.300,00</span></div>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top:13px">
+                <label>Notas</label>
+                <textarea class="fld" rows="2" placeholder="Observaciones para el paciente..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-foot">
+            <button class="btn-cancel">Cancelar</button>
+            <button class="btn-submit">Crear Presupuesto</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="flow-caption">
+      <b>Probá el check.</b> Tildado, aparece el bloque de cuotas que ya existe hoy
+      (<code>billing-conditions-fields</code>, reusado sin tocarlo). Sin tildar, esos campos quedan
+      <code>NULL</code> en la base y no se imprimen. Es la única diferencia entre «presupuesto suelto»
+      y «presupuesto financiado».
+    </p>
+  </section>
+
+  <!-- ══════════ 2. DETALLE ══════════ -->
+  <section class="screen" id="s-detail">
+    <div class="screen-cap">
+      <h2>Detalle del presupuesto</h2>
+      <span class="route">/billing/budgets/:id</span>
+      <p>El cambio grande: estado por ítem, avance del cobro y comprobantes.</p>
+    </div>
+
+    <div class="device">
+      <div class="state-switch">
+        <span class="ss-label">Ver estado:</span>
+        <button class="ss-btn" data-st="draft">Borrador</button>
+        <button class="ss-btn on" data-st="acc">Aceptado · cobrando</button>
+        <button class="ss-btn" data-st="fresh">Aceptado · sin cobrar</button>
+        <button class="ss-btn" data-st="done">Completado</button>
+      </div>
+      <div class="app">
+        <aside class="side">
+          <div class="brand"><span class="brand-mark">🦷</span> DentalSys</div>
+          <div class="nav"><span class="nav-ic">▦</span> Dashboard</div>
+          <div class="nav"><span class="nav-ic">👥</span> Pacientes</div>
+          <div class="nav"><span class="nav-ic">📅</span> Citas</div>
+          <div class="nav"><span class="nav-ic">🗓</span> Calendario</div>
+          <div class="nav"><span class="nav-ic">🩺</span> Tratamientos</div>
+          <div class="nav on"><span class="nav-ic">💳</span> Cobros</div>
+          <div class="side-foot"><span class="avatar">RM</span> Recepción</div>
+        </aside>
+
+        <div class="page">
+          <div class="breadcrumb"><span class="bl">Cobros</span> › Rehabilitación superior</div>
+          <div class="header-row">
+            <div>
+              <h1 class="page-title">Rehabilitación superior</h1>
+              <p class="sub">Paciente: Juan Pérez · 16 de julio de 2026</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn-print">🖨 Imprimir</button>
+              <span class="btn-edit" id="dEdit" hidden>Editar</span>
+              <span class="status-badge big bstatus-accepted" id="dBadge">Aceptado</span>
+            </div>
+          </div>
+
+          <div class="detail-grid">
+            <div class="main-col">
+              <div class="card">
+                <div class="card-header"><h3>Detalle del Presupuesto</h3></div>
+                <div class="info-body">
+                  <div class="m-row"><span class="ml">Paciente</span><span class="link">Juan Pérez →</span></div>
+                  <div class="m-row" id="dPlanRow"><span class="ml">Plan de tratamiento</span><span class="link">Rehabilitación superior →</span></div>
+                  <div class="m-row" data-new><span class="ml">Médico <span class="new-mark">★</span></span><span>Dra. García</span></div>
+                  <div class="m-row" data-new><span class="ml">Tipo <span class="new-mark">★</span></span><span>Atención General</span></div>
+                  <div class="m-row" data-new><span class="ml">Pieza <span class="new-mark">★</span></span><span>24</span></div>
+                  <div class="m-row"><span class="ml">Notas</span><span class="text-muted">—</span></div>
+                </div>
+                <div class="amounts-row" id="dAmounts" data-new>
+                  <div class="amount-item">
+                    <span class="a-label">En ítems pagados</span><span class="a-val" id="aPaid" style="color:#276749">Bs 800,00</span>
+                  </div>
+                  <div class="amount-item">
+                    <span class="a-label">En cobro</span><span class="a-val" id="aBill" style="color:#c05621">Bs 800,00</span>
+                  </div>
+                  <div class="amount-item">
+                    <span class="a-label">Pendiente</span><span class="a-val" id="aPend">Bs 700,00</span>
+                  </div>
+                  <div class="amount-item total">
+                    <span class="a-label">Total</span><span class="a-val">Bs 2.300,00</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <h3>Ítems del Presupuesto</h3>
+                  <span class="text-muted" id="dItemsHint">El estado sale del comprobante, no se guarda aparte</span>
+                </div>
+                <div style="overflow-x:auto">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Detalle</th><th class="num">Cant.</th><th class="num">P. Unit.</th>
+                        <th class="num">Total</th><th data-new>Estado <span class="new-mark">★ nueva</span></th>
+                      </tr>
+                    </thead>
+                    <tbody id="dItems"></tbody>
+                  </table>
+                </div>
+                <div class="items-subtotal-row"><span>Subtotal</span><span class="money">Bs 2.300,00</span></div>
+              </div>
+
+              <div class="card" id="dCompCard" data-new>
+                <div class="card-header">
+                  <h3>Comprobantes Generados <span class="new-mark">★ nueva tarjeta</span></h3>
+                </div>
+                <div style="overflow-x:auto">
+                  <table class="table">
+                    <thead>
+                      <tr><th>N°</th><th>Fecha</th><th>Ítems</th><th class="num">Total</th><th>Estado</th><th></th></tr>
+                    </thead>
+                    <tbody id="dComps"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="side-col">
+              <div class="card progress-card" id="dProgress" data-new>
+                <h4>Avance del Cobro <span class="new-mark">★ nuevo</span></h4>
+                <div class="pc-pct"><span id="pPct">35</span>%<small>en ítems pagados</small></div>
+                <div class="bar">
+                  <i class="seg-paid" id="barPaid" style="width:35%"></i>
+                  <i class="seg-billing" id="barBill" style="width:35%"></i>
+                </div>
+                <div class="legend-row">
+                  <span class="lg-key"><i class="swatch" style="background:#276749"></i> En ítems pagados</span>
+                  <span class="lg-val" id="lPaid">800,00</span>
+                </div>
+                <div class="legend-row">
+                  <span class="lg-key"><i class="swatch" style="background:#ed8936"></i> En cobro</span>
+                  <span class="lg-val" id="lBill">800,00</span>
+                </div>
+                <div class="legend-row">
+                  <span class="lg-key"><i class="swatch" style="background:#edf2f7;border:1px solid #cbd5e0"></i> Pendiente</span>
+                  <span class="lg-val" id="lPend">700,00</span>
+                </div>
+                <div class="pc-total"><span>Total</span><span>Bs 2.300,00</span></div>
+              </div>
+
+              <div id="dPanel"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="flow-caption" id="dCaption"></p>
+  </section>
+
+  <!-- ══════════ 3. COBRAR ══════════ -->
+  <section class="screen" id="s-cobro">
+    <div class="screen-cap">
+      <h2>Cobrar ítems</h2>
+      <span class="route">/billing/invoices/new?budget_id=12</span>
+      <p>El formulario de comprobante que ya existe, con selector de ítems.</p>
+    </div>
+
+    <div class="device">
+      <div class="chrome">
+        <span class="dot" style="background:#fc8181"></span>
+        <span class="dot" style="background:#f6e05e"></span>
+        <span class="dot" style="background:#68d391"></span>
+        <span class="urlbar">localhost:4200/billing/invoices/new?patient_id=8&amp;budget_id=12&amp;appointment_id=44</span>
+      </div>
+      <div class="app">
+        <aside class="side">
+          <div class="brand"><span class="brand-mark">🦷</span> DentalSys</div>
+          <div class="nav"><span class="nav-ic">▦</span> Dashboard</div>
+          <div class="nav"><span class="nav-ic">👥</span> Pacientes</div>
+          <div class="nav"><span class="nav-ic">📅</span> Citas</div>
+          <div class="nav"><span class="nav-ic">🗓</span> Calendario</div>
+          <div class="nav"><span class="nav-ic">🩺</span> Tratamientos</div>
+          <div class="nav on"><span class="nav-ic">💳</span> Cobros</div>
+          <div class="side-foot"><span class="avatar">RM</span> Recepción</div>
+        </aside>
+
+        <div class="page">
+          <div class="breadcrumb"><span class="bl">Cobros</span> › Nuevo Comprobante</div>
+          <div class="header-row">
+            <div>
+              <h1 class="page-title">Nuevo Comprobante</h1>
+              <p class="sub">Cobro de ítems del presupuesto «Rehabilitación superior»</p>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <div class="form-head">Paciente</div>
+            <div class="form-body">
+              <div class="locked-field">
+                <span>Juan Pérez · CI 4821993</span>
+                <span class="text-muted">🔒 viene del presupuesto</span>
+              </div>
+              <div class="info-msg" style="margin-top:11px">
+                <span>📅</span>
+                <span>Cita del <b>20/08/2026 10:00</b> · Dra. García — el comprobante queda vinculado a esta cita.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-card" data-new>
+            <div class="form-head">
+              Ítems del Presupuesto <span class="new-mark">★ nueva tarjeta</span>
+            </div>
+            <div class="form-body">
+              <p class="hint" style="margin-bottom:11px">Marcá los ítems que se cobran en este comprobante.</p>
+
+              <label class="pick-row">
+                <input type="checkbox" class="pk" data-amt="700" checked>
+                <span><span class="pk-name">Endodoncia pieza 26</span><span class="pk-meta">1 × Bs 700,00</span></span>
+                <span class="pk-amt">700,00</span>
+              </label>
+              <label class="pick-row">
+                <input type="checkbox" class="pk" data-amt="550">
+                <span><span class="pk-name">Extracción pieza 38</span><span class="pk-meta">1 × Bs 550,00</span></span>
+                <span class="pk-amt">550,00</span>
+              </label>
+              <label class="pick-row off">
+                <input type="checkbox" disabled>
+                <span><span class="pk-name">Corona pieza 24</span>
+                  <span class="pk-meta">✓ Pagado · comprobante <span class="link">#0012 →</span></span></span>
+                <span class="pk-amt">800,00</span>
+              </label>
+              <label class="pick-row off">
+                <input type="checkbox" disabled>
+                <span><span class="pk-name">Corona pieza 25</span>
+                  <span class="pk-meta">⏳ En cobro · comprobante <span class="link">#0015 →</span></span></span>
+                <span class="pk-amt">800,00</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-card" data-new>
+            <div class="form-head">
+              Ítems Adicionales <span class="text-muted" style="font-weight:400;font-size:12px">— fuera del presupuesto</span>
+              <span class="new-mark">★ nueva tarjeta</span>
+            </div>
+            <div class="form-body">
+              <div class="items-header">
+                <span>Detalle</span><span>Cantidad</span><span>Precio</span><span style="text-align:right">Total</span><span></span>
+              </div>
+              <div id="xtraRows">
+                <div class="item-row">
+                  <input class="fld xd" value="Cepillo dental">
+                  <input class="fld xq" value="1" type="number" min="1">
+                  <input class="fld xp" value="35.00" type="number" min="0">
+                  <span class="item-total xt">35,00</span>
+                  <button class="del-btn xdel" aria-label="Quitar ítem">✕</button>
+                </div>
+              </div>
+              <button class="add-btn" id="addXtra">+ Agregar ítem</button>
+              <p class="hint" style="margin-top:8px">Puede quedar vacío. Productos u otros servicios que surjan en la cita.</p>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <div class="totals-box">
+              <div class="t-row"><span>Subtotal</span><span id="cSub">Bs 735,00</span></div>
+              <div class="t-row">
+                <span>Descuento</span>
+                <input class="fld" id="cDisc" type="number" value="0" style="width:110px;text-align:right">
+              </div>
+              <div class="t-row grand"><span>TOTAL</span><span id="cTot">Bs 735,00</span></div>
+            </div>
+          </div>
+
+          <div class="form-foot">
+            <button class="btn-cancel">Cancelar</button>
+            <button class="btn-submit" id="cSubmit">Crear Comprobante</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="flow-caption">
+      <b>Probá los checkboxes y el descuento</b> — el total se recalcula igual que en la app.
+      Los ítems ya cobrados aparecen deshabilitados con su comprobante: es el guard contra doble cobro,
+      visible en la UI antes de que el backend lo rechace.
+    </p>
+  </section>
+
+  <!-- ══════════ 4. COMPROBANTE ══════════ -->
+  <section class="screen" id="s-comp">
+    <div class="screen-cap">
+      <h2>Comprobante</h2>
+      <span class="route">/billing/invoices/:id</span>
+      <p>Panel de pago existente, sin tocar. Sólo se marca el origen de cada línea.</p>
+    </div>
+
+    <div class="device">
+      <div class="chrome">
+        <span class="dot" style="background:#fc8181"></span>
+        <span class="dot" style="background:#f6e05e"></span>
+        <span class="dot" style="background:#68d391"></span>
+        <span class="urlbar">localhost:4200/billing/invoices/16</span>
+      </div>
+      <div class="app">
+        <aside class="side">
+          <div class="brand"><span class="brand-mark">🦷</span> DentalSys</div>
+          <div class="nav"><span class="nav-ic">▦</span> Dashboard</div>
+          <div class="nav"><span class="nav-ic">👥</span> Pacientes</div>
+          <div class="nav"><span class="nav-ic">📅</span> Citas</div>
+          <div class="nav"><span class="nav-ic">🗓</span> Calendario</div>
+          <div class="nav"><span class="nav-ic">🩺</span> Tratamientos</div>
+          <div class="nav on"><span class="nav-ic">💳</span> Cobros</div>
+          <div class="side-foot"><span class="avatar">RM</span> Recepción</div>
+        </aside>
+
+        <div class="page">
+          <div class="breadcrumb"><span class="bl">Cobros</span> › Comprobante #0016</div>
+          <div class="header-row">
+            <div>
+              <h1 class="page-title">Comprobante #0016</h1>
+              <p class="sub">Juan Pérez · 20 de agosto de 2026</p>
+            </div>
+            <div class="header-actions">
+              <span class="status-badge big bstatus-pending">Pendiente</span>
+            </div>
+          </div>
+
+          <div class="detail-grid">
+            <div class="main-col">
+              <div class="card">
+                <div class="card-header"><h3>Ítems</h3></div>
+                <div style="overflow-x:auto">
+                  <table class="table">
+                    <thead><tr><th>Descripción</th><th class="num">Cant.</th><th class="num">P. Unit.</th><th class="num">Total</th></tr></thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          Endodoncia pieza 26
+                          <span class="src-tag b" data-new>↳ del presupuesto «Rehabilitación superior» <span class="new-mark">★</span></span>
+                        </td>
+                        <td class="num">1</td><td class="num">700,00</td><td class="num money">700,00</td>
+                      </tr>
+                      <tr>
+                        <td>
+                          Cepillo dental
+                          <span class="src-tag" data-new>↳ ítem adicional <span class="new-mark">★</span></span>
+                        </td>
+                        <td class="num">1</td><td class="num">35,00</td><td class="num money">35,00</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="totals-box">
+                  <div class="t-row"><span>Subtotal</span><span>Bs 735,00</span></div>
+                  <div class="t-row"><span>Pagado</span><span style="color:#276749">Bs 0,00</span></div>
+                  <div class="t-row grand"><span>TOTAL</span><span>Bs 735,00</span></div>
+                </div>
+              </div>
+
+              <div class="card" data-new>
+                <div class="card-header"><h3>Información</h3></div>
+                <div class="info-body">
+                  <div class="m-row"><span class="ml">Paciente</span><span class="link">Juan Pérez →</span></div>
+                  <div class="m-row"><span class="ml">Cita</span><span class="link">20/08/2026 10:00 →</span></div>
+                  <div class="m-row" data-new><span class="ml">Presupuesto <span class="new-mark">★</span></span><span class="link">Rehabilitación superior →</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="side-col">
+              <div class="action-panel">
+                <h4>Registrar Pago</h4>
+                <div class="calc-toggle">
+                  <button class="toggle-btn active">Pago Completo</button>
+                  <button class="toggle-btn">Pago Parcial</button>
+                </div>
+                <div class="form-group">
+                  <label>Método de pago</label>
+                  <select class="fld"><option>Efectivo</option><option>QR</option></select>
+                </div>
+                <div class="form-group">
+                  <label>Referencia</label>
+                  <input class="fld" placeholder="Opcional">
+                </div>
+                <div class="pay-amount-display">Bs 735,00</div>
+                <button class="pay-btn">Registrar Pago</button>
+                <p class="panel-hint" style="text-align:center">Al quedar pagado, «Endodoncia 26» pasa a
+                  <b style="color:#276749">Pagado</b> en el presupuesto.</p>
+              </div>
+
+              <div class="info-msg" data-new>
+                <span>🔒</span>
+                <span>Los ítems de un comprobante generado desde un presupuesto <b>no se editan</b>:
+                  si hay un error, se anula y se genera uno nuevo. <span class="new-mark">★ nuevo guard</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="flow-caption">
+      <b>El panel de pago no cambia en nada</b> — es el que ya existe, con efectivo/QR, pago total o parcial.
+      Reusar el comprobante es lo que hace que <code>Total Cobrado</code> del panel de Cobros siga sumando solo,
+      sin agregar un tercer ledger de plata al sistema.
+    </p>
+  </section>
+
+  <!-- ══════════ 5. IMPRESO ══════════ -->
+  <section class="screen" id="s-print">
+    <div class="screen-cap">
+      <h2>Presupuesto impreso</h2>
+      <span class="route">/billing/budgets/:id/imprimir</span>
+      <p>Lo que se lleva el paciente. Sin financiar: sin escalera de cuotas.</p>
+    </div>
+
+    <div class="device">
+      <div class="chrome">
+        <span class="dot" style="background:#fc8181"></span>
+        <span class="dot" style="background:#f6e05e"></span>
+        <span class="dot" style="background:#68d391"></span>
+        <span class="urlbar">localhost:4200/billing/budgets/12/imprimir</span>
+      </div>
+      <div class="paper-wrap">
+        <div class="paper">
+          <div class="p-head">
+            <div class="p-logo">🦷</div>
+            <div>
+              <div class="p-clinic">Clínica Dental Sonrisa</div>
+              <div class="p-contact">Av. Siempreviva 123, Santa Cruz · Tel. 555-0100 · info@sonrisa.bo</div>
+            </div>
+          </div>
+
+          <div class="p-doctype">
+            <h1>PRESUPUESTO</h1>
+            <p>16 de julio de 2026</p>
+          </div>
+
+          <div class="p-info">
+            <div><b>Paciente:</b> Juan Pérez</div>
+            <div><b>CI:</b> 4821993</div>
+            <div data-new><b>Médico:</b> Dra. García <span class="new-mark">★</span></div>
+            <div data-new><b>Tratamiento:</b> Atención General · Pieza 24 <span class="new-mark">★</span></div>
+          </div>
+
+          <div class="p-sec">Ítems propuestos</div>
+          <table class="p-table">
+            <thead><tr><th>Detalle</th><th class="num">Cant.</th><th class="num">P. Unit.</th><th class="num">Total</th></tr></thead>
+            <tbody>
+              <tr><td>Corona pieza 24</td><td class="num">1</td><td class="num">800,00</td><td class="num">800,00</td></tr>
+              <tr><td>Corona pieza 25</td><td class="num">1</td><td class="num">800,00</td><td class="num">800,00</td></tr>
+              <tr><td>Endodoncia pieza 26</td><td class="num">1</td><td class="num">700,00</td><td class="num">700,00</td></tr>
+            </tbody>
+          </table>
+          <div class="p-total"><span>TOTAL</span><span>Bs 2.300,00</span></div>
+
+          <div class="p-note" data-new>
+            Podés abonar por partes a medida que avanzan los tratamientos. Cada pago cubre los
+            tratamientos realizados y se te entrega su comprobante.
+            <span class="new-mark">★ reemplaza la propuesta de cuotas</span>
+          </div>
+
+          <div class="p-signs">
+            <div class="p-sign-line">Paciente</div>
+            <div class="p-sign-line">Clínica</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="flow-caption">
+      Hoy este documento imprime siempre <b>Condiciones</b> (costo por cita, cuota inicial) y una
+      <b>Propuesta de Cuotas</b>. Sin financiación esos bloques desaparecen y el papel dice lo único
+      que es cierto: los ítems, el total, y que se puede pagar por partes.
+      Con el check tildado, vuelven tal cual están hoy.
+    </p>
+  </section>
+
+</div>
+
+<script>
+  // ── Tabs ───────────────────────────────────────────────────────────────
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.setAttribute('aria-selected', String(x === t)));
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+    document.getElementById('s-' + t.dataset.s).classList.add('on');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }));
+
+  // ── Resaltar cambios ───────────────────────────────────────────────────
+  document.getElementById('hlChk').addEventListener('change', e => {
+    document.body.classList.toggle('hl', e.target.checked);
+  });
+
+  const money = n => 'Bs ' + n.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const plain = n => n.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // ── 1. Check de financiación ───────────────────────────────────────────
+  const finChk = document.getElementById('finChk');
+  const condBlock = document.getElementById('condBlock');
+  const fCitas = document.getElementById('fCitas'), fDown = document.getElementById('fDown');
+  const TOTAL_BUDGET = 2300;
+
+  function recalcCond() {
+    const citas = parseInt(fCitas.value, 10) || 0;
+    const down = parseFloat(fDown.value) || 0;
+    if (citas <= 0) return;
+    const cost = Math.round(((TOTAL_BUDGET - down) / citas) * 100) / 100;
+    document.getElementById('fCost').value = plain(cost);
+    document.getElementById('sCitas').textContent = citas;
+    document.getElementById('sCost').textContent = money(cost);
+    document.getElementById('sDown').textContent = money(down);
+  }
+  finChk.addEventListener('change', () => { condBlock.hidden = !finChk.checked; if (finChk.checked) recalcCond(); });
+  fCitas.addEventListener('input', recalcCond);
+  fDown.addEventListener('input', recalcCond);
+
+  // ── 2. Detalle: máquina de estados ─────────────────────────────────────
+  const ITEMS = [
+    { n: 'Corona pieza 24', p: 800 },
+    { n: 'Corona pieza 25', p: 800 },
+    { n: 'Endodoncia pieza 26', p: 700 },
+  ];
+  const STATES = {
+    draft: {
+      badge: ['Borrador', 'bstatus-draft'], edit: true, plan: false, comps: [],
+      items: ['none', 'none', 'none'],
+      cap: '<b>Borrador.</b> Todavía se puede editar todo. «Aceptar» ahora pide confirmación, porque además de cambiar el estado <b>crea el plan de tratamiento</b> — hoy es un click sin aviso.',
+    },
+    fresh: {
+      badge: ['Aceptado', 'bstatus-accepted'], edit: false, plan: true, comps: [],
+      items: ['pending', 'pending', 'pending'],
+      cap: '<b>Aceptado, sin cobrar nada.</b> El plan de tratamiento ya existe y el paciente puede agendar citas. Como todavía no hay comprobantes, sigue disponible la opción secundaria de <b>financiarlo con un plan de pago</b> — desaparece con el primer cobro.',
+    },
+    acc: {
+      badge: ['Aceptado', 'bstatus-accepted'], edit: false, plan: true,
+      items: ['paid', 'billing', 'pending'],
+      comps: [
+        { n: '#0012', d: '02/08/2026', i: '1', t: 800, s: ['Pagado', 'bstatus-paid'] },
+        { n: '#0015', d: '20/08/2026', i: '1 (+1 adicional)', t: 835, s: ['Parcial', 'bstatus-partial'] },
+      ],
+      cap: '<b>Cobrando por ítem.</b> Corona 24 está pagada; Corona 25 está en un comprobante parcial; Endodoncia sigue pendiente. Ningún estado se guarda: los tres se <b>derivan</b> del comprobante de cada ítem, así que anular un comprobante devuelve sus ítems a Pendiente solo, sin código de compensación.',
+    },
+    done: {
+      badge: ['Aceptado', 'bstatus-accepted'], edit: false, plan: true,
+      items: ['paid', 'paid', 'paid'],
+      comps: [
+        { n: '#0012', d: '02/08/2026', i: '1', t: 800, s: ['Pagado', 'bstatus-paid'] },
+        { n: '#0015', d: '20/08/2026', i: '1 (+1 adicional)', t: 835, s: ['Pagado', 'bstatus-paid'] },
+        { n: '#0021', d: '05/09/2026', i: '1', t: 700, s: ['Pagado', 'bstatus-paid'] },
+      ],
+      cap: '<b>Completado.</b> Es una etiqueta <b>derivada</b> (nada pendiente ni en cobro), no un estado nuevo en la base: <code>BudgetStatus</code> sigue siendo draft/accepted/rejected y no hace falta migrar nada.',
+    },
+  };
+  const PILL = {
+    paid: ['pill-paid', '✓ Pagado'],
+    billing: ['pill-billing', '⏳ En cobro'],
+    pending: ['pill-pending', '○ Pendiente'],
+    none: ['pill-pending', '— sin aceptar'],
+  };
+  const COMP_OF = { 0: '#0012', 1: '#0015', 2: '#0021' };
+
+  function renderState(st) {
+    const s = STATES[st];
+    const badge = document.getElementById('dBadge');
+    badge.textContent = s.badge[0];
+    badge.className = 'status-badge big ' + s.badge[1];
+    document.getElementById('dEdit').hidden = !s.edit;
+    document.getElementById('dPlanRow').querySelector('.link').textContent =
+      s.plan ? 'Rehabilitación superior →' : 'Se creará al aceptar';
+    document.getElementById('dPlanRow').querySelector('.link').className = s.plan ? 'link' : 'text-muted';
+
+    // Ítems
+    document.getElementById('dItems').innerHTML = ITEMS.map((it, i) => {
+      const k = s.items[i], [cls, txt] = PILL[k];
+      const sub = (k === 'paid' || k === 'billing')
+        ? `<span class="pill-sub">comprobante <a href="#" onclick="return false">${COMP_OF[i]} →</a></span>` : '';
+      return `<tr>
+        <td style="color:#2d3748;font-weight:500">${it.n}</td>
+        <td class="num">1</td>
+        <td class="num">${plain(it.p)}</td>
+        <td class="num money">${plain(it.p)}</td>
+        <td data-new><span class="pill ${cls}">${txt}</span>${sub}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('dItemsHint').style.display = st === 'draft' ? 'none' : '';
+
+    // Montos
+    const sum = k => ITEMS.reduce((a, it, i) => a + (s.items[i] === k ? it.p : 0), 0);
+    const paid = sum('paid'), bill = sum('billing');
+    const pend = TOTAL_BUDGET - paid - bill;
+    const showAmts = st !== 'draft';
+    document.getElementById('dAmounts').style.display = showAmts ? '' : 'none';
+    document.getElementById('dProgress').style.display = showAmts ? '' : 'none';
+    document.getElementById('aPaid').textContent = money(paid);
+    document.getElementById('aBill').textContent = money(bill);
+    document.getElementById('aPend').textContent = money(pend);
+    document.getElementById('lPaid').textContent = plain(paid);
+    document.getElementById('lBill').textContent = plain(bill);
+    document.getElementById('lPend').textContent = plain(pend);
+    document.getElementById('pPct').textContent = Math.round((paid / TOTAL_BUDGET) * 100);
+    document.getElementById('barPaid').style.width = (paid / TOTAL_BUDGET * 100) + '%';
+    document.getElementById('barBill').style.width = (bill / TOTAL_BUDGET * 100) + '%';
+
+    // Comprobantes
+    const cc = document.getElementById('dCompCard');
+    cc.style.display = s.comps.length ? '' : 'none';
+    document.getElementById('dComps').innerHTML = s.comps.map(c => `<tr>
+      <td><a class="link" href="#" onclick="return false">${c.n}</a></td>
+      <td>${c.d}</td><td>${c.i}</td><td class="num money">${plain(c.t)}</td>
+      <td><span class="status-badge ${c.s[1]}">${c.s[0]}</span></td>
+      <td style="text-align:right"><a class="link" href="#" onclick="return false">👁</a></td>
+    </tr>`).join('');
+
+    // Panel de acciones
+    let panel = '';
+    if (st === 'draft') {
+      panel = `<div class="action-panel">
+        <h4>Acciones</h4>
+        <button class="btn-accept">Aceptar Presupuesto</button>
+        <button class="btn-reject">Rechazar Presupuesto</button>
+        <p class="panel-hint" data-new>Al aceptar se creará el plan de tratamiento
+          «Rehabilitación superior» a nombre de Dra. García. <span class="new-mark">★ nuevo aviso</span></p>
+      </div>`;
+    } else if (st === 'done') {
+      panel = `<div class="converted-badge" data-new>
+        <span style="font-size:20px">✓</span>
+        Presupuesto completado<br>
+        <span style="font-weight:400;font-size:12px">Todos los ítems fueron cobrados</span>
+        <span class="new-mark">★ derivado</span>
+      </div>`;
+    } else {
+      panel = `<div class="action-panel accepted">
+        <h4>Acciones</h4>
+        <button class="btn-cobrar" data-new>Cobrar ítems <span class="new-mark">★ nuevo</span></button>
+        ${st === 'fresh' ? `
+          <p class="panel-hint" style="margin-top:6px">¿El paciente quiere pagarlo en cuotas?</p>
+          <div class="btn-secondary-link">Financiar con plan de pago ›</div>
+          <p class="panel-hint" data-new style="font-size:11px">Desaparece al emitir el primer comprobante.
+            <span class="new-mark">★</span></p>` : `
+          <p class="panel-hint" style="margin-top:6px">Ya hay comprobantes emitidos: este presupuesto
+            se cobra por ítem y ya no puede financiarse.</p>`}
+      </div>`;
+    }
+    document.getElementById('dPanel').innerHTML = panel;
+    document.getElementById('dCaption').innerHTML = s.cap;
+  }
+
+  document.querySelectorAll('.ss-btn').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.ss-btn').forEach(x => x.classList.toggle('on', x === b));
+    renderState(b.dataset.st);
+  }));
+  renderState('acc');
+
+  // ── 3. Cobro: totales en vivo ──────────────────────────────────────────
+  function recalcCobro() {
+    let sub = 0;
+    document.querySelectorAll('.pk').forEach(c => { if (c.checked) sub += parseFloat(c.dataset.amt); });
+    document.querySelectorAll('#xtraRows .item-row').forEach(r => {
+      const q = parseFloat(r.querySelector('.xq').value) || 0;
+      const p = parseFloat(r.querySelector('.xp').value) || 0;
+      const t = q * p;
+      r.querySelector('.xt').textContent = plain(t);
+      sub += t;
+    });
+    const disc = parseFloat(document.getElementById('cDisc').value) || 0;
+    const tot = Math.max(0, sub - disc);
+    document.getElementById('cSub').textContent = money(sub);
+    document.getElementById('cTot').textContent = money(tot);
+    document.getElementById('cSubmit').disabled = sub === 0;
+  }
+  document.getElementById('s-cobro').addEventListener('input', recalcCobro);
+  document.getElementById('s-cobro').addEventListener('change', recalcCobro);
+  document.getElementById('addXtra').addEventListener('click', () => {
+    const d = document.createElement('div');
+    d.className = 'item-row';
+    d.innerHTML = `<input class="fld xd" placeholder="Detalle del producto o servicio">
+      <input class="fld xq" value="1" type="number" min="1">
+      <input class="fld xp" value="0" type="number" min="0">
+      <span class="item-total xt">0,00</span>
+      <button class="del-btn xdel" aria-label="Quitar ítem">✕</button>`;
+    document.getElementById('xtraRows').appendChild(d);
+    d.querySelector('.xd').focus();
+    recalcCobro();
+  });
+  document.getElementById('xtraRows').addEventListener('click', e => {
+    if (e.target.classList.contains('xdel')) { e.target.closest('.item-row').remove(); recalcCobro(); }
+  });
+  recalcCobro();
+</script>
+
+</body>
+</html>
