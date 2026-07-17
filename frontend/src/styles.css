@@ -46,3 +46,49 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 768px) {
   html, body { font-size: 15px; }
 }
+
+/* ─── Touch-device layer (tablets are the primary work tool) ─────────────────
+   Applies ONLY on coarse pointers (touch), leaving desktop mouse UI unchanged.
+   Goals: ≥44px touch targets (Apple HIG / Material), no iOS focus auto-zoom
+   (inputs <16px trigger it), and no double-tap-zoom delay on taps. */
+@media (pointer: coarse) {
+  button, a, select, input, textarea, label,
+  [role="button"], [routerlink] {
+    touch-action: manipulation;
+  }
+
+  /* 16px stops iPad Safari from auto-zooming into focused fields. */
+  input, select, textarea {
+    font-size: 16px !important;
+    min-height: 44px;
+  }
+  input[type="checkbox"], input[type="radio"] {
+    min-height: 24px; min-width: 24px;
+  }
+
+  /* Every button-like control reaches the 44px minimum. Icon-only buttons
+     (30×30 today) also get min-width so they don't stay narrow slivers. */
+  button, .btn, a.btn {
+    min-height: 44px;
+  }
+  .icon-btn, .action-btn, .btn-icon, .del-btn, .modal-close,
+  .close-drawer-btn, .logout-btn, .hamburger-btn, .btn-receipt,
+  .btn-sm, .plan-detail-btn, .clear-btn, .btn-today {
+    min-height: 44px; min-width: 44px;
+  }
+  .row-actions { gap: 8px; }
+
+  /* Small inline text links (breadcrumbs, "Ver"/"Editar" links, add-item)
+     get a taller hit area without changing their visual weight. */
+  .breadcrumb-link, .link, .link-btn, .plan-link-btn, .plan-action-link,
+  .patient-link, .add-item-btn, .pd-add-session-btn, .pd-pa-link, .pa-link,
+  .meta-link, a.pill, .patient-cell-link {
+    display: inline-flex; align-items: center; min-height: 44px;
+  }
+  .breadcrumb-link { min-width: 44px; }
+  a.btn-edit, a.btn-edit-plan, .view-switch button {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 44px; min-width: 44px;
+  }
+  button.toggle-btn { min-width: 40px; }
+}

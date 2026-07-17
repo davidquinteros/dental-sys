@@ -5,8 +5,8 @@ import { AuthService } from '../../../core/services/auth.service';
 import { PermissionService } from '../../../core/services/permission.service';
 
 interface NavItem {
+  key: string;
   label: string;
-  icon: string;
   route: string;
 }
 
@@ -48,13 +48,15 @@ export class LayoutComponent {
     this.mobileMenuOpen.set(false);
   }
 
-  visibleNavItems = computed(() => {
+  visibleNavItems = computed<NavItem[]>(() => {
     const pages = this.permissions.accessiblePages();
-    // Dashboard is always first; fall back to static order by sort_order
+    // Dashboard is always first; fall back to static order by sort_order.
+    // The icon is resolved in the template by page key (see the @switch in
+    // layout.component.html) — the DB icon string can't be innerHTML-bound.
     return pages.map(p => ({
+      key: p.key,
       label: p.label,
       route: p.route,
-      icon: p.icon ?? '',
     }));
   });
 

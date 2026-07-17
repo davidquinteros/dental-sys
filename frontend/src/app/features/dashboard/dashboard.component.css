@@ -33,7 +33,7 @@
 .stat-sub { font-size: 12px; color: #a0aec0; }
 .stat-sub.warn { color: #e53e3e; font-weight: 500; }
 
-.content-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; }
+.content-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; }
 
 .calendar-card-wrap { margin-top: 24px; }
 
