@@ -10,7 +10,7 @@ from app.middleware.auth import platform_admin_required, get_current_user
 from app.utils.seeder import create_clinic
 from app.utils import storage
 from app.routes.treatments import _read_upload_or_error
-from app.routes.clinic import _serve_clinic_logo
+from app.routes.clinic import _serve_clinic_logo, _LOGO_PATHS
 
 platform_bp = Blueprint("platform_admin", __name__)
 
@@ -381,11 +381,11 @@ def update_clinic(clinic_id):
     return jsonify({"clinic": clinic.to_dict(), "message": "Clínica actualizada"}), 200
 
 
-@platform_bp.route("/clinics/<int:clinic_id>/logo", methods=["POST"])
+@platform_bp.route("/clinics/<int:clinic_id>/logo/<kind>", methods=["POST"])
 @platform_admin_required
-def upload_clinic_logo(clinic_id):
+def upload_clinic_logo(clinic_id, kind):
     """
-    Subir el logo de una clínica
+    Subir el logo (main | print) de una clínica
     ---
     tags:
       - Plataforma
@@ -394,13 +394,18 @@ def upload_clinic_logo(clinic_id):
     consumes:
       - multipart/form-data
     description: >
-      Reemplaza el logo actual de la clínica (si existe). La imagen se guarda en
-      el mismo almacenamiento privado que las fotos clínicas, en una ruta fija
-      por clínica — subir un logo nuevo pisa al anterior, sin dejar huérfanos.
+      Reemplaza el logo indicado (main o print) de la clínica. La imagen se guarda en
+      el mismo almacenamiento privado que las fotos clínicas, en una ruta fija por
+      clínica — subir uno nuevo pisa al anterior, sin dejar huérfanos.
     parameters:
       - in: path
         name: clinic_id
         type: integer
+        required: true
+      - in: path
+        name: kind
+        type: string
+        enum: [main, print]
         required: true
       - in: formData
         name: file
@@ -418,7 +423,7 @@ def upload_clinic_logo(clinic_id):
             message:
               type: string
       400:
-        description: Archivo inválido
+        description: Archivo o tipo inválido
         schema:
           $ref: '#/definitions/Error'
       404:
@@ -430,6 +435,8 @@ def upload_clinic_logo(clinic_id):
         schema:
           $ref: '#/definitions/Error'
     """
+    if kind not in _LOGO_PATHS:
+        return jsonify({"error": "Tipo de logo inválido (use 'main' o 'print')"}), 400
     clinic = Clinic.query.get_or_404(clinic_id, description="Clínica no encontrada")
 
     result, error = _read_upload_or_error()
@@ -437,23 +444,26 @@ def upload_clinic_logo(clinic_id):
         return error
     data, content_type = result
 
-    storage_path = f"clinic_{clinic.id}/logo.jpg"
+    storage_path = _LOGO_PATHS[kind](clinic.id)
     try:
         storage.upload_object(storage_path, data, content_type)
     except storage.StorageError:
         return jsonify({"error": "No se pudo subir el logo al almacenamiento"}), 502
 
-    clinic.logo_url = storage_path
+    if kind == "main":
+        clinic.logo_main_url = storage_path
+    else:
+        clinic.logo_print_url = storage_path
     db.session.commit()
 
     return jsonify({"clinic": clinic.to_dict(), "message": "Logo actualizado"}), 200
 
 
-@platform_bp.route("/clinics/<int:clinic_id>/logo", methods=["GET"])
+@platform_bp.route("/clinics/<int:clinic_id>/logo/<kind>", methods=["GET"])
 @platform_admin_required
-def get_clinic_logo(clinic_id):
+def get_clinic_logo(clinic_id, kind):
     """
-    Logo de una clínica (vista de plataforma)
+    Logo (main | print) de una clínica (vista de plataforma)
     ---
     tags:
       - Plataforma
@@ -466,11 +476,20 @@ def get_clinic_logo(clinic_id):
         name: clinic_id
         type: integer
         required: true
+      - in: path
+        name: kind
+        type: string
+        enum: [main, print]
+        required: true
     responses:
       200:
         description: Bytes del logo
+      400:
+        description: Tipo de logo inválido
+        schema:
+          $ref: '#/definitions/Error'
       404:
-        description: Clínica no encontrada, o sin logo
+        description: Clínica no encontrada, o sin ese logo
         schema:
           $ref: '#/definitions/Error'
       503:
@@ -478,8 +497,12 @@ def get_clinic_logo(clinic_id):
         schema:
           $ref: '#/definitions/Error'
     """
+    if kind not in _LOGO_PATHS:
+        return jsonify({"error": "Tipo de logo inválido (use 'main' o 'print')"}), 400
     clinic = Clinic.query.get_or_404(clinic_id, description="Clínica no encontrada")
-    return _serve_clinic_logo(clinic, cacheable=True)
+    stored = clinic.logo_main_url if kind == "main" else clinic.logo_print_url
+    # id-scoped: clinic id is in the URL, so per-clinic caching is safe.
+    return _serve_clinic_logo(clinic, stored, cacheable=True)
 
 
 @platform_bp.route("/clinics/<int:clinic_id>/reset-admin-password", methods=["POST"])

@@ -152,13 +152,16 @@ export interface Treatment {
   created_at: string;
 }
 
-/** Header info for the recetario print view — GET /api/clinic/info. */
+/** Clinic profile info — GET /api/clinic/info. Used by the print header, the
+ * clinic-profile page and the sidebar brand. The two logo fields hold the
+ * serving-endpoint route when that logo exists, or are absent/null otherwise. */
 export interface ClinicInfo {
   name: string;
   address?: string;
   phone?: string;
-  logo_url?: string;
   email?: string;
+  logo_main_url?: string | null;
+  logo_print_url?: string | null;
 }
 
 /** Clinical photo attached to an appointment (Treatment) or a TreatmentPlan. */

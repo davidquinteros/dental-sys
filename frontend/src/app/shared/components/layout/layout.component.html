@@ -9,16 +9,20 @@
         <line x1="3" y1="18" x2="21" y2="18"/>
       </svg>
     </button>
-    <div class="mobile-brand">
+    <a class="mobile-brand" routerLink="/clinic-profile" title="Perfil de la Clínica">
       <div class="brand-icon">
-        <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
-          <path d="M14 2C9 2 5 6 5 11c0 3 1 5.5 2.5 7.5L14 26l6.5-7.5C22 16.5 23 14 23 11c0-5-4-9-9-9z"
-            fill="var(--accent)" opacity="0.9"/>
-          <path d="M10 10 Q14 7 18 10 Q14 13 10 10Z" fill="white" opacity="0.6"/>
-        </svg>
+        @if (mainLogo(); as logo) {
+          <img [src]="logo" alt="Logo de la clínica" class="brand-logo-img"/>
+        } @else {
+          <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+            <path d="M14 2C9 2 5 6 5 11c0 3 1 5.5 2.5 7.5L14 26l6.5-7.5C22 16.5 23 14 23 11c0-5-4-9-9-9z"
+              fill="var(--accent)" opacity="0.9"/>
+            <path d="M10 10 Q14 7 18 10 Q14 13 10 10Z" fill="white" opacity="0.6"/>
+          </svg>
+        }
       </div>
       <span class="mobile-brand-name">DentalSys</span>
-    </div>
+    </a>
     <div class="mobile-user-avatar">{{ userInitials() }}</div>
   </header>
 
@@ -31,19 +35,26 @@
   <aside class="sidebar" [class.collapsed]="sidebarCollapsed()" [class.mobile-open]="mobileMenuOpen()">
     <!-- Logo / Brand -->
     <div class="brand">
-      <div class="brand-icon">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <path d="M14 2C9 2 5 6 5 11c0 3 1 5.5 2.5 7.5L14 26l6.5-7.5C22 16.5 23 14 23 11c0-5-4-9-9-9z"
-            fill="var(--accent)" opacity="0.9"/>
-          <path d="M10 10 Q14 7 18 10 Q14 13 10 10Z" fill="white" opacity="0.6"/>
-        </svg>
-      </div>
-      @if (!sidebarCollapsed()) {
-        <div class="brand-text">
-          <span class="brand-name">DentalSys</span>
-          <span class="brand-tagline">{{ auth.currentUser()?.clinic_name || 'Clínica Dental' }}</span>
+      <a class="brand-link" routerLink="/clinic-profile" (click)="closeMobileMenu()"
+         title="Perfil de la Clínica">
+        <div class="brand-icon">
+          @if (mainLogo(); as logo) {
+            <img [src]="logo" alt="Logo de la clínica" class="brand-logo-img"/>
+          } @else {
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <path d="M14 2C9 2 5 6 5 11c0 3 1 5.5 2.5 7.5L14 26l6.5-7.5C22 16.5 23 14 23 11c0-5-4-9-9-9z"
+                fill="var(--accent)" opacity="0.9"/>
+              <path d="M10 10 Q14 7 18 10 Q14 13 10 10Z" fill="white" opacity="0.6"/>
+            </svg>
+          }
         </div>
-      }
+        @if (!sidebarCollapsed()) {
+          <div class="brand-text">
+            <span class="brand-name">DentalSys</span>
+            <span class="brand-tagline">{{ auth.currentUser()?.clinic_name || 'Clínica Dental' }}</span>
+          </div>
+        }
+      </a>
       <button class="close-drawer-btn" (click)="closeMobileMenu()" aria-label="Cerrar menú">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

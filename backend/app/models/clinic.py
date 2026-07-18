@@ -14,10 +14,14 @@ class Clinic(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False, server_default=db.true())
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Printable-header info (FCLI-11) — shown on the recetario print view.
+    # Contact/branding info (FCLI-11) — shown on the recetario print view and the
+    # clinic self-service profile page (FCLI-19). Two logos: `logo_main_url` is the
+    # live-app logo (sidebar brand), `logo_print_url` is the one printed on documents.
+    # Both store an internal storage path (clinic_{id}/...), not a public URL.
     address = db.Column(db.String(255), nullable=True)
     phone = db.Column(db.String(50), nullable=True)
-    logo_url = db.Column(db.String(500), nullable=True)
+    logo_main_url = db.Column(db.String(500), nullable=True)
+    logo_print_url = db.Column(db.String(500), nullable=True)
     email = db.Column(db.String(255), nullable=True)  # Email de contacto (encabezado del recetario)
 
     # SaaS subscription tracking (platform-admin managed, manual billing — no payment gateway).
@@ -74,7 +78,8 @@ class Clinic(db.Model):
             "is_active": self.is_active,
             "address": self.address,
             "phone": self.phone,
-            "logo_url": self.logo_url,
+            "logo_main_url": self.logo_main_url,
+            "logo_print_url": self.logo_print_url,
             "email": self.email,
             "subscription_tier_id": self.subscription_tier_id,
             "subscription_tier_name": self.subscription_tier.name if self.subscription_tier else None,

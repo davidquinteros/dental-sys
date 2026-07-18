@@ -95,6 +95,13 @@ _ICON_PERMISSIONS = (
     '<path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
     '</svg>'
 )
+_ICON_CLINIC_PROFILE = (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+    '<path d="M3 21h18"/>'
+    '<path d="M5 21V7l7-4 7 4v14"/>'
+    '<path d="M10 12h4M12 10v4"/>'
+    '</svg>'
+)
 
 # Pages ordered by sort_order — roles that CAN view each page by default
 STANDARD_PAGES = [
@@ -189,6 +196,18 @@ STANDARD_PAGES = [
         'is_system': True,
         'icon': _ICON_PERMISSIONS,
         'default_viewers': ['ADMIN'],
+    },
+    {
+        # Accessed only via the sidebar brand (FCLI-23), not a nav item — but it's
+        # a real Page so roleGuard/PermissionService recognize the route. Visible to
+        # all staff; editing is admin-only, gated by the backend (FCLI-19).
+        'key': 'clinic_profile',
+        'label': 'Perfil de la Clínica',
+        'route': '/clinic-profile',
+        'sort_order': 100,
+        'is_system': True,
+        'icon': _ICON_CLINIC_PROFILE,
+        'default_viewers': ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'ASSISTANT'],
     },
 ]
 

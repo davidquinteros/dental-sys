@@ -46,12 +46,16 @@
           <div class="form-group"><label>Teléfono</label><p>{{ detail()!.clinic.phone || '—' }}</p></div>
           <div class="form-group"><label>Email</label><p>{{ detail()!.clinic.email || '—' }}</p></div>
         </div>
-        <div class="form-group">
-          <label>Logo</label>
-          @if (logoPreviewUrl()) {
-            <img [src]="logoPreviewUrl()" alt="Logo" class="clinic-logo-preview"/>
-          } @else {
-            <p class="text-muted">Sin logo</p>
+        <div class="form-row">
+          @for (l of logoKinds; track l.kind) {
+            <div class="form-group">
+              <label>{{ l.label }}</label>
+              @if (logoPreviewUrl[l.kind]()) {
+                <img [src]="logoPreviewUrl[l.kind]()" [alt]="l.label" class="clinic-logo-preview"/>
+              } @else {
+                <p class="text-muted">Sin logo</p>
+              }
+            </div>
           }
         </div>
         <div class="form-group">
@@ -128,14 +132,18 @@
               <input type="email" name="email" placeholder="Ej: contacto@clinica.com" [(ngModel)]="editForm.email" />
             </div>
           </div>
-          <div class="form-group">
-            <label>Logo</label>
-            @if (logoPreviewUrl()) {
-              <img [src]="logoPreviewUrl()" alt="Logo" class="clinic-logo-preview"/>
+          <div class="form-row">
+            @for (l of logoKinds; track l.kind) {
+              <div class="form-group">
+                <label>{{ l.label }}</label>
+                @if (logoPreviewUrl[l.kind]()) {
+                  <img [src]="logoPreviewUrl[l.kind]()" [alt]="l.label" class="clinic-logo-preview"/>
+                }
+                <input type="file" accept="image/*" (change)="onLogoSelected(l.kind, $event)" [disabled]="uploadingLogo[l.kind]()" />
+                @if (uploadingLogo[l.kind]()) { <small class="text-muted">Subiendo...</small> }
+                @if (logoError[l.kind]()) { <small class="text-danger">{{ logoError[l.kind]() }}</small> }
+              </div>
             }
-            <input type="file" accept="image/*" (change)="onLogoSelected($event)" [disabled]="uploadingLogo()" />
-            @if (uploadingLogo()) { <small class="text-muted">Subiendo...</small> }
-            @if (logoError()) { <small class="text-danger">{{ logoError() }}</small> }
           </div>
           <div class="form-group">
             <label>Notas internas</label>

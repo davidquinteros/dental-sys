@@ -122,6 +122,13 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { pageKey: 'billing' },
       },
+      {
+        path: 'clinic-profile',
+        loadComponent: () =>
+          import('./features/clinic-profile/clinic-profile.component').then(m => m.ClinicProfileComponent),
+        canActivate: [roleGuard],
+        data: { pageKey: 'clinic_profile' },
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

@@ -37,19 +37,19 @@ export class PlatformService {
     name: string; is_active: boolean; subscription_tier_id: number | null;
     subscription_status: string; notes: string;
     plan_started_at: string | null; plan_expires_at: string | null;
-    address: string | null; phone: string | null; email: string | null; logo_url: string | null;
+    address: string | null; phone: string | null; email: string | null;
   }>): Observable<{ clinic: Clinic; message: string }> {
     return this.http.put<{ clinic: Clinic; message: string }>(`${this.API}/clinics/${id}`, data);
   }
 
-  uploadClinicLogo(clinicId: number, blob: Blob, filename: string): Observable<{ clinic: Clinic; message: string }> {
+  uploadClinicLogo(clinicId: number, kind: 'main' | 'print', blob: Blob, filename: string): Observable<{ clinic: Clinic; message: string }> {
     const form = new FormData();
     form.append('file', blob, filename);
-    return this.http.post<{ clinic: Clinic; message: string }>(`${this.API}/clinics/${clinicId}/logo`, form);
+    return this.http.post<{ clinic: Clinic; message: string }>(`${this.API}/clinics/${clinicId}/logo/${kind}`, form);
   }
 
-  getClinicLogoBlob(clinicId: number): Observable<Blob> {
-    return this.http.get(`${this.API}/clinics/${clinicId}/logo`, { responseType: 'blob' });
+  getClinicLogoBlob(clinicId: number, kind: 'main' | 'print'): Observable<Blob> {
+    return this.http.get(`${this.API}/clinics/${clinicId}/logo/${kind}`, { responseType: 'blob' });
   }
 
   resetAdminPassword(clinicId: number, userId?: number): Observable<{
