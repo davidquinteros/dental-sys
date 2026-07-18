@@ -1,9 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { BillingService, PatientService } from '../../core/services/api.service';
-import { Patient } from '../../core/models';
+import { Budget, BudgetItem, BudgetItemBillingState, Patient } from '../../core/models';
 
 @Component({
   selector: 'app-invoice-form',
@@ -20,6 +20,13 @@ export class InvoiceFormComponent implements OnInit {
   patientResults = signal<Patient[]>([]);
   patientSearch = '';
   private searchTimeout: any;
+
+  /** Budget mode (FCLI-17): the comprobante charges items off a budget. The
+   * patient comes from the budget and can't be changed, the "items" array holds
+   * only the ADICIONALES, and the budget items are picked via checkboxes. */
+  budget = signal<Budget | null>(null);
+  selectedItemIds = signal<Set<number>>(new Set());
+  isBudgetMode = computed(() => this.budget() !== null);
 
   constructor(
     private fb: FormBuilder,
@@ -48,6 +55,28 @@ export class InvoiceFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    const budgetId = this.route.snapshot.queryParamMap.get('budget_id');
+    if (budgetId) {
+      this.billingService.getBudget(+budgetId).subscribe({
+        next: res => {
+          this.budget.set(res.budget);
+          this.patientService.getById(res.budget.patient_id).subscribe(p => this.selectedPatient.set(p.patient));
+          // Extras start EMPTY here: the default blank row would be sent as a line
+          // with no description and get rejected by the backend, and a budget
+          // comprobante is perfectly valid with zero extras.
+          this.itemsArray.clear();
+          // Pre-select every pending item — charging what's left is the common case.
+          this.selectedItemIds.set(new Set(
+            res.budget.items!.filter(i => i.billing_state === 'pending').map(i => i.id!),
+          ));
+        },
+        // Don't silently fall through to a plain comprobante form — that would
+        // drop the budget link with no sign anything went wrong.
+        error: () => this.errorMsg.set('No se pudo cargar el presupuesto. Volvé a Cobros e intentá de nuevo.'),
+      });
+      return;
+    }
+
     const patientId = this.route.snapshot.queryParamMap.get('patient_id');
     if (patientId) {
       this.patientService.getById(+patientId).subscribe(res => this.selectedPatient.set(res.patient));
@@ -56,8 +85,34 @@ export class InvoiceFormComponent implements OnInit {
     if (appointmentId) this.form.patchValue({ appointment_id: +appointmentId });
   }
 
+  // ── Budget item picker ──
+  isSelectable(item: BudgetItem): boolean { return item.billing_state === 'pending'; }
+  isSelected(item: BudgetItem): boolean { return this.selectedItemIds().has(item.id!); }
+
+  toggleItem(item: BudgetItem): void {
+    if (!this.isSelectable(item)) return;
+    const next = new Set(this.selectedItemIds());
+    next.has(item.id!) ? next.delete(item.id!) : next.add(item.id!);
+    this.selectedItemIds.set(next);
+  }
+
+  selectedBudgetItems(): BudgetItem[] {
+    return (this.budget()?.items ?? []).filter(i => this.isSelected(i));
+  }
+
+  itemStateLabel(s?: BudgetItemBillingState): string {
+    const m: Record<BudgetItemBillingState, string> = {
+      paid: '✓ Pagado', billing: '⏳ En cobro', pending: '○ Pendiente',
+    };
+    return s ? m[s] : '';
+  }
+
   addItem(): void { this.itemsArray.push(this.newItem()); }
-  removeItem(i: number): void { if (this.itemsArray.length > 1) this.itemsArray.removeAt(i); }
+  /** In budget mode zero extras is valid; otherwise keep at least one line, since
+   * that array is the whole comprobante. */
+  removeItem(i: number): void {
+    if (this.isBudgetMode() || this.itemsArray.length > 1) this.itemsArray.removeAt(i);
+  }
 
   recalcItem(i: number): void { /* reactive, computed by getters */ }
 
@@ -66,7 +121,9 @@ export class InvoiceFormComponent implements OnInit {
     return (item.quantity || 0) * (item.unit_price || 0);
   }
 
-  subtotal(): number { return this.itemsArray.controls.reduce((s, _, i) => s + this.itemTotal(i), 0); }
+  extrasSubtotal(): number { return this.itemsArray.controls.reduce((s, _, i) => s + this.itemTotal(i), 0); }
+  budgetItemsSubtotal(): number { return this.selectedBudgetItems().reduce((s, i) => s + i.total, 0); }
+  subtotal(): number { return this.budgetItemsSubtotal() + this.extrasSubtotal(); }
   grandTotal(): number { return Math.max(0, this.subtotal() - (this.form.get('discount')?.value || 0)); }
 
   onSearch(): void {
@@ -88,19 +145,41 @@ export class InvoiceFormComponent implements OnInit {
 
   onSubmit(): void {
     if (!this.selectedPatient()) { this.errorMsg.set('Seleccione un paciente'); return; }
+    // A comprobante needs at least one line, from either card.
+    if (this.selectedBudgetItems().length + this.itemsArray.length === 0) {
+      this.errorMsg.set('Seleccioná al menos un ítem del presupuesto o agregá un ítem adicional');
+      return;
+    }
+    // Deliberately NOT short-circuiting on this.form.invalid: there is no
+    // per-field error UI in this form, so an early return would make the button
+    // a silent no-op (e.g. a blank extra-item description). Let it POST and
+    // surface the backend's 400 in errorMsg, the way it worked before.
     this.saving.set(true);
+    this.errorMsg.set('');
     const val = this.form.value;
-    const items = val.items.map((item: any) => ({
-      ...item,
+
+    // Budget lines carry their budget_item_id and copy the budgeted
+    // description/qty/price verbatim — they're read-only in the UI precisely so
+    // the comprobante can't drift from what was proposed.
+    const budgetLines = this.selectedBudgetItems().map(i => ({
+      description: i.description,
+      quantity: i.quantity,
+      unit_price: i.unit_price,
+      budget_item_id: i.id,
+    }));
+    const extras = (val.items || []).map((item: any) => ({
+      description: item.description,
       quantity: +item.quantity,
       unit_price: +item.unit_price,
     }));
+
     const payload: any = {
       patient_id: this.selectedPatient()!.id,
       discount: +val.discount || 0,
       notes: val.notes || null,
-      items,
+      items: [...budgetLines, ...extras],
     };
+    if (this.budget()) payload.budget_id = this.budget()!.id;
     if (val.appointment_id) payload.appointment_id = +val.appointment_id;
     if (val.due_date) payload.due_date = val.due_date;
 

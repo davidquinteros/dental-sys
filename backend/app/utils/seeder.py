@@ -150,7 +150,9 @@ STANDARD_PAGES = [
         'sort_order': 60,
         'is_system': True,
         'icon': _ICON_BILLING,
-        'default_viewers': ['ADMIN', 'RECEPTIONIST'],
+        # DOCTOR incluido para que pueda armar presupuestos (FCLI-16/18); abre
+        # todo Cobros al doctor (comprobantes, planes de pago y totales de caja).
+        'default_viewers': ['ADMIN', 'DOCTOR', 'RECEPTIONIST'],
     },
     {
         'key': 'appointment_types',
@@ -211,7 +213,10 @@ def seed_pages(clinic_id: int):
                 clinic_id=clinic_id, role=role, page_key=p_data['key']
             ).first()
             if not exists:
-                can_view = role.value in viewers
+                # default_viewers holds role NAMES ('ADMIN', 'DOCTOR', ...), so
+                # compare against role.name — role.value is lowercase ('admin')
+                # and would never match, leaving every permission false (FCLI-18).
+                can_view = role.name in viewers
                 rp = RolePermission(
                     clinic_id=clinic_id,
                     role=role,
@@ -219,7 +224,7 @@ def seed_pages(clinic_id: int):
                     can_view=can_view,
                     can_create=can_view,
                     can_edit=can_view,
-                    can_delete=role.value == 'ADMIN',
+                    can_delete=role.name == 'ADMIN',
                 )
                 db.session.add(rp)
 

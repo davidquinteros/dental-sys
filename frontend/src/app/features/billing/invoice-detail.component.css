@@ -37,6 +37,10 @@
 .table th.r { text-align: right; }
 .table td { padding: 10px 16px; font-size: 14px; color: #4a5568; border-bottom: 1px solid #f0f4f8; }
 .table td.r { text-align: right; }
+/* Where each line came from — only shown on a budget comprobante, where the
+   distinction between a budgeted item and an extra actually means something. */
+.src-tag { display: block; font-size: 11px; color: #a0aec0; margin-top: 3px; }
+.src-tag.from-budget { color: #2b6cb0; }
 .table tr:last-child td { border-bottom: none; }
 
 .items-edit-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }

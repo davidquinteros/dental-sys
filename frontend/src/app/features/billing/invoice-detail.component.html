@@ -31,7 +31,10 @@
         <div class="card">
           <div class="card-header items-header-row">
             <h3>Ítems</h3>
-            @if (!editingItems() && invoice()!.status === 'pending') {
+            <!-- Editing is hidden for a budget comprobante: rebuilding the lines
+                 would drop every budget_item_id and silently un-charge the items.
+                 The backend rejects it too — anular y regenerar is the flow. -->
+            @if (!editingItems() && invoice()!.status === 'pending' && !invoice()!.budget_id) {
               <button type="button" class="edit-items-btn" (click)="startEditItems()">Editar</button>
             }
           </div>
@@ -45,7 +48,16 @@
               <tbody>
                 @for (item of invoice()!.items; track item.id) {
                   <tr>
-                    <td>{{ item.description }}</td>
+                    <td>
+                      {{ item.description }}
+                      @if (invoice()!.budget_id) {
+                        @if (item.budget_item_id) {
+                          <span class="src-tag from-budget">↳ del presupuesto «{{ invoice()!.budget_name }}»</span>
+                        } @else {
+                          <span class="src-tag">↳ ítem adicional</span>
+                        }
+                      }
+                    </td>
                     <td class="r">{{ item.quantity }}</td>
                     <td class="r">Bs {{ formatMoney(item.unit_price) }}</td>
                     <td class="r"><strong>Bs {{ formatMoney(item.total) }}</strong></td>
@@ -165,6 +177,11 @@
         <div class="meta-card">
           <h4>Información</h4>
           <div class="m-row"><span class="ml">Paciente</span><span>{{ invoice()!.patient_name }}</span></div>
+          @if (invoice()!.budget_id) {
+            <div class="m-row"><span class="ml">Presupuesto</span>
+              <a [routerLink]="['/billing/budgets', invoice()!.budget_id]" class="link">{{ invoice()!.budget_name }}</a>
+            </div>
+          }
           @if (invoice()!.appointment_id) {
             <div class="m-row"><span class="ml">Cita</span>
               <a [routerLink]="['/appointments', invoice()!.appointment_id]" class="link">#{{ invoice()!.appointment_id }}</a>

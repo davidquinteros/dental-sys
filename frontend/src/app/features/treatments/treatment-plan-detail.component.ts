@@ -6,6 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { TreatmentPlan } from '../../core/models';
 import { formatDate as fmtDate, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 import { TreatmentImagesComponent } from './treatment-images.component';
+import { treatmentTypeLabel } from './treatment-type-data';
 
 @Component({
   selector: 'app-treatment-plan-detail',
@@ -34,6 +35,7 @@ export class TreatmentPlanDetailComponent implements OnInit {
 
   formatDate(iso: string): string { return fmtDate(iso); }
   formatDateOnly(iso: string): string { return fmtDateOnly(iso); }
+  typeLabel(t: string): string { return treatmentTypeLabel(t); }
   statusLabel(s: string): string {
     const m: Record<string, string> = { active: 'Activo', completed: 'Completado', cancelled: 'Cancelado', on_hold: 'En pausa' };
     return m[s] ?? s;

@@ -217,24 +217,40 @@
               </div>
               <span class="plan-status" [class]="'bstatus-' + b.status">{{ budgetStatusLabel(b.status) }}</span>
             </div>
+            <!-- Financed budgets keep their cita ladder; unfinanced ones have it
+                 all NULL (FCLI-16) and show their billing progress instead. -->
             <div class="amounts-row">
               <div class="amount-item">
                 <span class="a-label">Total</span>
                 <span class="a-val">Bs {{ formatMoney(b.total_amount) }}</span>
               </div>
-              <div class="amount-item">
-                <span class="a-label">Citas</span>
-                <span class="a-val">{{ b.num_citas }}</span>
-              </div>
-              <div class="amount-item">
-                <span class="a-label">Período</span>
-                <span class="a-val">{{ formatDateOnly(b.start_date) }}</span>
-              </div>
+              @if (b.use_payment_plan) {
+                <div class="amount-item">
+                  <span class="a-label">Citas</span>
+                  <span class="a-val">{{ b.num_citas }}</span>
+                </div>
+                <div class="amount-item">
+                  <span class="a-label">Período</span>
+                  <span class="a-val">{{ formatDateOnly(b.start_date) }}</span>
+                </div>
+              } @else {
+                <div class="amount-item">
+                  <span class="a-label">Ítems</span>
+                  <span class="a-val">{{ b.items_count }}</span>
+                </div>
+                <div class="amount-item">
+                  <span class="a-label">{{ b.status === 'accepted' ? 'En ítems pagados' : 'Sin financiar' }}</span>
+                  <span class="a-val">{{ b.status === 'accepted' ? 'Bs ' + formatMoney(b.amount_paid) : '—' }}</span>
+                </div>
+              }
             </div>
             <div class="plan-actions">
               <a [routerLink]="['/billing/budgets', b.id]" class="plan-action-link">Ver</a>
-              @if (b.status === 'accepted' && !b.converted_plan_id) {
+              @if (b.status === 'accepted' && b.use_payment_plan && !b.converted_plan_id) {
                 <a [routerLink]="['/billing/payment-plans/new']" [queryParams]="{ budget_id: b.id }" class="plan-action-link">Crear Plan de Pago</a>
+              }
+              @if (b.status === 'accepted' && !b.use_payment_plan && !b.converted_plan_id && !b.is_completed) {
+                <a [routerLink]="['/billing/invoices/new']" [queryParams]="{ budget_id: b.id }" class="plan-action-link">Cobrar ítems</a>
               }
               @if (b.converted_plan_id) {
                 <a [routerLink]="['/billing/payment-plans', b.converted_plan_id]" class="plan-action-link">Ver Plan de Pago</a>

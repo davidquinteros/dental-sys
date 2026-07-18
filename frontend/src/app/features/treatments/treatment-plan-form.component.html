@@ -4,9 +4,9 @@
       <div class="breadcrumb">
         <a routerLink="/treatments" class="breadcrumb-link">Atenciones</a>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-        <span>Nuevo Plan de Tratamiento</span>
+        <span>{{ isEditMode() ? 'Editar Plan de Tratamiento' : 'Nuevo Plan de Tratamiento' }}</span>
       </div>
-      <h1 class="page-title">Crear Plan de Tratamiento</h1>
+      <h1 class="page-title">{{ isEditMode() ? 'Editar Plan de Tratamiento' : 'Crear Plan de Tratamiento' }}</h1>
     </div>
   }
 
@@ -20,7 +20,14 @@
       </div>
       <div class="form-body">
         <!-- Patient search (hidden when embedded with a preset patient) -->
-        @if (!embedded) {
+        @if (isEditMode()) {
+          <!-- A plan's patient is fixed: PUT /treatments/plans/<id> ignores
+               patient_id, so an editable field here would silently do nothing. -->
+          <div class="form-group">
+            <label>Paciente</label>
+            <div class="locked-field">{{ selectedPatient()?.full_name || '—' }}</div>
+          </div>
+        } @else if (!embedded) {
           <div class="form-group">
             <label>Paciente <span class="req">*</span></label>
             <div class="search-select">
@@ -79,14 +86,9 @@
             <label>Tipo de Tratamiento <span class="req">*</span></label>
             <select formControlName="treatment_type" [class.error]="hasError('treatment_type')">
               <option value="">Seleccionar...</option>
-              <option value="endodontics">Endodoncia</option>
-              <option value="orthodontics">Ortodoncia</option>
-              <option value="implant">Implante</option>
-              <option value="periodontics">Periodoncia</option>
-              <option value="prosthetics">Prótesis</option>
-              <option value="surgery">Cirugía</option>
-              <option value="whitening">Blanqueamiento</option>
-              <option value="other">Otro</option>
+              @for (t of treatmentTypes; track t.value) {
+                <option [value]="t.value">{{ t.label }}</option>
+              }
             </select>
             @if (hasError('treatment_type')) { <span class="field-error">Requerido</span> }
           </div>
@@ -138,7 +140,7 @@
       }
       <button type="submit" class="btn btn-primary" [disabled]="saving() || !selectedPatient()">
         @if (saving()) { <span class="spinner-sm"></span> }
-        Crear Plan de Tratamiento
+        {{ isEditMode() ? 'Guardar Cambios' : 'Crear Plan de Tratamiento' }}
       </button>
     </div>
   </form>

@@ -7,6 +7,7 @@ import { Patient, TreatmentPlan } from '../../core/models';
 import { BillingConditionsFieldsComponent } from '../../shared/components/billing-conditions-fields/billing-conditions-fields.component';
 import { TreatmentPlanFormComponent } from '../treatments/treatment-plan-form.component';
 import { ConfirmBackdropCloseDirective } from '../../shared/directives/confirm-backdrop-close.directive';
+import { treatmentTypeLabel } from '../treatments/treatment-type-data';
 
 @Component({
   selector: 'app-payment-plan-form',
@@ -24,6 +25,8 @@ export class PaymentPlanFormComponent implements OnInit {
   treatmentPlans = signal<TreatmentPlan[]>([]);
   patientSearch = '';
   private searchTimeout: any;
+
+  treatmentTypeLabel = treatmentTypeLabel;
 
   isEditMode = signal(false);
   planTreatmentLabel = signal('');
@@ -99,14 +102,18 @@ export class PaymentPlanFormComponent implements OnInit {
       this.billingService.getBudget(this.budgetId).subscribe(res => {
         const budget = res.budget;
         this.patientService.getById(budget.patient_id).subscribe(pres => this.selectPatient(pres.patient));
+        // Since FCLI-16 an unfinanced budget carries NULL for the whole cita
+        // ladder — this form is exactly the "financiar después" flow, so it has
+        // to seed sane defaults instead of prefilling nulls (which would land as
+        // a 0-cita plan). Financed budgets prefill from their real values.
         this.form.patchValue({
           name: budget.name,
           conditions: {
             calc_mode: 'total',
-            num_citas: budget.num_citas,
-            cost_per_cita: budget.cost_per_cita,
+            num_citas: budget.num_citas ?? 3,
+            cost_per_cita: budget.cost_per_cita ?? 0,
             total_amount: budget.total_amount,
-            down_payment: budget.down_payment,
+            down_payment: budget.down_payment ?? 0,
             start_date: budget.start_date || '',
             end_date: budget.end_date || '',
           },

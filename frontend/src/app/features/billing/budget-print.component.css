@@ -28,6 +28,14 @@
 .cond-item.total { grid-column: 1 / -1; font-weight: 700; font-size: 15px; color: #2b6cb0;
   border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 4px; }
 
+/* Unfinanced budget: a single Total line replaces the whole Condiciones +
+   Propuesta de Cuotas pair. */
+.budget-total-row { display: flex; justify-content: space-between; align-items: baseline;
+  font-weight: 700; font-size: 15px; color: #2b6cb0; border-top: 2px solid #e2e8f0;
+  padding-top: 10px; margin-bottom: 20px; }
+.payment-note { font-size: 12.5px; color: #4a5568; line-height: 1.5; background: #f7fafc;
+  border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 28px; }
+
 .signatures-footer { display: flex; justify-content: space-between; gap: 40px; margin-top: 100px; }
 .signature-block { flex: 1; text-align: center; }
 .signature-line { border-top: 1px solid #1a202c; margin-bottom: 6px; }

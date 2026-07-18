@@ -42,19 +42,70 @@
             </div>
           </div>
         }
+      </div>
+    </div>
 
-        @if (selectedPatient()) {
+    <div class="form-card">
+      <div class="form-card-header">Tratamiento Propuesto</div>
+      <div class="form-body">
+        <div class="form-group">
+          <label>Nombre del Presupuesto <span class="req">*</span></label>
+          <input formControlName="name" type="text" placeholder="Ej: Rehabilitación superior"
+            [class.error]="hasError('name')"/>
+          @if (hasError('name')) { <span class="field-error">Requerido</span> }
+        </div>
+
+        <div class="form-row">
           <div class="form-group">
-            <label>Plan de Tratamiento Asociado (opcional)</label>
-            <select formControlName="treatment_plan_id">
-              <option value="">Sin plan de tratamiento asignado todavía</option>
-              @for (plan of treatmentPlans(); track plan.id) {
-                <option [value]="plan.id">{{ plan.name }} ({{ plan.treatment_type }})</option>
+            <label>Médico Responsable <span class="req">*</span></label>
+            <select formControlName="doctor_id" [class.error]="hasError('doctor_id')">
+              <option value="">Seleccionar médico...</option>
+              @for (d of doctors(); track d.id) {
+                <option [value]="d.id">{{ d.full_name }}{{ d.specialty ? ' — ' + d.specialty : '' }}</option>
               }
             </select>
-            <span class="hint">Normalmente se define recién al aceptar el presupuesto y generar el plan de pago.</span>
+            @if (hasError('doctor_id')) { <span class="field-error">Requerido</span> }
+            <span class="hint">Será el médico del plan de tratamiento.</span>
           </div>
-        }
+          <div class="form-group">
+            <label>Tipo de Tratamiento <span class="req">*</span></label>
+            <select formControlName="treatment_type" [class.error]="hasError('treatment_type')">
+              @for (t of treatmentTypes; track t.value) {
+                <option [value]="t.value">{{ t.label }}</option>
+              }
+            </select>
+            <span class="hint">Por defecto «Atención General». Se puede cambiar después.</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Pieza Dental</label>
+            <input formControlName="tooth_number" type="text" placeholder="Ej: 24 (Notación FDI)"/>
+          </div>
+          <div class="form-group">
+            <label>Vincular a un Plan Existente</label>
+            <select formControlName="treatment_plan_id" [disabled]="!selectedPatient()">
+              <option value="">Sin plan — se creará uno al aceptar</option>
+              @for (plan of treatmentPlans(); track plan.id) {
+                <option [value]="plan.id">{{ plan.name }} ({{ treatmentTypeLabel(plan.treatment_type) }})</option>
+              }
+            </select>
+            <span class="hint">Si lo dejás vacío se creará uno al aceptar.</span>
+          </div>
+        </div>
+
+        <div class="info-msg">
+          <span class="info-ic">ℹ</span>
+          <span>Al <b>aceptar</b> el presupuesto se creará automáticamente el plan de tratamiento
+            con estos datos, y el paciente podrá agendar sus citas contra él.</span>
+        </div>
+
+        <div class="form-group">
+          <label>Notas</label>
+          <textarea formControlName="notes" rows="2"
+            placeholder="Lo observado en la revisión, condiciones acordadas..."></textarea>
+        </div>
       </div>
     </div>
 
@@ -94,24 +145,22 @@
       </div>
     </div>
 
-    <div class="form-card">
-      <div class="form-card-header">Condiciones del Presupuesto</div>
-      <div class="form-body">
-        <div class="form-group">
-          <label>Nombre del Presupuesto <span class="req">*</span></label>
-          <input formControlName="name" type="text" placeholder="Ej: Presupuesto - Revisión general"
-            [class.error]="hasError('name')"/>
-          @if (hasError('name')) { <span class="field-error">Requerido</span> }
+    <!-- Financing bar: the card header IS the checkbox. Unticked (the 90% case)
+         the form shows no cuota field at all. -->
+    <div class="form-card" [class.collapsed]="!usePaymentPlan()">
+      <label class="form-card-header check-header">
+        <input type="checkbox" formControlName="use_payment_plan"/>
+        <span class="ch-txt">
+          <span class="ch-title">Financiar con plan de pago</span>
+          <span class="ch-hint">Sin tildar, el presupuesto no pide cuotas ni período, y el paciente
+            paga por ítem a medida que avanza.</span>
+        </span>
+      </label>
+      @if (usePaymentPlan()) {
+        <div class="form-body">
+          <app-billing-conditions-fields [form]="conditionsGroup" [lockToTotal]="true" [totalReadonly]="true"/>
         </div>
-
-        <app-billing-conditions-fields [form]="conditionsGroup" [lockToTotal]="true" [totalReadonly]="true"/>
-
-        <div class="form-group">
-          <label>Notas</label>
-          <textarea formControlName="notes" rows="2"
-            placeholder="Lo observado en la revisión, condiciones acordadas..."></textarea>
-        </div>
-      </div>
+      }
     </div>
 
     @if (errorMsg()) { <div class="alert-error">{{ errorMsg() }}</div> }

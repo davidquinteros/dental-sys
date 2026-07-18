@@ -6,6 +6,7 @@ import { BillingService, PatientService, ClinicService } from '../../core/servic
 import { Budget, Patient, ClinicInfo } from '../../core/models';
 import { formatDateLong, formatDateOnly } from '../../core/util/date.util';
 import { PrintClinicHeaderComponent } from '../../shared/components/print-clinic-header/print-clinic-header.component';
+import { treatmentTypeLabel } from '../treatments/treatment-type-data';
 
 @Component({
   selector: 'app-budget-print',
@@ -23,6 +24,7 @@ export class BudgetPrintComponent implements OnInit {
   citasRows = signal<{ label: string; amount: number }[]>([]);
 
   readonly issuedDate = formatDateLong(new Date().toISOString());
+  treatmentTypeLabel = treatmentTypeLabel;
 
   constructor(
     private route: ActivatedRoute,
@@ -54,13 +56,18 @@ export class BudgetPrintComponent implements OnInit {
     });
   }
 
+  /** Only meaningful for a financed budget — an unfinanced one has NULL for the
+   * whole ladder and the template renders a plain Total instead. Kept as this
+   * component's own builder (payment-plan-print has its own on purpose — see
+   * CLAUDE.md; do not merge them). */
   private buildCitasRows(b: Budget): void {
+    if (!b.use_payment_plan) { this.citasRows.set([]); return; }
     const rows: { label: string; amount: number }[] = [];
-    if (b.down_payment > 0) {
-      rows.push({ label: 'Cuota inicial', amount: b.down_payment });
+    if ((b.down_payment ?? 0) > 0) {
+      rows.push({ label: 'Cuota inicial', amount: b.down_payment! });
     }
-    for (let i = 1; i <= b.num_citas; i++) {
-      rows.push({ label: `Cita ${i}`, amount: b.cost_per_cita });
+    for (let i = 1; i <= (b.num_citas ?? 0); i++) {
+      rows.push({ label: `Cita ${i}`, amount: b.cost_per_cita ?? 0 });
     }
     this.citasRows.set(rows);
   }

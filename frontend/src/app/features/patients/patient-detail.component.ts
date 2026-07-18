@@ -11,6 +11,7 @@ import { TreatmentDetailComponent } from '../treatments/treatment-detail.compone
 import { MedicalHistoryComponent } from './medical-history.component';
 import { AppointmentFormComponent } from '../appointments/appointment-form.component';
 import { ConfirmBackdropCloseDirective } from '../../shared/directives/confirm-backdrop-close.directive';
+import { treatmentTypeLabel } from '../treatments/treatment-type-data';
 
 @Component({
   selector: 'app-patient-detail',
@@ -157,6 +158,8 @@ export class PatientDetailComponent implements OnInit {
   }
   formatDateOnly(iso?: string): string { return iso ? fmtDateOnly(iso) : '—'; }
 
+  /** APPOINTMENT types — a per-clinic catalog in the DB (AppointmentTypeCatalog).
+   * Deliberately NOT the treatment-type vocabulary; see treatmentTypeLabel below. */
   typeLabel(t: string): string {
     const m: Record<string, string> = {
       consulta_general: 'Consulta', limpieza_dental: 'Limpieza', extraccion: 'Extracción',
@@ -166,6 +169,9 @@ export class PatientDetailComponent implements OnInit {
     };
     return m[t] ?? t;
   }
+
+  /** TREATMENT PLAN types (the shared vocabulary, incl. "Atención General"). */
+  treatmentTypeLabel(t?: string): string { return treatmentTypeLabel(t); }
 
   statusLabel(s: string): string {
     const m: Record<string, string> = {

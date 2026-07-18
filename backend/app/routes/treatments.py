@@ -4,6 +4,7 @@ from app.models.treatment import Treatment, TreatmentPlan, TreatmentPlanStatus
 from app.models.treatment_image import TreatmentImage
 from app.middleware.auth import medical_staff_required, clinical_access_required, doctor_or_admin_required, get_current_user
 from app.utils import storage
+from app.utils.scoping import resolve_scoped_doctor
 from datetime import date
 from sqlalchemy.orm import joinedload
 import uuid
@@ -602,7 +603,11 @@ def update_treatment_plan(plan_id):
       - Atenciones
     security:
       - BearerAuth: []
-    description: Solo personal médico (admin, médico, asistente).
+    description: >
+      Solo personal médico (admin, médico, asistente). `treatment_type` y `doctor_id`
+      son editables (FCLI-16): un plan creado automáticamente al aceptar un presupuesto
+      nace con el tipo por defecto "Atención General", y tiene que poder corregirse
+      después.
     parameters:
       - in: path
         name: plan_id
@@ -618,6 +623,12 @@ def update_treatment_plan(plan_id):
               type: string
             description:
               type: string
+            treatment_type:
+              type: string
+              description: "general, endodontics, orthodontics, implant, periodontics, prosthetics, surgery, whitening, other"
+            doctor_id:
+              type: integer
+              description: Debe ser un usuario activo de la clínica con rol médico o admin
             total_sessions:
               type: integer
             notes:
@@ -647,7 +658,7 @@ def update_treatment_plan(plan_id):
             message:
               type: string
       400:
-        description: Estado o formato de fecha inválido
+        description: Estado, médico o formato de fecha inválido
         schema:
           $ref: '#/definitions/Error'
       401:
@@ -666,10 +677,20 @@ def update_treatment_plan(plan_id):
     plan = TreatmentPlan.query.get_or_404(plan_id)
     data = request.get_json()
 
-    fields = ["name", "description", "total_sessions", "notes", "tooth_number"]
+    fields = ["name", "description", "treatment_type", "total_sessions", "notes", "tooth_number"]
     for field in fields:
         if field in data:
             setattr(plan, field, data[field])
+
+    if "doctor_id" in data:
+        # Never a raw setattr of a client-sent FK: Postgres doesn't apply RLS to
+        # foreign-key checks and the ORM filter only reaches SELECTs, so another
+        # clinic's user id would satisfy the constraint. resolve_scoped_doctor
+        # does the scoped lookup and the role check.
+        doctor = resolve_scoped_doctor(data["doctor_id"])
+        if doctor is None:
+            return jsonify({"error": "El médico responsable no es válido"}), 400
+        plan.doctor_id = doctor.id
 
     if "status" in data:
         try:

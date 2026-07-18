@@ -12,12 +12,18 @@
       <div>
         <h1 class="page-title">{{ plan()!.name }}</h1>
         <div class="sub-row">
-          <span class="type-badge">{{ plan()!.treatment_type }}</span>
+          <span class="type-badge">{{ typeLabel(plan()!.treatment_type) }}</span>
           <span class="status-pill" [class]="'status-' + plan()!.status">{{ statusLabel(plan()!.status) }}</span>
           @if (plan()!.tooth_number) { <span class="tooth">🦷 Pieza {{ plan()!.tooth_number }}</span> }
         </div>
       </div>
       <div class="actions">
+        <!-- The real gate for non-medical staff: the route's `roles` data is
+             inherited-pageKey'd into oblivion by roleGuard (see the route). The
+             backend's medical_staff_required is the hard one. -->
+        @if (auth.canManageTreatments()) {
+          <a [routerLink]="['/treatments/plans', plan()!.id, 'edit']" class="btn btn-secondary">Editar</a>
+        }
         <a [routerLink]="['/treatments/new']"
           [queryParams]="{ patient_id: plan()!.patient_id, plan_id: plan()!.id }"
           class="btn btn-secondary">+ Registrar Atención</a>

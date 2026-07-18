@@ -51,8 +51,47 @@
 .a-label { display: block; font-size: 11px; color: #a0aec0; text-transform: uppercase; font-weight: 600; }
 .a-val { display: block; font-size: 15px; font-weight: 700; color: #2d3748; margin-top: 2px; }
 .amount-item.total .a-val { color: #2b6cb0; }
+.a-val.paid { color: #276749; }
+.a-val.billing { color: #c05621; }
+.hdr-hint { font-size: 11px; }
+
+/* Per-item billing state. Same three colours as the progress segments below. */
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600;
+  padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.pill-paid { background: #f0fff4; color: #276749; }
+.pill-billing { background: #fffaf0; color: #c05621; }
+.pill-pending { background: #edf2f7; color: #718096; }
+.pill-sub { display: block; font-size: 10.5px; margin-top: 3px; font-weight: 500; }
+
+/* Comprobante status, mirroring billing.component's list. */
+.inv-pending { background: #fffaf0; color: #c05621; }
+.inv-partial { background: #ebf8ff; color: #2b6cb0; }
+.inv-paid { background: #f0fff4; color: #276749; }
+.inv-cancelled { background: #edf2f7; color: #a0aec0; text-decoration: line-through; }
+.inv-overdue { background: #fff5f5; color: #c53030; }
 
 .side-col { display: flex; flex-direction: column; gap: 16px; }
+
+/* Three-segment progress: paid | billing | pending (the track showing through). */
+.progress-card { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); padding: 15px 17px; }
+.progress-card h4 { font-size: 14.5px; font-weight: 600; color: #2d3748; margin: 0 0 3px; }
+.pc-pct { font-size: 25px; font-weight: 700; color: #276749; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.pc-pct small { font-size: 12px; font-weight: 600; color: #a0aec0; margin-left: 4px; }
+.seg-bar { display: flex; height: 9px; border-radius: 20px; overflow: hidden; background: #edf2f7; margin: 9px 0 12px; }
+.seg-bar i { display: block; height: 100%; }
+.seg-paid { background: #276749; }
+.seg-billing { background: #ed8936; }
+.legend-row { display: flex; justify-content: space-between; align-items: center;
+  font-size: 12.5px; padding: 5px 0; border-bottom: 1px solid #f0f4f8; }
+.legend-row:last-of-type { border-bottom: none; }
+.lg-key { display: inline-flex; align-items: center; gap: 7px; color: #4a5568; }
+.swatch { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.sw-paid { background: #276749; }
+.sw-billing { background: #ed8936; }
+.sw-pending { background: #edf2f7; border: 1px solid #cbd5e0; }
+.lg-val { font-variant-numeric: tabular-nums; font-weight: 600; color: #2d3748; }
+.pc-total { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 10px;
+  border-top: 1px solid #e2e8f0; font-size: 13.5px; font-weight: 700; color: #2d3748; }
 .action-panel { background: white; border-radius: 14px; padding: 18px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.07); border-top: 3px solid #4299e1; display: flex; flex-direction: column; gap: 10px; }
 .action-panel.accepted { border-top-color: #276749; }
@@ -72,6 +111,11 @@
 .converted-badge { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px;
   background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 12px; color: #276749; font-size: 13px; font-weight: 600; text-align: center; }
 .converted-badge svg { width: 20px; height: 20px; }
+.cb-sub { font-weight: 400; font-size: 12px; color: #38a169; }
+.btn-secondary-link { display: block; text-align: center; padding: 9px; background: white; color: #2b6cb0;
+  border: 1.5px solid #bee3f8; border-radius: 10px; font-size: 13px; font-weight: 600; text-decoration: none; }
+.btn-secondary-link:hover { background: #ebf8ff; }
+.panel-hint.small { font-size: 11px; }
 .rejected-badge { padding: 14px 16px; background: #fff5f5; border: 1px solid #fed7d7; border-radius: 12px;
   color: #c53030; font-size: 13px; font-weight: 600; text-align: center; }
 

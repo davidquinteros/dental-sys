@@ -296,6 +296,9 @@ export class UserService {
     return this.http.get<{ users: User[]; total: number }>(`${API}/users/`, { params });
   }
 
+  /** Active doctors (rol DOCTOR only) — for appointment scheduling and the "médico
+   * responsable" dropdown of budgets/treatment plans. Admins are excluded: they're
+   * management accounts, not clinical ones. */
   getDoctors(): Observable<{ doctors: User[] }> {
     return this.http.get<{ doctors: User[] }>(`${API}/users/doctors`);
   }
