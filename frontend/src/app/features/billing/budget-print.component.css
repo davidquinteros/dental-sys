@@ -36,6 +36,38 @@
 .payment-note { font-size: 12.5px; color: #4a5568; line-height: 1.5; background: #f7fafc;
   border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 28px; }
 
+/* Account state (printed only when there's billing activity) */
+.account-section, .payments-section { margin-bottom: 28px; }
+.account-section h3, .payments-section h3 {
+  font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: #718096; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin: 0 0 12px;
+}
+.summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.sum-card {
+  display: flex; flex-direction: column; gap: 6px; text-align: center;
+  border: 1px solid #e2e8f0; border-top-width: 3px; border-radius: 10px; padding: 14px 12px;
+}
+.sum-card .sc-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #718096; font-weight: 600; }
+.sum-card .sc-value { font-size: 19px; font-weight: 700; color: #1a202c; }
+.sum-card.budget { border-top-color: #4299e1; }
+.sum-card.paid { border-top-color: #48bb78; }
+.sum-card.paid .sc-value { color: #276749; }
+.sum-card.pending { border-top-color: #f56565; }
+.sum-card.pending .sc-value { color: #c53030; }
+
+.item-state { font-size: 12px; white-space: nowrap; }
+.item-state.state-paid { color: #276749; font-weight: 600; }
+.item-state.state-billing { color: #b7791f; }
+.item-state.state-pending { color: #718096; }
+.item-inv { color: #a0aec0; font-weight: 400; }
+
+.payments-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.payments-table th, .payments-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+.payments-table th { font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; }
+.payments-table .cancelled-row td { color: #a0aec0; text-decoration: line-through; }
+.payments-table .totals-row td { font-weight: 700; border-top: 2px solid #cbd5e0; border-bottom: none; }
+.empty-row { font-size: 13px; color: #a0aec0; font-style: italic; }
+
 .signatures-footer { display: flex; justify-content: space-between; gap: 40px; margin-top: 100px; }
 .signature-block { flex: 1; text-align: center; }
 .signature-line { border-top: 1px solid #1a202c; margin-bottom: 6px; }
@@ -43,5 +75,6 @@
 .signature-role { font-size: 12px; color: #4a5568; margin: 2px 0 0; }
 
 @media print {
-  .items-table tr, .citas-table tr { page-break-inside: avoid; }
+  .items-table tr, .citas-table tr, .payments-table tr { page-break-inside: avoid; }
+  .account-section, .payments-section { page-break-inside: avoid; }
 }

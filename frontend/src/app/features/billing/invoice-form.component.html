@@ -62,24 +62,31 @@
       </div>
     </div>
 
-    <!-- Budget item picker: only pending items are selectable. The disabled rows
-         are the double-charge guard made visible, before the server rejects it. -->
+    <!-- Budget item picker: only pending items are selectable (chargeable onto this
+         new comprobante). An item already 'billing' stays actionable — its balance
+         is collected on its own comprobante — and only a fully 'paid' item is
+         locked. The double-charge guard is enforced again server-side. -->
     @if (isBudgetMode()) {
       <div class="form-card">
         <div class="form-card-header"><span>Ítems del Presupuesto</span></div>
         <div class="form-body">
           <p class="hint pick-hint">Marcá los ítems que se cobran en este comprobante.</p>
           @for (item of budget()!.items; track item.id) {
-            <label class="pick-row" [class.off]="!isSelectable(item)">
-              <input type="checkbox" [disabled]="!isSelectable(item)"
+            <label class="pick-row" [class.off]="isPaidOff(item)">
+              <input type="checkbox" [disabled]="isPaidOff(item)"
                 [checked]="isSelected(item)" (change)="toggleItem(item)"/>
               <span class="pk-txt">
                 <span class="pk-name">{{ item.description }}</span>
                 @if (isSelectable(item)) {
                   <span class="pk-meta">{{ item.quantity }} × Bs {{ formatMoney(item.unit_price) }}</span>
+                } @else if (isCollectable(item)) {
+                  <span class="pk-meta collectable">
+                    {{ isPartiallyPaid(item) ? 'Pago parcial' : 'En cobro' }} ·
+                    <a class="link strong" (click)="goCollect(item, $event)">Cobrar saldo en {{ item.invoice_number }} →</a>
+                  </span>
                 } @else {
                   <span class="pk-meta">
-                    {{ itemStateLabel(item.billing_state) }} · comprobante
+                    ✓ Pagado · comprobante
                     <a [routerLink]="['/billing/invoices', item.invoice_id]" class="link">{{ item.invoice_number }} →</a>
                   </span>
                 }

@@ -6,7 +6,7 @@
   } @else if (budget() && patient() && clinic()) {
     <app-print-clinic-header
       [clinic]="clinic()!"
-      documentTitle="PRESUPUESTO"
+      [documentTitle]="documentTitle()"
       [issuedDate]="issuedDate">
     </app-print-clinic-header>
 
@@ -28,10 +28,13 @@
 
     @if (budget()!.items_count > 0) {
       <section class="items-section">
-        <h3>Ítems Propuestos</h3>
+        <h3>{{ hasBilling() ? 'Ítems del Presupuesto' : 'Ítems Propuestos' }}</h3>
         <table class="items-table">
           <thead>
-            <tr><th>Descripción</th><th>Cant.</th><th>P. Unit.</th><th>Total</th></tr>
+            <tr>
+              <th>Descripción</th><th>Cant.</th><th>P. Unit.</th><th>Total</th>
+              @if (hasBilling()) { <th>Estado</th> }
+            </tr>
           </thead>
           <tbody>
             @for (item of budget()!.items; track item.id) {
@@ -40,10 +43,73 @@
                 <td>{{ item.quantity }}</td>
                 <td>Bs {{ formatMoney(item.unit_price) }}</td>
                 <td>Bs {{ formatMoney(item.total) }}</td>
+                @if (hasBilling()) {
+                  <td class="item-state" [class]="'state-' + (item.billing_state || 'pending')">
+                    {{ itemStateLabel(item.billing_state) }}
+                    @if (item.billing_state !== 'pending' && item.invoice_number) {
+                      <span class="item-inv">({{ item.invoice_number }})</span>
+                    }
+                  </td>
+                }
               </tr>
             }
           </tbody>
         </table>
+      </section>
+    }
+
+    <!-- Account state — only printed once there's real billing activity. Turns the
+         document from an initial proposal into a statement of what's paid / owed. -->
+    @if (hasBilling()) {
+      <section class="account-section">
+        <h3>Estado del Presupuesto</h3>
+        <div class="summary-cards">
+          <div class="sum-card budget">
+            <span class="sc-label">Presupuesto</span>
+            <span class="sc-value">Bs {{ formatMoney(budgetTotal()) }}</span>
+          </div>
+          <div class="sum-card paid">
+            <span class="sc-label">Total Pagado</span>
+            <span class="sc-value">Bs {{ formatMoney(totalCollected()) }}</span>
+          </div>
+          <div class="sum-card pending">
+            <span class="sc-label">Saldo Pendiente</span>
+            <span class="sc-value">Bs {{ formatMoney(pendingBalance()) }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="payments-section">
+        <h3>Comprobantes y Pagos</h3>
+        @if (invoices().length === 0) {
+          <p class="empty-row">Sin comprobantes emitidos</p>
+        } @else {
+          <table class="payments-table">
+            <thead>
+              <tr><th>N° Comprobante</th><th>Fecha</th><th>Total</th><th>Pagado</th><th>Saldo Parcial</th><th>Estado</th></tr>
+            </thead>
+            <tbody>
+              @for (inv of invoices(); track inv.id) {
+                <tr [class.cancelled-row]="inv.status === 'cancelled'">
+                  <td>{{ inv.invoice_number }}</td>
+                  <td>{{ formatDate(inv.created_at) }}</td>
+                  <td>Bs {{ formatMoney(inv.total) }}</td>
+                  <td>Bs {{ formatMoney(inv.amount_paid) }}</td>
+                  <td>Bs {{ formatMoney(inv.balance) }}</td>
+                  <td>{{ invStatusLabel(inv.status) }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="totals-row">
+                <td colspan="3">Totales (sin anulados)</td>
+                <td>Bs {{ formatMoney(totalCollected()) }}</td>
+                <td>Bs {{ formatMoney(totalInvoiceBalance()) }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        }
       </section>
     }
 
@@ -84,10 +150,12 @@
         <span>Bs {{ formatMoney(budget()!.total_amount) }}</span>
       </div>
 
-      <p class="payment-note">
-        Podés abonar por partes a medida que avanzan los tratamientos. Cada pago cubre los
-        tratamientos realizados y se te entrega su comprobante.
-      </p>
+      @if (!hasBilling()) {
+        <p class="payment-note">
+          Podés abonar por partes a medida que avanzan los tratamientos. Cada pago cubre los
+          tratamientos realizados y se te entrega su comprobante.
+        </p>
+      }
     }
 
     <footer class="signatures-footer">

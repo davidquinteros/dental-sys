@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { BillingService, PatientService } from '../../core/services/api.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { Budget, BudgetItem, BudgetItemBillingState, Patient } from '../../core/models';
 
 @Component({
@@ -34,6 +35,7 @@ export class InvoiceFormComponent implements OnInit {
     private route: ActivatedRoute,
     private billingService: BillingService,
     private patientService: PatientService,
+    private confirmService: ConfirmService,
   ) {
     this.form = this.fb.group({
       appointment_id: [''],
@@ -86,14 +88,51 @@ export class InvoiceFormComponent implements OnInit {
   }
 
   // ── Budget item picker ──
+  // Only a pending item can be charged onto a NEW comprobante. A 'billing' item
+  // already sits on one — its remaining balance is collected THERE (charging it
+  // again would double-charge and the backend rejects it), so it's not selectable
+  // but stays actionable via a link. Only a fully 'paid' item is truly locked.
   isSelectable(item: BudgetItem): boolean { return item.billing_state === 'pending'; }
   isSelected(item: BudgetItem): boolean { return this.selectedItemIds().has(item.id!); }
 
-  toggleItem(item: BudgetItem): void {
-    if (!this.isSelectable(item)) return;
-    const next = new Set(this.selectedItemIds());
-    next.has(item.id!) ? next.delete(item.id!) : next.add(item.id!);
-    this.selectedItemIds.set(next);
+  /** On a live comprobante that isn't fully paid — the balance is still collectable
+   * (whether the comprobante is untouched or partially paid). */
+  isCollectable(item: BudgetItem): boolean { return item.billing_state === 'billing'; }
+  /** Fully paid: the only truly locked state. */
+  isPaidOff(item: BudgetItem): boolean { return item.billing_state === 'paid'; }
+  isPartiallyPaid(item: BudgetItem): boolean { return item.invoice_status === 'partial'; }
+
+  async toggleItem(item: BudgetItem): Promise<void> {
+    // Pending item: normal multi-select onto the NEW comprobante.
+    if (this.isSelectable(item)) {
+      const next = new Set(this.selectedItemIds());
+      next.has(item.id!) ? next.delete(item.id!) : next.add(item.id!);
+      this.selectedItemIds.set(next);
+      return;
+    }
+    // Fully paid: locked — nothing left to collect.
+    if (this.isPaidOff(item)) return;
+    // Billing (issued / partially paid): its balance is completed on its OWN
+    // comprobante, never re-charged here — take the user there.
+    await this.goCollect(item);
+  }
+
+  /** Go to the item's comprobante to finish collecting its balance. Charging new
+   * items and completing an existing partial payment are mutually exclusive in one
+   * action, so if a new charge is already being built we warn first. */
+  async goCollect(item: BudgetItem, ev?: Event): Promise<void> {
+    ev?.stopPropagation();
+    if (this.selectedItemIds().size > 0) {
+      const proceed = await this.confirmService.confirm({
+        title: 'Pago parcial pendiente',
+        message: 'Hay un comprobante de pago con pago parcial pendiente. Completá el pago pendiente, '
+          + 'o seleccioná solo el ítem para un nuevo pago.',
+        confirmText: 'Ir a completar el pago',
+        cancelText: 'Seguir con el nuevo ítem',
+      });
+      if (!proceed) return;
+    }
+    this.router.navigate(['/billing/invoices', item.invoice_id]);
   }
 
   selectedBudgetItems(): BudgetItem[] {
