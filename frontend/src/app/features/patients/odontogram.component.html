@@ -9,6 +9,16 @@
       <div class="alert alert-success">{{ successMsg() }}</div>
     }
 
+    <!-- Show/hide pediatric dentition (saved per patient) -->
+    <div class="primary-toggle">
+      <span class="pt-label">Mostrar odontograma pediátrico</span>
+      <div class="pt-switch">
+        <button type="button" class="pt-btn" [class.active]="showPrimary()" (click)="togglePrimary(true)">Sí</button>
+        <button type="button" class="pt-btn" [class.active]="!showPrimary()" (click)="togglePrimary(false)">No</button>
+      </div>
+      @if (savingPrimary()) { <span class="pt-saving">Guardando…</span> }
+    </div>
+
     <!-- Legend -->
     <div class="legend">
       @for (s of statuses; track s.key) {
@@ -28,95 +38,18 @@
 
           <!-- Quadrant labels (above upper jaw) -->
           <div class="quad-labels">
-            <div class="quad-label q1">Cuadrante 1<br><small>Superior Derecho</small></div>
+            <div class="quad-label q-right">Cuadrante 1<br><small>Superior Derecho</small></div>
             <div class="quad-sep"></div>
-            <div class="quad-label q2">Cuadrante 2<br><small>Superior Izquierdo</small></div>
+            <div class="quad-label q-left">Cuadrante 2<br><small>Superior Izquierdo</small></div>
           </div>
 
-          <!-- UPPER JAW -->
-          <div class="jaw upper-jaw">
-            <!-- Tooth numbers above -->
-            <div class="num-row">
-              @for (t of Q1; track t) {
-                <div class="num-cell" [class.num-selected]="isSelected(t)">{{ t }}</div>
-              }
-              <div class="jaw-midline"></div>
-              @for (t of Q2; track t) {
-                <div class="num-cell" [class.num-selected]="isSelected(t)">{{ t }}</div>
-              }
-            </div>
-            <!-- Teeth -->
-            <div class="tooth-row">
-              @for (t of Q1; track t) {
-                <div class="tooth-cell" [class.is-selected]="isSelected(t)"
-                     [title]="getToothName(t) + ' — ' + getStatusLabel(getToothData(t).status)"
-                     (click)="selectTooth(t)">
-                  <svg viewBox="0 0 44 44" class="tooth-svg">
-                    <!-- 5 surface zones -->
-                    <polygon points="0,0 44,0 34,10 10,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="0,44 44,44 34,34 10,34"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="0,0 0,44 10,34 10,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="44,0 44,44 34,34 34,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="10,10 34,10 34,34 10,34"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <!-- Outer rounded border -->
-                    <rect x="0.5" y="0.5" width="43" height="43" rx="4"
-                      fill="none" [attr.stroke]="getStroke(t)" stroke-width="1.5"/>
-                    <!-- Extraction X -->
-                    @if (isExtracted(t)) {
-                      <line x1="9" y1="9" x2="35" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
-                      <line x1="35" y1="9" x2="9" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
-                    }
-                    <!-- Notes dot -->
-                    @if (hasNotes(t)) {
-                      <circle cx="38" cy="6" r="4" fill="#4299e1"/>
-                    }
-                    <!-- Selected ring -->
-                    @if (isSelected(t)) {
-                      <rect x="0.5" y="0.5" width="43" height="43" rx="4"
-                        fill="none" stroke="#2b6cb0" stroke-width="2.5"/>
-                    }
-                  </svg>
-                </div>
-              }
-              <div class="jaw-midline"></div>
-              @for (t of Q2; track t) {
-                <div class="tooth-cell" [class.is-selected]="isSelected(t)"
-                     [title]="getToothName(t) + ' — ' + getStatusLabel(getToothData(t).status)"
-                     (click)="selectTooth(t)">
-                  <svg viewBox="0 0 44 44" class="tooth-svg">
-                    <polygon points="0,0 44,0 34,10 10,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="0,44 44,44 34,34 10,34"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="0,0 0,44 10,34 10,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="44,0 44,44 34,34 34,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="10,10 34,10 34,34 10,34"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <rect x="0.5" y="0.5" width="43" height="43" rx="4"
-                      fill="none" [attr.stroke]="getStroke(t)" stroke-width="1.5"/>
-                    @if (isExtracted(t)) {
-                      <line x1="9" y1="9" x2="35" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
-                      <line x1="35" y1="9" x2="9" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
-                    }
-                    @if (hasNotes(t)) {
-                      <circle cx="38" cy="6" r="4" fill="#4299e1"/>
-                    }
-                    @if (isSelected(t)) {
-                      <rect x="0.5" y="0.5" width="43" height="43" rx="4"
-                        fill="none" stroke="#2b6cb0" stroke-width="2.5"/>
-                    }
-                  </svg>
-                </div>
-              }
-            </div>
-          </div>
+          <!-- UPPER: permanent (outer) then primary (inner, toward the midline divider) -->
+          <ng-container [ngTemplateOutlet]="numRow" [ngTemplateOutletContext]="{ r: Q1, l: Q2 }"/>
+          <ng-container [ngTemplateOutlet]="toothRow" [ngTemplateOutletContext]="{ r: Q1, l: Q2 }"/>
+          @if (showPrimary()) {
+            <ng-container [ngTemplateOutlet]="toothRow" [ngTemplateOutletContext]="{ r: Q5, l: Q6, primary: true }"/>
+            <ng-container [ngTemplateOutlet]="numRow" [ngTemplateOutletContext]="{ r: Q5, l: Q6, primary: true }"/>
+          }
 
           <!-- Jaw divider -->
           <div class="jaw-divider">
@@ -125,91 +58,32 @@
             <div class="jaw-label-side">Mandíbula Inferior</div>
           </div>
 
-          <!-- LOWER JAW -->
-          <div class="jaw lower-jaw">
-            <!-- Teeth -->
-            <div class="tooth-row">
-              @for (t of Q4; track t) {
-                <div class="tooth-cell" [class.is-selected]="isSelected(t)"
-                     [title]="getToothName(t) + ' — ' + getStatusLabel(getToothData(t).status)"
-                     (click)="selectTooth(t)">
-                  <svg viewBox="0 0 44 44" class="tooth-svg">
-                    <polygon points="0,0 44,0 34,10 10,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="0,44 44,44 34,34 10,34"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="0,0 0,44 10,34 10,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="44,0 44,44 34,34 34,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="10,10 34,10 34,34 10,34"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <rect x="0.5" y="0.5" width="43" height="43" rx="4"
-                      fill="none" [attr.stroke]="getStroke(t)" stroke-width="1.5"/>
-                    @if (isExtracted(t)) {
-                      <line x1="9" y1="9" x2="35" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
-                      <line x1="35" y1="9" x2="9" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
-                    }
-                    @if (hasNotes(t)) {
-                      <circle cx="38" cy="6" r="4" fill="#4299e1"/>
-                    }
-                    @if (isSelected(t)) {
-                      <rect x="0.5" y="0.5" width="43" height="43" rx="4"
-                        fill="none" stroke="#2b6cb0" stroke-width="2.5"/>
-                    }
-                  </svg>
-                </div>
-              }
-              <div class="jaw-midline"></div>
-              @for (t of Q3; track t) {
-                <div class="tooth-cell" [class.is-selected]="isSelected(t)"
-                     [title]="getToothName(t) + ' — ' + getStatusLabel(getToothData(t).status)"
-                     (click)="selectTooth(t)">
-                  <svg viewBox="0 0 44 44" class="tooth-svg">
-                    <polygon points="0,0 44,0 34,10 10,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="0,44 44,44 34,34 10,34"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="0,0 0,44 10,34 10,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="44,0 44,44 34,34 34,10"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <polygon points="10,10 34,10 34,34 10,34"
-                      [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
-                    <rect x="0.5" y="0.5" width="43" height="43" rx="4"
-                      fill="none" [attr.stroke]="getStroke(t)" stroke-width="1.5"/>
-                    @if (isExtracted(t)) {
-                      <line x1="9" y1="9" x2="35" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
-                      <line x1="35" y1="9" x2="9" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
-                    }
-                    @if (hasNotes(t)) {
-                      <circle cx="38" cy="6" r="4" fill="#4299e1"/>
-                    }
-                    @if (isSelected(t)) {
-                      <rect x="0.5" y="0.5" width="43" height="43" rx="4"
-                        fill="none" stroke="#2b6cb0" stroke-width="2.5"/>
-                    }
-                  </svg>
-                </div>
-              }
-            </div>
-            <!-- Tooth numbers below -->
-            <div class="num-row">
-              @for (t of Q4; track t) {
-                <div class="num-cell" [class.num-selected]="isSelected(t)">{{ t }}</div>
-              }
-              <div class="jaw-midline"></div>
-              @for (t of Q3; track t) {
-                <div class="num-cell" [class.num-selected]="isSelected(t)">{{ t }}</div>
-              }
-            </div>
-          </div>
+          <!-- LOWER: primary (inner) then permanent (outer) -->
+          @if (showPrimary()) {
+            <ng-container [ngTemplateOutlet]="numRow" [ngTemplateOutletContext]="{ r: Q8, l: Q7, primary: true }"/>
+            <ng-container [ngTemplateOutlet]="toothRow" [ngTemplateOutletContext]="{ r: Q8, l: Q7, primary: true }"/>
+          }
+          <ng-container [ngTemplateOutlet]="toothRow" [ngTemplateOutletContext]="{ r: Q4, l: Q3 }"/>
+          <ng-container [ngTemplateOutlet]="numRow" [ngTemplateOutletContext]="{ r: Q4, l: Q3 }"/>
 
           <!-- Quadrant labels below lower jaw -->
           <div class="quad-labels">
-            <div class="quad-label q4">Cuadrante 4<br><small>Inferior Derecho</small></div>
+            <div class="quad-label q-right">Cuadrante 4<br><small>Inferior Derecho</small></div>
             <div class="quad-sep"></div>
-            <div class="quad-label q3">Cuadrante 3<br><small>Inferior Izquierdo</small></div>
+            <div class="quad-label q-left">Cuadrante 3<br><small>Inferior Izquierdo</small></div>
+          </div>
+
+          <!-- Supernumeraries -->
+          <div class="supernum-section">
+            <div class="supernum-title">Supernumerarios</div>
+            <div class="supernum-row">
+              @for (s of supernumeraries; track s.key) {
+                <div class="supernum-slot">
+                  <ng-container [ngTemplateOutlet]="toothTpl" [ngTemplateOutletContext]="{ t: s.key }"/>
+                  <div class="supernum-label">{{ s.label }}</div>
+                </div>
+              }
+            </div>
           </div>
 
         </div><!-- /.chart -->
@@ -220,8 +94,8 @@
         <div class="edit-panel">
           <div class="panel-header">
             <div>
-              <div class="panel-tooth-num">Diente {{ selectedTooth() }}</div>
-              <div class="panel-tooth-name">{{ getToothName(+selectedTooth()!) }}</div>
+              <div class="panel-tooth-num">{{ selectedHeading() }}</div>
+              <div class="panel-tooth-name">{{ selectedName() }}</div>
             </div>
             <button class="panel-close" (click)="cancelEdit()" title="Cerrar">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -275,3 +149,67 @@
     <p class="hint">Haz clic en un diente para registrar su estado. El punto azul (●) indica notas clínicas.</p>
   }
 </div>
+
+<!-- ── Reusable rows: each is two fixed-width halves flanking the midline, so the
+     8-tooth permanent rows and the 5-tooth primary rows share the same midline. ── -->
+<ng-template #numRow let-r="r" let-l="l" let-primary="primary">
+  <div class="num-row" [class.primary-row]="primary">
+    <div class="jaw-half right">
+      @for (t of r; track t) { <div class="num-cell" [class.num-selected]="isSelected(t)">{{ t }}</div> }
+    </div>
+    <div class="jaw-midline"></div>
+    <div class="jaw-half left">
+      @for (t of l; track t) { <div class="num-cell" [class.num-selected]="isSelected(t)">{{ t }}</div> }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #toothRow let-r="r" let-l="l" let-primary="primary">
+  <div class="tooth-row" [class.primary-row]="primary">
+    <div class="jaw-half right">
+      @for (t of r; track t) { <ng-container [ngTemplateOutlet]="toothTpl" [ngTemplateOutletContext]="{ t: t }"/> }
+    </div>
+    <div class="jaw-midline"></div>
+    <div class="jaw-half left">
+      @for (t of l; track t) { <ng-container [ngTemplateOutlet]="toothTpl" [ngTemplateOutletContext]="{ t: t }"/> }
+    </div>
+  </div>
+</ng-template>
+
+<!-- Reusable tooth cell (permanent, primary and supernumerary all render through this) -->
+<ng-template #toothTpl let-t="t">
+  <div class="tooth-cell" [class.is-selected]="isSelected(t)"
+       [title]="getToothName(t) + ' — ' + getStatusLabel(getToothData(t).status)"
+       (click)="selectTooth(t)">
+    <svg viewBox="0 0 44 44" class="tooth-svg">
+      <!-- 5 surface zones -->
+      <polygon points="0,0 44,0 34,10 10,10"
+        [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+      <polygon points="0,44 44,44 34,34 10,34"
+        [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+      <polygon points="0,0 0,44 10,34 10,10"
+        [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+      <polygon points="44,0 44,44 34,34 34,10"
+        [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+      <polygon points="10,10 34,10 34,34 10,34"
+        [attr.fill]="getFill(t)" [attr.stroke]="getStroke(t)" stroke-width="0.8"/>
+      <!-- Outer rounded border -->
+      <rect x="0.5" y="0.5" width="43" height="43" rx="4"
+        fill="none" [attr.stroke]="getStroke(t)" stroke-width="1.5"/>
+      <!-- Extraction X -->
+      @if (isExtracted(t)) {
+        <line x1="9" y1="9" x2="35" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="35" y1="9" x2="9" y2="35" stroke="#718096" stroke-width="2.5" stroke-linecap="round"/>
+      }
+      <!-- Notes dot -->
+      @if (hasNotes(t)) {
+        <circle cx="38" cy="6" r="4" fill="#4299e1"/>
+      }
+      <!-- Selected ring -->
+      @if (isSelected(t)) {
+        <rect x="0.5" y="0.5" width="43" height="43" rx="4"
+          fill="none" stroke="#2b6cb0" stroke-width="2.5"/>
+      }
+    </svg>
+  </div>
+</ng-template>
