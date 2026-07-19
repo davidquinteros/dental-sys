@@ -1,0 +1,79 @@
+<div class="print-page invoice-page">
+  @if (loading()) {
+    <p>Cargando...</p>
+  } @else if (error()) {
+    <p class="error-msg">{{ error() }}</p>
+  } @else if (invoice() && patient() && clinic()) {
+    <app-print-clinic-header
+      [clinic]="clinic()!"
+      documentTitle="COMPROBANTE DE PAGO"
+      [issuedDate]="issuedDate">
+    </app-print-clinic-header>
+
+    <section class="patient-info">
+      <p><strong>N° Comprobante:</strong> {{ invoice()!.invoice_number }}</p>
+      <p><strong>Estado:</strong> {{ invStatusLabel(invoice()!.status) }}</p>
+      <p><strong>Paciente:</strong> {{ patient()!.full_name }}</p>
+      <p><strong>C.I.:</strong> {{ patient()!.document_number }}</p>
+      <p><strong>Fecha de emisión:</strong> {{ formatDate(invoice()!.created_at) }}</p>
+      @if (invoice()!.due_date) {
+        <p><strong>Vencimiento:</strong> {{ formatDateOnly(invoice()!.due_date) }}</p>
+      }
+    </section>
+
+    <section class="items-section">
+      <h3>Detalle</h3>
+      <table class="items-table">
+        <thead>
+          <tr><th>Descripción</th><th class="r">Cant.</th><th class="r">P. Unit.</th><th class="r">Total</th></tr>
+        </thead>
+        <tbody>
+          @for (item of invoice()!.items; track item.id) {
+            <tr>
+              <td>{{ item.description }}</td>
+              <td class="r">{{ item.quantity }}</td>
+              <td class="r">Bs {{ formatMoney(item.unit_price) }}</td>
+              <td class="r">Bs {{ formatMoney(item.total) }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="4" class="empty-row">Sin ítems</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <section class="totals-section">
+      <div class="t-row"><span>Subtotal</span><span>Bs {{ formatMoney(invoice()!.subtotal) }}</span></div>
+      @if (invoice()!.discount > 0) {
+        <div class="t-row"><span>Descuento</span><span>-Bs {{ formatMoney(invoice()!.discount) }}</span></div>
+      }
+      <div class="t-row grand"><span>Total</span><span>Bs {{ formatMoney(invoice()!.total) }}</span></div>
+      <div class="t-row paid"><span>Pagado</span><span>Bs {{ formatMoney(invoice()!.amount_paid) }}</span></div>
+      <div class="t-row balance"><span>Saldo Pendiente</span><span>Bs {{ formatMoney(invoice()!.balance) }}</span></div>
+    </section>
+
+    @if (invoice()!.notes) {
+      <section class="notes-section">
+        <h3>Notas</h3>
+        <p>{{ invoice()!.notes }}</p>
+      </section>
+    }
+
+    <footer class="signatures-footer">
+      <div class="signature-block">
+        <div class="signature-line"></div>
+        <p class="signature-label">{{ patient()!.full_name }}</p>
+        <p class="signature-role">Paciente</p>
+      </div>
+      <div class="signature-block">
+        <div class="signature-line"></div>
+        <p class="signature-label">{{ clinic()!.name }}</p>
+        <p class="signature-role">Clínica</p>
+      </div>
+    </footer>
+
+    <div class="print-actions no-print">
+      <button type="button" (click)="print()">Imprimir</button>
+    </div>
+  }
+</div>

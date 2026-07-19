@@ -67,8 +67,10 @@
 .inv-paid { background: #f0fff4; color: #276749; }
 .inv-cancelled { background: #f7fafc; color: #a0aec0; }
 .inv-overdue { background: #fff5f5; color: #c53030; }
+.row-actions { display: inline-flex; align-items: center; gap: 4px; }
 .action-btn { display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; border-radius: 6px; color: #718096; text-decoration: none; }
+  width: 30px; height: 30px; border-radius: 6px; color: #718096; text-decoration: none;
+  border: none; background: transparent; cursor: pointer; padding: 0; }
 .action-btn svg { width: 16px; height: 16px; }
 .action-btn:hover { background: #ebf8ff; color: #2b6cb0; }
 

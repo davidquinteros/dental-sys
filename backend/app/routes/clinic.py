@@ -269,6 +269,10 @@ def upload_clinic_logo(kind):
 
     return jsonify({
         "message": "Logo actualizado",
+        "name": clinic.name,
+        "address": clinic.address,
+        "phone": clinic.phone,
+        "email": clinic.email,
         "logo_main_url": "/api/clinic/logo/main" if clinic.logo_main_url else None,
         "logo_print_url": "/api/clinic/logo/print" if clinic.logo_print_url else None,
     }), 200

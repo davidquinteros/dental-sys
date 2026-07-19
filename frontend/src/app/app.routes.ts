@@ -28,6 +28,13 @@ export const routes: Routes = [
     data: { pageKey: 'patients' },
   },
   {
+    path: 'billing/invoices/:id/imprimir',
+    loadComponent: () =>
+      import('./features/billing/invoice-print.component').then(m => m.InvoicePrintComponent),
+    canActivate: [roleGuard],
+    data: { pageKey: 'billing' },
+  },
+  {
     path: 'billing/payment-plans/:id/imprimir',
     loadComponent: () =>
       import('./features/billing/payment-plan-print.component').then(m => m.PaymentPlanPrintComponent),
