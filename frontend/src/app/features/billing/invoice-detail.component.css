@@ -13,6 +13,11 @@
   border: 1.5px solid #fc8181; background: white; color: #c53030; transition: all 0.15s; }
 .btn-cancel-invoice:hover:not(:disabled) { background: #fff5f5; }
 .btn-cancel-invoice:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-print-invoice { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+  border: 1.5px solid #cbd5e0; background: white; color: #2d3748; transition: all 0.15s; }
+.btn-print-invoice svg { width: 16px; height: 16px; }
+.btn-print-invoice:hover { background: #f7fafc; border-color: #a0aec0; }
 .cancel-error { margin: -12px 0 16px; }
 .page-title { font-size: 22px; font-weight: 700; color: #1a202c; margin: 0 0 4px; font-family: monospace; }
 .sub { font-size: 14px; color: #718096; margin: 0; }
@@ -24,7 +29,7 @@
 .inv-cancelled { background: #f7fafc; color: #a0aec0; }
 .inv-overdue { background: #fff5f5; color: #c53030; }
 
-.detail-grid { display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+.detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; }
 .main-col { display: flex; flex-direction: column; gap: 16px; }
 .card { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); overflow: hidden; }
 .card-header { padding: 14px 20px; border-bottom: 1px solid #f0f4f8; }
@@ -37,6 +42,10 @@
 .table th.r { text-align: right; }
 .table td { padding: 10px 16px; font-size: 14px; color: #4a5568; border-bottom: 1px solid #f0f4f8; }
 .table td.r { text-align: right; }
+/* Where each line came from — only shown on a budget comprobante, where the
+   distinction between a budgeted item and an extra actually means something. */
+.src-tag { display: block; font-size: 11px; color: #a0aec0; margin-top: 3px; }
+.src-tag.from-budget { color: #2b6cb0; }
 .table tr:last-child td { border-bottom: none; }
 
 .items-edit-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }

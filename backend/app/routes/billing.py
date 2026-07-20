@@ -7,14 +7,21 @@ from app.models.billing import (
 )
 from app.middleware.auth import clinical_access_required, admin_required, get_current_user
 from app.models.user import UserRole
+from app.models.treatment import TreatmentPlan
 from app.utils.clinic_time import local_now
+from app.utils.scoping import resolve_scoped_doctor, resolve_scoped_treatment_plan
 from datetime import datetime, date
+from sqlalchemy.orm import joinedload, selectinload
 
 billing_bp = Blueprint("billing", __name__)
 
 # Only these are offered for new payments in this deliverable; other
 # PaymentMethod members are legacy values kept for existing rows (see model).
 ALLOWED_PAYMENT_METHODS = [PaymentMethod.CASH, PaymentMethod.QR]
+
+# The whole cita ladder. An unfinanced budget (use_payment_plan=False) has all
+# five NULL — see the Budget model docstring for why NULL and not 0.
+FINANCING_FIELDS = ("num_citas", "cost_per_cita", "down_payment", "start_date", "end_date")
 
 
 def generate_invoice_number() -> str:
@@ -46,6 +53,10 @@ def list_invoices():
       - in: query
         name: patient_id
         type: integer
+      - in: query
+        name: budget_id
+        type: integer
+        description: Comprobantes emitidos contra un presupuesto (FCLI-17)
       - in: query
         name: status
         type: string
@@ -83,13 +94,20 @@ def list_invoices():
     """
     current = get_current_user()
     patient_id = request.args.get("patient_id", type=int)
+    budget_id = request.args.get("budget_id", type=int)
     status = request.args.get("status")
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
 
-    query = Invoice.query
+    # to_dict() serializes every line and reads patient/budget names — eager-load
+    # them or each row costs a handful of extra queries.
+    query = Invoice.query.options(
+        selectinload(Invoice.items), joinedload(Invoice.patient), joinedload(Invoice.budget),
+    )
     if patient_id:
         query = query.filter_by(patient_id=patient_id)
+    if budget_id:
+        query = query.filter_by(budget_id=budget_id)
     if status:
         query = query.filter_by(status=status)
 
@@ -157,6 +175,14 @@ def create_invoice():
     description: >
       Genera un número de factura secuencial (INV-{año}-{NNNN}), crea los ítems
       y calcula automáticamente subtotal, total y saldo.
+      Con `budget_id` (FCLI-17) el comprobante cobra ítems concretos de un presupuesto:
+      cada línea puede llevar `budget_item_id` (ítem del presupuesto) o dejarlo en null
+      (ítem adicional: un producto o servicio que surgió en la cita y no estaba
+      presupuestado). Ambos conviven en el mismo comprobante. El estado de cada ítem
+      del presupuesto se deriva de su comprobante, no se guarda: anular este
+      comprobante devuelve sus ítems a Pendiente automáticamente.
+      Sólo se puede cobrar así un presupuesto **aceptado y sin financiar** — uno
+      financiado se cobra por su plan de pago.
     parameters:
       - in: body
         name: body
@@ -171,6 +197,9 @@ def create_invoice():
             appointment_id:
               type: integer
               description: Cita asociada (opcional)
+            budget_id:
+              type: integer
+              description: Presupuesto cuyos ítems se cobran (opcional)
             discount:
               type: number
               format: float
@@ -200,6 +229,9 @@ def create_invoice():
                     type: number
                     format: float
                     example: 150.0
+                  budget_item_id:
+                    type: integer
+                    description: Ítem del presupuesto que cubre esta línea; null = ítem adicional
     responses:
       201:
         description: Factura creada correctamente
@@ -211,7 +243,10 @@ def create_invoice():
             message:
               type: string
       400:
-        description: patient_id faltante, sin ítems, ítem incompleto, o fecha inválida
+        description: >
+          patient_id faltante, sin ítems, ítem incompleto, fecha inválida, presupuesto
+          inexistente/no aceptado/financiado/ya convertido, ítem de otro presupuesto,
+          o ítem ya cobrado en otro comprobante
         schema:
           $ref: '#/definitions/Error'
       401:
@@ -233,11 +268,86 @@ def create_invoice():
     if not items_data:
         return jsonify({"error": "Se requiere al menos un ítem"}), 400
 
+    for item_data in items_data:
+        # `is None`, NOT falsiness: a 0.00 line (a freebie, or a budget item
+        # priced at zero) is legitimate and used to be rejected here as if the
+        # price were missing. create_budget already got this right.
+        if not item_data.get("description") or item_data.get("unit_price") is None:
+            return jsonify({"error": "Cada ítem requiere descripción y precio unitario"}), 400
+
+    # ── Budget mode (FCLI-17) ───────────────────────────────────────────────
+    budget = None
+    if data.get("budget_id"):
+        # Row lock, same pattern as add_payment/register_installment: two
+        # simultaneous "Cobrar ítems" would otherwise both read the same item as
+        # pending and each charge it. The second one waits here, then trips the
+        # already-charged guard below.
+        budget = (
+            Budget.query.filter_by(id=data["budget_id"]).with_for_update().first()
+        )
+        # Scoped ORM lookup, never a raw FK assign: Postgres does not apply RLS
+        # to foreign-key checks, so another clinic's budget_id would satisfy the
+        # constraint silently.
+        if budget is None:
+            return jsonify({"error": "Presupuesto no encontrado"}), 404
+        if budget.status != BudgetStatus.ACCEPTED:
+            return jsonify({"error": "Solo se pueden cobrar ítems de un presupuesto aceptado"}), 400
+        # Mutually exclusive with financing: a financed budget is collected
+        # through its payment plan, not per item.
+        if budget.use_payment_plan or budget.converted_plan_id is not None:
+            return jsonify({
+                "error": "Este presupuesto se cobra con su plan de pago, no por ítem"
+            }), 400
+        try:
+            same_patient = budget.patient_id == int(data["patient_id"])
+        except (TypeError, ValueError):
+            return jsonify({"error": "patient_id inválido"}), 400
+        if not same_patient:
+            return jsonify({"error": "El presupuesto no corresponde a ese paciente"}), 400
+
+    # Resolve every budget_item_id up front, scoped, before writing anything.
+    resolved_lines = []
+    seen_item_ids = set()
+    for item_data in items_data:
+        raw_item_id = item_data.get("budget_item_id")
+        budget_item = None
+        if raw_item_id is not None:
+            if budget is None:
+                return jsonify({
+                    "error": "Un comprobante sin presupuesto no puede cobrar ítems de un presupuesto"
+                }), 400
+            budget_item = BudgetItem.query.filter_by(id=raw_item_id).first()
+            # One comprobante never spans two budgets: the item must belong to
+            # THIS budget. Covers the cross-clinic case too (the ORM filter makes
+            # another clinic's item invisible → None → 400 here).
+            if budget_item is None or budget_item.budget_id != budget.id:
+                return jsonify({"error": "El ítem no pertenece a este presupuesto"}), 400
+            # The same item can't appear twice in ONE payload: active_invoice_line()
+            # only sees already-committed lines, so without this two lines with the
+            # same budget_item_id would both pass and charge it twice on this very
+            # comprobante (invisible on the board, which shows the item once).
+            if budget_item.id in seen_item_ids:
+                return jsonify({
+                    "error": f"El ítem «{budget_item.description}» está repetido en el comprobante"
+                }), 400
+            seen_item_ids.add(budget_item.id)
+            # No double charge across comprobantes. Same active_invoice_line() the
+            # display uses, so what the UI greys out and what the server rejects
+            # can't drift.
+            existing = budget_item.active_invoice_line()
+            if existing is not None:
+                return jsonify({
+                    "error": f"El ítem «{budget_item.description}» ya está en el comprobante "
+                             f"{existing.invoice.invoice_number}"
+                }), 400
+        resolved_lines.append((item_data, budget_item))
+
     invoice = Invoice(
         clinic_id=current.clinic_id,
         invoice_number=generate_invoice_number(),
         patient_id=data["patient_id"],
         appointment_id=data.get("appointment_id"),
+        budget_id=budget.id if budget else None,
         created_by_id=current.id,
         discount=data.get("discount", 0),
         notes=data.get("notes"),
@@ -252,15 +362,13 @@ def create_invoice():
     db.session.add(invoice)
     db.session.flush()  # Get invoice.id
 
-    for item_data in items_data:
-        if not item_data.get("description") or not item_data.get("unit_price"):
-            return jsonify({"error": "Cada ítem requiere descripción y precio unitario"}), 400
-
+    for item_data, budget_item in resolved_lines:
         qty = item_data.get("quantity", 1)
         unit_price = float(item_data["unit_price"])
         item = InvoiceItem(
             clinic_id=invoice.clinic_id,
             invoice_id=invoice.id,
+            budget_item_id=budget_item.id if budget_item else None,
             description=item_data["description"],
             quantity=qty,
             unit_price=unit_price,
@@ -369,6 +477,21 @@ def update_invoice(invoice_id):
     if (("status" in data and data["status"] == "cancelled") or "items" in data) and invoice.status != InvoiceStatus.PENDING:
         return jsonify({"error": "Solo se puede cancelar o editar los ítems de una factura pendiente (sin pagos registrados)"}), 400
 
+    # Replacing the items of a budget-backed comprobante is blocked outright:
+    # the branch below does items.clear() and rebuilds each line from
+    # description/quantity/unit_price only, so every budget_item_id would be
+    # dropped **in the database** — the items would silently fall back to
+    # "Pendiente" while this comprobante still charges them, and could then be
+    # charged a second time. Cancel and re-issue instead: nothing is lost, since
+    # the extras are added at collection time anyway, and it's better accounting
+    # (sequential numbering, and cancelled comprobantes are already excluded from
+    # every aggregate). Deliberate scope cut — see FCLI-17.
+    if "items" in data and invoice.budget_id is not None:
+        return jsonify({
+            "error": "No se pueden editar los ítems de un comprobante de presupuesto. "
+                     "Anulá el comprobante y generá uno nuevo."
+        }), 400
+
     if "discount" in data:
         invoice.discount = float(data["discount"])
     if "notes" in data:
@@ -381,7 +504,9 @@ def update_invoice(invoice_id):
         if not items_data:
             return jsonify({"error": "Se requiere al menos un ítem"}), 400
         for item_data in items_data:
-            if not item_data.get("description") or not item_data.get("unit_price"):
+            # `is None`, not falsiness — a 0.00 line is legitimate (same fix as
+            # create_invoice).
+            if not item_data.get("description") or item_data.get("unit_price") is None:
                 return jsonify({"error": "Cada ítem requiere descripción y precio unitario"}), 400
 
         # Mutate the relationship collection itself (not raw session.delete/add
@@ -1235,14 +1360,29 @@ def list_budgets():
     patient_id = request.args.get("patient_id", type=int)
     status = request.args.get("status")
 
-    query = Budget.query
+    # The aggregates read every item, and every item resolves its comprobante —
+    # so without these eager loads this list is 1 + N·M queries. With them it's a
+    # handful, flat, no matter how many budgets. The ORM tenancy filter uses
+    # with_loader_criteria(..., include_aliases=True), which applies to eager
+    # loads too, so the InvoiceItem/Invoice legs stay clinic-scoped.
+    query = Budget.query.options(
+        joinedload(Budget.patient), joinedload(Budget.doctor), joinedload(Budget.treatment_plan),
+        selectinload(Budget.items)
+        .selectinload(BudgetItem.invoice_lines)
+        .joinedload(InvoiceItem.invoice),
+    )
     if patient_id:
         query = query.filter_by(patient_id=patient_id)
     if status:
         query = query.filter_by(status=status)
 
     budgets = query.order_by(Budget.created_at.desc()).all()
-    return jsonify({"budgets": [b.to_dict() for b in budgets], "total": len(budgets)}), 200
+    # include_items=False: a card shows the aggregates, never the item array.
+    # (This endpoint still ignores per_page — real pagination is out of scope.)
+    return jsonify({
+        "budgets": [b.to_dict(include_items=False) for b in budgets],
+        "total": len(budgets),
+    }), 200
 
 
 @billing_bp.route("/budgets/<int:budget_id>", methods=["GET"])
@@ -1281,7 +1421,19 @@ def get_budget(budget_id):
         schema:
           $ref: '#/definitions/Error'
     """
-    budget = Budget.query.get_or_404(budget_id, description="Presupuesto no encontrado")
+    # Same eager loads as list_budgets: the detail DOES serialize every item, and
+    # each one resolves its comprobante for billing_state.
+    budget = (
+        Budget.query.options(
+            selectinload(Budget.items)
+            .selectinload(BudgetItem.invoice_lines)
+            .joinedload(InvoiceItem.invoice)
+        )
+        .filter_by(id=budget_id)
+        .first()
+    )
+    if budget is None:
+        return jsonify({"error": "Presupuesto no encontrado"}), 404
     return jsonify({"budget": budget.to_dict()}), 200
 
 
@@ -1296,51 +1448,75 @@ def create_budget():
     security:
       - BearerAuth: []
     description: >
-      El plan de tratamiento suele no existir todavía (treatment_plan_id es opcional) —
-      normalmente se elige/crea recién al convertir un presupuesto Aceptado en un plan de
-      pago. `items` es una lista opcional, puramente descriptiva de lo observado/propuesto;
-      no condiciona `total_amount`, que se calcula igual que en un plan de pago según
-      `calc_mode` (`per_cita`: se envía `cost_per_cita` y se deriva `total_amount`; `total`:
-      se envía `total_amount` y se deriva `cost_per_cita`).
+      El presupuesto es la propuesta clínica y NO obliga a un plan de pago (FCLI-16).
+      La financiación es opt-in: sólo si `use_payment_plan` es true se piden (y se
+      guardan) `num_citas`/`calc_mode` y el resto de la escalera de cuotas — si es
+      false, `num_citas`/`cost_per_cita`/`down_payment`/`start_date`/`end_date` quedan
+      NULL sin importar qué mande el cliente, y el paciente paga por ítem a medida que
+      avanza.
+      `doctor_id` y `treatment_type` (por defecto `general`, "Atención General") son la
+      propuesta clínica: al aceptar el presupuesto se copian al plan de tratamiento que
+      se crea automáticamente. `treatment_plan_id` es opcional y normalmente no existe
+      todavía; si se envía, debe ser un plan del mismo paciente.
+      `items` es una lista puramente descriptiva de lo observado/propuesto; no condiciona
+      `total_amount` server-side (el formulario siempre lo deriva del subtotal de ítems).
     parameters:
       - in: body
         name: body
         required: true
         schema:
           type: object
-          required: [patient_id, name, num_citas, calc_mode]
+          required: [patient_id, name, doctor_id]
           properties:
             patient_id:
               type: integer
+            doctor_id:
+              type: integer
+              description: Médico responsable — debe ser un usuario activo de la clínica con rol médico o admin
             treatment_plan_id:
               type: integer
-              description: Opcional — normalmente no existe todavía
+              description: Opcional — normalmente no existe todavía; se crea al aceptar
             name:
               type: string
               example: Presupuesto - Revisión general
+            treatment_type:
+              type: string
+              default: general
+              description: "general, endodontics, orthodontics, implant, periodontics, prosthetics, surgery, whitening, other"
+            tooth_number:
+              type: string
+            use_payment_plan:
+              type: boolean
+              default: false
+              description: Si es false, toda la escalera de cuotas se guarda NULL
             calc_mode:
               type: string
               enum: [per_cita, total]
+              description: Requerido si use_payment_plan=true
             num_citas:
               type: integer
+              description: Requerido si use_payment_plan=true
             cost_per_cita:
               type: number
               format: float
-              description: Requerido si calc_mode=per_cita
+              description: Requerido si use_payment_plan=true y calc_mode=per_cita
             total_amount:
               type: number
               format: float
-              description: Requerido si calc_mode=total
+              description: Requerido salvo que use_payment_plan=true y calc_mode=per_cita (ahí se deriva)
             down_payment:
               type: number
               format: float
               default: 0
+              description: Ignorado si use_payment_plan=false
             start_date:
               type: string
               format: date
+              description: Ignorado si use_payment_plan=false
             end_date:
               type: string
               format: date
+              description: Ignorado si use_payment_plan=false
             notes:
               type: string
             items:
@@ -1368,7 +1544,7 @@ def create_budget():
             message:
               type: string
       400:
-        description: Campo requerido faltante, fecha inválida o ítem inválido
+        description: Campo requerido faltante, médico o plan inválido, fecha inválida o ítem inválido
         schema:
           $ref: '#/definitions/Error'
       401:
@@ -1382,45 +1558,70 @@ def create_budget():
     """
     current = get_current_user()
     data = request.get_json()
-    required = ["patient_id", "name", "num_citas", "calc_mode"]
+    required = ["patient_id", "name", "doctor_id"]
     for field in required:
         if data.get(field) is None:
             return jsonify({"error": f"Campo requerido: {field}"}), 400
 
-    calc_mode = data["calc_mode"]
-    if calc_mode not in ("per_cita", "total"):
-        return jsonify({"error": "calc_mode debe ser 'per_cita' o 'total'"}), 400
+    doctor = resolve_scoped_doctor(data["doctor_id"])
+    if doctor is None:
+        return jsonify({"error": "El médico responsable no es válido"}), 400
 
-    num_citas = int(data["num_citas"])
-    if num_citas < 1:
-        return jsonify({"error": "La cantidad de citas debe ser al menos 1"}), 400
-    down = float(data.get("down_payment", 0))
+    treatment_plan_id = None
+    if data.get("treatment_plan_id"):
+        plan = resolve_scoped_treatment_plan(data["treatment_plan_id"], data["patient_id"])
+        if plan is None:
+            return jsonify({"error": "El plan de tratamiento no existe o no corresponde al paciente"}), 400
+        treatment_plan_id = plan.id
 
-    if calc_mode == "per_cita":
-        if data.get("cost_per_cita") is None:
-            return jsonify({"error": "Campo requerido: cost_per_cita"}), 400
-        cost_per_cita = float(data["cost_per_cita"])
-        total = round(down + num_citas * cost_per_cita, 2)
+    use_payment_plan = bool(data.get("use_payment_plan", False))
+    num_citas = cost_per_cita = down = None
+    start_date_val = end_date_val = None
+
+    if use_payment_plan:
+        for field in ("num_citas", "calc_mode"):
+            if data.get(field) is None:
+                return jsonify({"error": f"Campo requerido: {field}"}), 400
+
+        calc_mode = data["calc_mode"]
+        if calc_mode not in ("per_cita", "total"):
+            return jsonify({"error": "calc_mode debe ser 'per_cita' o 'total'"}), 400
+
+        num_citas = int(data["num_citas"])
+        if num_citas < 1:
+            return jsonify({"error": "La cantidad de citas debe ser al menos 1"}), 400
+        down = float(data.get("down_payment", 0))
+
+        if calc_mode == "per_cita":
+            if data.get("cost_per_cita") is None:
+                return jsonify({"error": "Campo requerido: cost_per_cita"}), 400
+            cost_per_cita = float(data["cost_per_cita"])
+            total = round(down + num_citas * cost_per_cita, 2)
+        else:
+            if data.get("total_amount") is None:
+                return jsonify({"error": "Campo requerido: total_amount"}), 400
+            total = float(data["total_amount"])
+            cost_per_cita = round((total - down) / num_citas, 2)
+
+        if data.get("start_date"):
+            try:
+                start_date_val = date.fromisoformat(data["start_date"])
+            except ValueError:
+                return jsonify({"error": "Formato de fecha inválido"}), 400
+        if data.get("end_date"):
+            try:
+                end_date_val = date.fromisoformat(data["end_date"])
+            except ValueError:
+                return jsonify({"error": "Formato de fecha inválido"}), 400
+        if start_date_val and end_date_val and end_date_val < start_date_val:
+            return jsonify({"error": "La fecha de fin no puede ser anterior a la fecha de inicio"}), 400
     else:
+        # No ladder at all: every FINANCING_FIELDS stays None above, whatever the
+        # client sent. total_amount is still NOT NULL — the form derives it from
+        # the items subtotal.
         if data.get("total_amount") is None:
             return jsonify({"error": "Campo requerido: total_amount"}), 400
         total = float(data["total_amount"])
-        cost_per_cita = round((total - down) / num_citas, 2)
-
-    start_date_val = None
-    end_date_val = None
-    if data.get("start_date"):
-        try:
-            start_date_val = date.fromisoformat(data["start_date"])
-        except ValueError:
-            return jsonify({"error": "Formato de fecha inválido"}), 400
-    if data.get("end_date"):
-        try:
-            end_date_val = date.fromisoformat(data["end_date"])
-        except ValueError:
-            return jsonify({"error": "Formato de fecha inválido"}), 400
-    if start_date_val and end_date_val and end_date_val < start_date_val:
-        return jsonify({"error": "La fecha de fin no puede ser anterior a la fecha de inicio"}), 400
 
     items_data = data.get("items") or []
     for item_data in items_data:
@@ -1430,10 +1631,14 @@ def create_budget():
     budget = Budget(
         clinic_id=current.clinic_id,
         patient_id=data["patient_id"],
-        treatment_plan_id=data.get("treatment_plan_id"),
+        treatment_plan_id=treatment_plan_id,
+        doctor_id=doctor.id,
         created_by_id=current.id,
         name=data["name"],
+        treatment_type=data.get("treatment_type") or "general",
+        tooth_number=data.get("tooth_number") or None,
         total_amount=total,
+        use_payment_plan=use_payment_plan,
         down_payment=down,
         num_citas=num_citas,
         cost_per_cita=cost_per_cita,
@@ -1473,6 +1678,8 @@ def update_budget(budget_id):
     description: >
       Solo se pueden editar presupuestos en estado `draft` — una vez Aceptado o Rechazado
       queda de solo lectura. Si se envían `items`, reemplaza la lista completa.
+      Apagar `use_payment_plan` borra (NULLea) toda la escalera de cuotas; encenderlo
+      exige `num_citas`/`calc_mode` igual que al crear.
     parameters:
       - in: path
         name: budget_id
@@ -1486,8 +1693,18 @@ def update_budget(budget_id):
           properties:
             name:
               type: string
+            doctor_id:
+              type: integer
+              description: Debe ser un usuario activo de la clínica con rol médico o admin
+            treatment_type:
+              type: string
+            tooth_number:
+              type: string
             treatment_plan_id:
               type: integer
+              description: Debe ser un plan del mismo paciente; null lo desvincula
+            use_payment_plan:
+              type: boolean
             calc_mode:
               type: string
               enum: [per_cita, total]
@@ -1525,7 +1742,7 @@ def update_budget(budget_id):
             message:
               type: string
       400:
-        description: Presupuesto no editable (no está en borrador), cuotas inválidas o fecha inválida
+        description: Presupuesto no editable (no está en borrador), médico o plan inválido, cuotas inválidas o fecha inválida
         schema:
           $ref: '#/definitions/Error'
       401:
@@ -1548,45 +1765,92 @@ def update_budget(budget_id):
     data = request.get_json() or {}
     if "name" in data:
         budget.name = data["name"]
+    if "doctor_id" in data:
+        doctor = resolve_scoped_doctor(data["doctor_id"])
+        if doctor is None:
+            return jsonify({"error": "El médico responsable no es válido"}), 400
+        budget.doctor_id = doctor.id
+    if "treatment_type" in data:
+        budget.treatment_type = data["treatment_type"] or "general"
+    if "tooth_number" in data:
+        budget.tooth_number = data["tooth_number"] or None
     if "treatment_plan_id" in data:
-        budget.treatment_plan_id = data["treatment_plan_id"]
+        # Used to be a raw assignment of a client-sent FK — an id from another
+        # clinic (or another patient) went straight into the column, since
+        # Postgres doesn't apply RLS to FK checks. Resolve it scoped instead.
+        if data["treatment_plan_id"]:
+            plan = resolve_scoped_treatment_plan(data["treatment_plan_id"], budget.patient_id)
+            if plan is None:
+                return jsonify({"error": "El plan de tratamiento no existe o no corresponde al paciente"}), 400
+            budget.treatment_plan_id = plan.id
+        else:
+            budget.treatment_plan_id = None
     if "notes" in data:
         budget.notes = data["notes"]
-    if "start_date" in data:
-        if data["start_date"]:
-            try:
-                budget.start_date = date.fromisoformat(data["start_date"])
-            except ValueError:
-                return jsonify({"error": "Formato de fecha inválido"}), 400
-        else:
-            budget.start_date = None
-    if "end_date" in data:
-        if data["end_date"]:
-            try:
-                budget.end_date = date.fromisoformat(data["end_date"])
-            except ValueError:
-                return jsonify({"error": "Formato de fecha inválido"}), 400
-        else:
-            budget.end_date = None
-    if budget.start_date and budget.end_date and budget.end_date < budget.start_date:
-        return jsonify({"error": "La fecha de fin no puede ser anterior a la fecha de inicio"}), 400
 
-    if any(f in data for f in ("total_amount", "down_payment", "cost_per_cita", "calc_mode", "num_citas")):
-        num_citas = int(data.get("num_citas", budget.num_citas))
-        if num_citas < 1:
-            return jsonify({"error": "La cantidad de citas debe ser al menos 1"}), 400
-        down = float(data.get("down_payment", budget.down_payment))
-        calc_mode = data.get("calc_mode")
-        if calc_mode == "per_cita" or (calc_mode is None and "cost_per_cita" in data and "total_amount" not in data):
-            cost_per_cita = float(data.get("cost_per_cita", budget.cost_per_cita))
-            total = round(down + num_citas * cost_per_cita, 2)
-        else:
-            total = float(data.get("total_amount", budget.total_amount))
-            cost_per_cita = round((total - down) / num_citas, 2)
-        budget.num_citas = num_citas
-        budget.down_payment = down
-        budget.total_amount = total
-        budget.cost_per_cita = cost_per_cita
+    use_payment_plan = bool(data.get("use_payment_plan", budget.use_payment_plan))
+
+    if not use_payment_plan:
+        # Whatever the client sent, an unfinanced budget carries no ladder.
+        budget.use_payment_plan = False
+        for field in FINANCING_FIELDS:
+            setattr(budget, field, None)
+        if "total_amount" in data:
+            budget.total_amount = float(data["total_amount"])
+    else:
+        if "start_date" in data:
+            if data["start_date"]:
+                try:
+                    budget.start_date = date.fromisoformat(data["start_date"])
+                except ValueError:
+                    return jsonify({"error": "Formato de fecha inválido"}), 400
+            else:
+                budget.start_date = None
+        if "end_date" in data:
+            if data["end_date"]:
+                try:
+                    budget.end_date = date.fromisoformat(data["end_date"])
+                except ValueError:
+                    return jsonify({"error": "Formato de fecha inválido"}), 400
+            else:
+                budget.end_date = None
+        if budget.start_date and budget.end_date and budget.end_date < budget.start_date:
+            return jsonify({"error": "La fecha de fin no puede ser anterior a la fecha de inicio"}), 400
+
+        # Turning financing ON for a budget that had none: there are no stored
+        # citas/cost to fall back on (they're NULL), so the ladder must arrive
+        # complete — same requirement as create_budget.
+        turning_on = not budget.use_payment_plan
+        if turning_on:
+            for field in ("num_citas", "calc_mode"):
+                if data.get(field) is None:
+                    return jsonify({"error": f"Campo requerido: {field}"}), 400
+        budget.use_payment_plan = True
+
+        if turning_on or any(f in data for f in ("total_amount", "down_payment", "cost_per_cita",
+                                                 "calc_mode", "num_citas")):
+            # Fall back to the stored value only when the key is absent — an
+            # explicit 0 must reach the "al menos 1" check below, not be masked.
+            # The `is not None` guards cover a previously unfinanced budget,
+            # whose stored ladder is all NULL.
+            num_citas_raw = data.get("num_citas", budget.num_citas)
+            num_citas = int(num_citas_raw) if num_citas_raw is not None else 0
+            if num_citas < 1:
+                return jsonify({"error": "La cantidad de citas debe ser al menos 1"}), 400
+            down_raw = data.get("down_payment", budget.down_payment)
+            down = float(down_raw) if down_raw is not None else 0.0
+            calc_mode = data.get("calc_mode")
+            if calc_mode == "per_cita" or (calc_mode is None and "cost_per_cita" in data and "total_amount" not in data):
+                cost_raw = data.get("cost_per_cita", budget.cost_per_cita)
+                cost_per_cita = float(cost_raw) if cost_raw is not None else 0.0
+                total = round(down + num_citas * cost_per_cita, 2)
+            else:
+                total = float(data.get("total_amount", budget.total_amount))
+                cost_per_cita = round((total - down) / num_citas, 2)
+            budget.num_citas = num_citas
+            budget.down_payment = down
+            budget.total_amount = total
+            budget.cost_per_cita = cost_per_cita
 
     if "items" in data:
         items_data = data["items"] or []
@@ -1614,12 +1878,20 @@ def update_budget(budget_id):
 @clinical_access_required
 def accept_budget(budget_id):
     """
-    Aceptar presupuesto
+    Aceptar presupuesto (crea el plan de tratamiento)
     ---
     tags:
       - Facturación
     security:
       - BearerAuth: []
+    description: >
+      Aceptar es lo que convierte la propuesta en un registro clínico: en la misma
+      transacción se crea automáticamente el `TreatmentPlan` con el médico, el tipo y
+      la pieza del presupuesto, y el presupuesto queda vinculado a él
+      (`treatment_plan_id`). Contra ese plan ya se pueden agendar citas.
+      Si el presupuesto ya tenía un plan vinculado a mano, se reusa ese en vez de crear
+      otro. `total_sessions` se copia de `num_citas` sólo si el presupuesto está
+      financiado — uno suelto no tiene cantidad de citas por diseño.
     parameters:
       - in: path
         name: budget_id
@@ -1627,16 +1899,18 @@ def accept_budget(budget_id):
         required: true
     responses:
       200:
-        description: Presupuesto aceptado
+        description: Presupuesto aceptado y plan de tratamiento creado
         schema:
           type: object
           properties:
             budget:
               $ref: '#/definitions/Budget'
+            treatment_plan:
+              $ref: '#/definitions/TreatmentPlan'
             message:
               type: string
       400:
-        description: El presupuesto no está en borrador
+        description: El presupuesto no está en borrador, no tiene médico responsable, o su plan vinculado es inválido
         schema:
           $ref: '#/definitions/Error'
       401:
@@ -1652,12 +1926,72 @@ def accept_budget(budget_id):
         schema:
           $ref: '#/definitions/Error'
     """
-    budget = Budget.query.get_or_404(budget_id, description="Presupuesto no encontrado")
+    # Row lock, same pattern as add_payment/register_installment. Two fast clicks
+    # on "Aceptar" would otherwise both read DRAFT and each create a TreatmentPlan;
+    # the second request blocks here until the first commits, then finds the status
+    # already ACCEPTED and falls out on the 400 below — one budget, one plan.
+    budget = Budget.query.filter_by(id=budget_id).with_for_update().first()
+    if budget is None:
+        return jsonify({"error": "Presupuesto no encontrado"}), 404
     if budget.status != BudgetStatus.DRAFT:
         return jsonify({"error": "Solo se pueden aceptar presupuestos en borrador"}), 400
+    if budget.doctor_id is None:
+        # Only reachable for budgets written before FCLI-16 that were never linked
+        # to a treatment plan (the migration backfills doctor_id from the plan when
+        # there was one). The route requires a doctor rather than guessing.
+        return jsonify({
+            "error": "El presupuesto no tiene médico responsable. Editalo y asignale uno antes de aceptarlo."
+        }), 400
+
+    plan = None
+    if budget.treatment_plan_id:
+        # Pre-FCLI-16 rows could get any treatment_plan_id assigned through the
+        # PUT, which validated nothing — re-check it here before hanging the
+        # acceptance off it.
+        plan = resolve_scoped_treatment_plan(budget.treatment_plan_id, budget.patient_id)
+        if plan is None:
+            return jsonify({
+                "error": "El plan de tratamiento vinculado no existe o no corresponde al paciente"
+            }), 400
+
+    if plan is None:
+        # ── Deliberate role escalation, do not "fix" ──
+        # This route is clinical_access_required, which includes RECEPTIONIST, while
+        # POST /treatments/plans is medical_staff_required. So a receptionist
+        # accepting a budget creates a TreatmentPlan she could not create directly.
+        # That is correct: she authors nothing clinical — the doctor, type and tooth
+        # were all chosen by whoever wrote the budget; accepting only transcribes a
+        # proposal that was already authorized. Restricting it would break the real
+        # flow: the receptionist is the one at the counter when the patient says yes.
+        #
+        # The safety line is doctor_id = budget.doctor_id, NEVER current.id. Note
+        # create_treatment_plan (treatments.py) uses data.get("doctor_id", current.id);
+        # copying that fallback here would credit the clinical plan to whoever clicked
+        # Aceptar. That's why the model is built inline instead of calling that route.
+        plan = TreatmentPlan(
+            clinic_id=budget.clinic_id,
+            patient_id=budget.patient_id,
+            doctor_id=budget.doctor_id,
+            name=budget.name,
+            treatment_type=budget.treatment_type,
+            tooth_number=budget.tooth_number,
+            # An unfinanced budget has no cita count by design — leave it unplanned.
+            total_sessions=budget.num_citas if budget.use_payment_plan else None,
+            # Provenance only. budget.notes are commercial terms agreed with the
+            # patient; they don't belong in a clinical field.
+            notes=f"Creado automáticamente al aceptar el presupuesto #{budget.id}.",
+        )
+        db.session.add(plan)
+        db.session.flush()  # get plan.id
+        budget.treatment_plan_id = plan.id
+
     budget.status = BudgetStatus.ACCEPTED
     db.session.commit()
-    return jsonify({"budget": budget.to_dict(), "message": "Presupuesto aceptado"}), 200
+    return jsonify({
+        "budget": budget.to_dict(),
+        "treatment_plan": plan.to_dict(),
+        "message": "Presupuesto aceptado y plan de tratamiento creado",
+    }), 200
 
 
 @billing_bp.route("/budgets/<int:budget_id>/reject", methods=["POST"])
@@ -1770,6 +2104,15 @@ def link_budget_plan(budget_id):
         return jsonify({"error": "Solo se puede vincular un plan a un presupuesto aceptado"}), 400
     if budget.converted_plan_id is not None:
         return jsonify({"error": "Este presupuesto ya fue convertido a un plan de pago"}), 400
+    # Symmetric to create_invoice's exclusivity guard: financing a budget and
+    # charging it per item are two ways to collect the same money. Financing
+    # "later" stays available exactly while nothing has been charged yet, and
+    # closes the moment the first comprobante is issued.
+    if budget.has_billing:
+        return jsonify({
+            "error": "Este presupuesto ya tiene comprobantes emitidos y se cobra por ítem; "
+                     "no puede financiarse con un plan de pago"
+        }), 400
 
     data = request.get_json() or {}
     plan_id = data.get("payment_plan_id")

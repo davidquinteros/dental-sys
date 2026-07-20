@@ -8,6 +8,8 @@ import { Clinic, ClinicDetail, PlatformUser, SubscriptionTier } from '../../core
 import { formatDate as fmtDate, formatDateOnly as fmtDateOnly } from '../../core/util/date.util';
 import { compressImage } from '../../shared/utils/image-compression';
 
+type LogoKind = 'main' | 'print';
+
 @Component({
   selector: 'app-clinic-detail',
   standalone: true,
@@ -30,10 +32,24 @@ export class ClinicDetailComponent implements OnInit, OnDestroy {
   savingEdit = signal(false);
   editMessage = signal('');
 
-  logoPreviewUrl = signal<SafeUrl | null>(null);
-  uploadingLogo = signal(false);
-  logoError = signal('');
-  private logoObjectUrl: string | null = null;
+  logoPreviewUrl: Record<LogoKind, ReturnType<typeof signal<SafeUrl | null>>> = {
+    main: signal<SafeUrl | null>(null),
+    print: signal<SafeUrl | null>(null),
+  };
+  uploadingLogo: Record<LogoKind, ReturnType<typeof signal<boolean>>> = {
+    main: signal(false),
+    print: signal(false),
+  };
+  logoError: Record<LogoKind, ReturnType<typeof signal<string>>> = {
+    main: signal(''),
+    print: signal(''),
+  };
+  private logoObjectUrls: Record<LogoKind, string | null> = { main: null, print: null };
+
+  readonly logoKinds: { kind: LogoKind; label: string }[] = [
+    { kind: 'main', label: 'Logo principal' },
+    { kind: 'print', label: 'Logo para impresiones' },
+  ];
 
   paymentForm = { amount: null as number | null, payment_date: '', period_start: '', period_end: '', notes: '' };
   savingPayment = signal(false);
@@ -53,7 +69,8 @@ export class ClinicDetailComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.revokeLogoUrl();
+    this.revokeLogoUrl('main');
+    this.revokeLogoUrl('print');
   }
 
   load(): void {
@@ -74,48 +91,49 @@ export class ClinicDetailComponent implements OnInit, OnDestroy {
           email: d.clinic.email || '',
         };
         this.loading.set(false);
-        this.loadLogoPreview(d.clinic.logo_url);
+        this.loadLogoPreview('main', !!d.clinic.logo_main_url);
+        this.loadLogoPreview('print', !!d.clinic.logo_print_url);
       },
       error: () => this.loading.set(false),
     });
   }
 
-  private loadLogoPreview(logoUrl: string | null): void {
-    this.revokeLogoUrl();
-    this.logoPreviewUrl.set(null);
-    if (!logoUrl) return;
-    this.platform.getClinicLogoBlob(this.clinicId).subscribe({
+  private loadLogoPreview(kind: LogoKind, exists: boolean): void {
+    this.revokeLogoUrl(kind);
+    this.logoPreviewUrl[kind].set(null);
+    if (!exists) return;
+    this.platform.getClinicLogoBlob(this.clinicId, kind).subscribe({
       next: blob => {
-        this.logoObjectUrl = URL.createObjectURL(blob);
-        this.logoPreviewUrl.set(this.sanitizer.bypassSecurityTrustUrl(this.logoObjectUrl));
+        this.logoObjectUrls[kind] = URL.createObjectURL(blob);
+        this.logoPreviewUrl[kind].set(this.sanitizer.bypassSecurityTrustUrl(this.logoObjectUrls[kind]!));
       },
       error: () => {},
     });
   }
 
-  private revokeLogoUrl(): void {
-    if (this.logoObjectUrl) {
-      URL.revokeObjectURL(this.logoObjectUrl);
-      this.logoObjectUrl = null;
+  private revokeLogoUrl(kind: LogoKind): void {
+    if (this.logoObjectUrls[kind]) {
+      URL.revokeObjectURL(this.logoObjectUrls[kind]!);
+      this.logoObjectUrls[kind] = null;
     }
   }
 
-  async onLogoSelected(event: Event): Promise<void> {
+  async onLogoSelected(kind: LogoKind, event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
     const file = input.files[0];
     input.value = '';
 
-    this.uploadingLogo.set(true);
-    this.logoError.set('');
+    this.uploadingLogo[kind].set(true);
+    this.logoError[kind].set('');
     try {
       const { blob, filename } = await compressImage(file, 400, 0.85);
-      await firstValueFrom(this.platform.uploadClinicLogo(this.clinicId, blob, filename));
-      this.uploadingLogo.set(false);
+      await firstValueFrom(this.platform.uploadClinicLogo(this.clinicId, kind, blob, filename));
+      this.uploadingLogo[kind].set(false);
       this.load();
     } catch {
-      this.uploadingLogo.set(false);
-      this.logoError.set('No se pudo subir el logo');
+      this.uploadingLogo[kind].set(false);
+      this.logoError[kind].set('No se pudo subir el logo');
     }
   }
 

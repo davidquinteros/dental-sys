@@ -95,6 +95,13 @@ _ICON_PERMISSIONS = (
     '<path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
     '</svg>'
 )
+_ICON_CLINIC_PROFILE = (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+    '<path d="M3 21h18"/>'
+    '<path d="M5 21V7l7-4 7 4v14"/>'
+    '<path d="M10 12h4M12 10v4"/>'
+    '</svg>'
+)
 
 # Pages ordered by sort_order — roles that CAN view each page by default
 STANDARD_PAGES = [
@@ -150,7 +157,9 @@ STANDARD_PAGES = [
         'sort_order': 60,
         'is_system': True,
         'icon': _ICON_BILLING,
-        'default_viewers': ['ADMIN', 'RECEPTIONIST'],
+        # DOCTOR incluido para que pueda armar presupuestos (FCLI-16/18); abre
+        # todo Cobros al doctor (comprobantes, planes de pago y totales de caja).
+        'default_viewers': ['ADMIN', 'DOCTOR', 'RECEPTIONIST'],
     },
     {
         'key': 'appointment_types',
@@ -188,6 +197,18 @@ STANDARD_PAGES = [
         'icon': _ICON_PERMISSIONS,
         'default_viewers': ['ADMIN'],
     },
+    {
+        # Accessed only via the sidebar brand (FCLI-23), not a nav item — but it's
+        # a real Page so roleGuard/PermissionService recognize the route. Visible to
+        # all staff; editing is admin-only, gated by the backend (FCLI-19).
+        'key': 'clinic_profile',
+        'label': 'Perfil de la Clínica',
+        'route': '/clinic-profile',
+        'sort_order': 100,
+        'is_system': True,
+        'icon': _ICON_CLINIC_PROFILE,
+        'default_viewers': ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'ASSISTANT'],
+    },
 ]
 
 ALL_ROLE_VALUES = [r.value for r in UserRole]
@@ -211,7 +232,10 @@ def seed_pages(clinic_id: int):
                 clinic_id=clinic_id, role=role, page_key=p_data['key']
             ).first()
             if not exists:
-                can_view = role.value in viewers
+                # default_viewers holds role NAMES ('ADMIN', 'DOCTOR', ...), so
+                # compare against role.name — role.value is lowercase ('admin')
+                # and would never match, leaving every permission false (FCLI-18).
+                can_view = role.name in viewers
                 rp = RolePermission(
                     clinic_id=clinic_id,
                     role=role,
@@ -219,7 +243,7 @@ def seed_pages(clinic_id: int):
                     can_view=can_view,
                     can_create=can_view,
                     can_edit=can_view,
-                    can_delete=role.value == 'ADMIN',
+                    can_delete=role.name == 'ADMIN',
                 )
                 db.session.add(rp)
 

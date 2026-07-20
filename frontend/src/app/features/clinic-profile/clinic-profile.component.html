@@ -1,0 +1,109 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Perfil de la Clínica</h1>
+      <p class="subtitle">Datos de contacto y logos de tu clínica.</p>
+    </div>
+    @if (!editMode() && auth.isAdmin() && !loading()) {
+      <button class="btn btn-primary" (click)="startEdit()">Editar</button>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="text-muted">Cargando…</p>
+  } @else if (clinic()) {
+    @let c = clinic()!;
+    @if (message()) { <div class="alert alert-success">{{ message() }}</div> }
+    @if (error()) { <div class="alert alert-danger">{{ error() }}</div> }
+
+    <div class="card">
+      <!-- ── View mode ─────────────────────────────────────────────── -->
+      @if (!editMode()) {
+        <div class="field-grid">
+          <div class="field">
+            <label>Nombre</label>
+            <p>{{ c.name }}</p>
+            <small class="text-muted">Gestionado por la plataforma</small>
+          </div>
+          <div class="field">
+            <label>Dirección</label>
+            <p>{{ c.address || '—' }}</p>
+          </div>
+          <div class="field">
+            <label>Teléfono</label>
+            <p>{{ c.phone || '—' }}</p>
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <p>{{ c.email || '—' }}</p>
+          </div>
+        </div>
+
+        <div class="logos-row">
+          @for (l of logoKinds; track l.kind) {
+            <div class="logo-block">
+              <label>{{ l.label }}</label>
+              @if (logoPreview[l.kind](); as url) {
+                <img [src]="url" [alt]="l.label" class="logo-preview"/>
+              } @else {
+                <div class="logo-empty">Sin logo</div>
+              }
+              <small class="text-muted">{{ l.hint }}</small>
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- ── Edit mode (admin only) ──────────────────────────────── -->
+        <form (ngSubmit)="save()">
+          <div class="field-grid">
+            <div class="field">
+              <label>Nombre</label>
+              <p>{{ c.name }}</p>
+              <small class="text-muted">Gestionado por la plataforma (no editable)</small>
+            </div>
+            <div class="field">
+              <label for="address">Dirección</label>
+              <input id="address" type="text" name="address" [(ngModel)]="editForm.address" />
+            </div>
+            <div class="field">
+              <label for="phone">Teléfono</label>
+              <input id="phone" type="text" name="phone" [(ngModel)]="editForm.phone" />
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" type="email" name="email" placeholder="Ej: contacto@clinica.com" [(ngModel)]="editForm.email" />
+            </div>
+          </div>
+
+          <div class="logos-row">
+            @for (l of logoKinds; track l.kind) {
+              <div class="logo-block">
+                <label>{{ l.label }}</label>
+                @if (logoPreview[l.kind](); as url) {
+                  <img [src]="url" [alt]="l.label" class="logo-preview"/>
+                } @else {
+                  <div class="logo-empty">Sin logo</div>
+                }
+                <input type="file" accept="image/*"
+                       (change)="onLogoSelected(l.kind, $event)"
+                       [disabled]="uploading[l.kind]()" />
+                @if (uploading[l.kind]()) { <small class="text-muted">Subiendo…</small> }
+                @if (logoError[l.kind]()) { <small class="text-danger">{{ logoError[l.kind]() }}</small> }
+                <small class="text-muted">{{ l.hint }}</small>
+              </div>
+            }
+          </div>
+
+          <div class="actions">
+            <button type="button" class="btn btn-secondary" (click)="cancelEdit()" [disabled]="saving()">Cancelar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="saving()">
+              {{ saving() ? 'Guardando…' : 'Guardar cambios' }}
+            </button>
+          </div>
+        </form>
+      }
+    </div>
+  } @else {
+    <p class="text-danger">No se pudo cargar el perfil de la clínica.</p>
+  }
+</div>

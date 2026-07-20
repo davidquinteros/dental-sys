@@ -37,7 +37,7 @@ export class PrintClinicHeaderComponent implements OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['clinic'] && this.clinic?.logo_url) {
+    if (changes['clinic'] && this.clinic?.logo_print_url) {
       this.loadLogo();
     }
   }
@@ -48,7 +48,7 @@ export class PrintClinicHeaderComponent implements OnChanges, OnDestroy {
 
   private loadLogo(): void {
     if (this.logoObjectUrl) URL.revokeObjectURL(this.logoObjectUrl);
-    this.clinicService.getLogoBlob().subscribe({
+    this.clinicService.getLogoBlob('print').subscribe({
       next: blob => {
         this.logoObjectUrl = URL.createObjectURL(blob);
         this.logoUrl.set(this.sanitizer.bypassSecurityTrustUrl(this.logoObjectUrl));

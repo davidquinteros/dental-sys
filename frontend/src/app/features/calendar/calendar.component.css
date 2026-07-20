@@ -139,8 +139,15 @@
   overflow: hidden;
 }
 .calendar-body.scrollable {
-  max-height: 580px;
+  /* Fill the visible viewport (great on tablet portrait) without ever
+     collapsing below a usable height on short landscape screens. */
+  max-height: max(420px, calc(100dvh - 360px));
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 900px) {
+  .page { padding: 16px; }
 }
 
 /* Embedded / compact mode (used inside the appointment form) */

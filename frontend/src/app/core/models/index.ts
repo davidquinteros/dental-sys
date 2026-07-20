@@ -152,13 +152,16 @@ export interface Treatment {
   created_at: string;
 }
 
-/** Header info for the recetario print view — GET /api/clinic/info. */
+/** Clinic profile info — GET /api/clinic/info. Used by the print header, the
+ * clinic-profile page and the sidebar brand. The two logo fields hold the
+ * serving-endpoint route when that logo exists, or are absent/null otherwise. */
 export interface ClinicInfo {
   name: string;
   address?: string;
   phone?: string;
-  logo_url?: string;
   email?: string;
+  logo_main_url?: string | null;
+  logo_print_url?: string | null;
 }
 
 /** Clinical photo attached to an appointment (Treatment) or a TreatmentPlan. */
@@ -207,6 +210,8 @@ export type PaymentMethod = 'cash' | 'qr' | 'card' | 'transfer' | 'other';
 
 export interface InvoiceItem {
   id?: number;
+  /** The budget item this line charges; null = ítem adicional (not budgeted). */
+  budget_item_id?: number | null;
   description: string;
   quantity: number;
   unit_price: number;
@@ -219,6 +224,9 @@ export interface Invoice {
   patient_id: number;
   patient_name: string;
   appointment_id?: number;
+  /** The budget whose items this comprobante charges; null = unrelated to any. */
+  budget_id?: number | null;
+  budget_name?: string | null;
   subtotal: number;
   discount: number;
   total: number;
@@ -278,12 +286,22 @@ export interface PaymentPlan {
 
 export type BudgetStatus = 'draft' | 'accepted' | 'rejected';
 
+/** How a budget item is being collected. Derived server-side from the item's
+ * comprobante — never stored, so cancelling one returns its items to 'pending'
+ * on its own. */
+export type BudgetItemBillingState = 'pending' | 'billing' | 'paid';
+
 export interface BudgetItem {
   id?: number;
   description: string;
   quantity: number;
   unit_price: number;
   total: number;
+  billing_state?: BudgetItemBillingState;
+  /** The comprobante holding this item; null while pending. */
+  invoice_id?: number | null;
+  invoice_number?: string | null;
+  invoice_status?: InvoiceStatus | null;
 }
 
 export interface Budget {
@@ -292,13 +310,34 @@ export interface Budget {
   patient_name: string;
   treatment_plan_id?: number;
   treatment_plan_name?: string;
+  doctor_id?: number;
+  doctor_name?: string;
   name: string;
+  treatment_type: string;
+  tooth_number?: string;
   total_amount: number;
-  down_payment: number;
-  num_citas: number;
-  cost_per_cita: number;
-  items: BudgetItem[];
+  /** Financing is opt-in (FCLI-16). When false, the whole cita ladder below is
+   * null — the budget is paid per item as the treatments happen. */
+  use_payment_plan: boolean;
+  down_payment: number | null;
+  num_citas: number | null;
+  cost_per_cita: number | null;
+  /** Absent on the list endpoint (which sends items_count + the aggregates
+   * instead); always present on GET /billing/budgets/:id. */
+  items?: BudgetItem[];
+  items_count: number;
   items_subtotal: number;
+  /** Item value at budget price by state — NOT money received (a comprobante has
+   * a global discount and can be partially paid). Hence "En ítems pagados", never
+   * "Cobrado"; the cash lives in GET /billing/summary.
+   * Invariant: amount_paid + amount_billed + amount_pending === items_subtotal. */
+  amount_paid: number;
+  amount_billed: number;
+  amount_pending: number;
+  /** Derived label, not a BudgetStatus: nothing pending and nothing in billing. */
+  is_completed: boolean;
+  /** True once any item sits on a live comprobante — financing closes here. */
+  has_billing: boolean;
   status: BudgetStatus;
   start_date?: string;
   end_date?: string;

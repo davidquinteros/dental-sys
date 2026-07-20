@@ -161,6 +161,12 @@ export class InvoiceDetailComponent implements OnInit {
     });
   }
 
+  printInvoice(): void {
+    const inv = this.invoice();
+    if (!inv) return;
+    window.open(`/billing/invoices/${inv.id}/imprimir`, '_blank');
+  }
+
   formatMoney(val: number): string {
     return new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
   }

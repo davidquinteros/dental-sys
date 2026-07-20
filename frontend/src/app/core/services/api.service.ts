@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -296,6 +296,9 @@ export class UserService {
     return this.http.get<{ users: User[]; total: number }>(`${API}/users/`, { params });
   }
 
+  /** Active doctors (rol DOCTOR only) — for appointment scheduling and the "médico
+   * responsable" dropdown of budgets/treatment plans. Admins are excluded: they're
+   * management accounts, not clinical ones. */
   getDoctors(): Observable<{ doctors: User[] }> {
     return this.http.get<{ doctors: User[] }>(`${API}/users/doctors`);
   }
@@ -322,12 +325,48 @@ export class UserService {
 export class ClinicService {
   constructor(private http: HttpClient) {}
 
+  /** Shared main-logo object URL (blob:), so the sidebar brand (FCLI-23) and the
+   * clinic-profile page stay in sync — uploading a new main logo calls
+   * refreshMainLogo() and every consumer bound to this signal updates live. */
+  private _mainLogoUrl = signal<string | null>(null);
+  readonly mainLogoUrl = this._mainLogoUrl.asReadonly();
+  private mainLogoObjectUrl: string | null = null;
+
+  /** Fetch the own-clinic main logo into the shared signal. A 404 (no logo yet)
+   * resolves it to null so consumers fall back to the default brand icon. */
+  refreshMainLogo(): void {
+    this.getLogoBlob('main').subscribe({
+      next: blob => {
+        if (this.mainLogoObjectUrl) URL.revokeObjectURL(this.mainLogoObjectUrl);
+        this.mainLogoObjectUrl = URL.createObjectURL(blob);
+        this._mainLogoUrl.set(this.mainLogoObjectUrl);
+      },
+      error: () => {
+        if (this.mainLogoObjectUrl) URL.revokeObjectURL(this.mainLogoObjectUrl);
+        this.mainLogoObjectUrl = null;
+        this._mainLogoUrl.set(null);
+      },
+    });
+  }
+
   getInfo(): Observable<ClinicInfo> {
     return this.http.get<ClinicInfo>(`${API}/clinic/info`);
   }
 
-  getLogoBlob(): Observable<Blob> {
-    return this.http.get(`${API}/clinic/logo`, { responseType: 'blob' });
+  getLogoBlob(kind: 'main' | 'print'): Observable<Blob> {
+    return this.http.get(`${API}/clinic/logo/${kind}`, { responseType: 'blob' });
+  }
+
+  /** Update own-clinic contact fields (admin only, gated server-side). */
+  updateProfile(data: { address?: string; phone?: string; email?: string }): Observable<ClinicInfo> {
+    return this.http.put<ClinicInfo>(`${API}/clinic/profile`, data);
+  }
+
+  /** Upload a logo (main | print) for the own clinic (admin only, gated server-side). */
+  uploadLogo(kind: 'main' | 'print', blob: Blob, filename: string): Observable<ClinicInfo> {
+    const form = new FormData();
+    form.append('file', blob, filename);
+    return this.http.post<ClinicInfo>(`${API}/clinic/logo/${kind}`, form);
   }
 }
 

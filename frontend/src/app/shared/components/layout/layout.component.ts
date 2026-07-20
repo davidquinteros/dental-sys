@@ -1,12 +1,14 @@
-import { Component, computed, signal, HostListener } from '@angular/core';
+import { Component, computed, signal, HostListener, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { AuthService } from '../../../core/services/auth.service';
 import { PermissionService } from '../../../core/services/permission.service';
+import { ClinicService } from '../../../core/services/api.service';
 
 interface NavItem {
+  key: string;
   label: string;
-  icon: string;
   route: string;
 }
 
@@ -17,13 +19,30 @@ interface NavItem {
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css',
 })
-export class LayoutComponent {
+export class LayoutComponent implements OnInit {
   sidebarCollapsed = signal(false);
   mobileMenuOpen = signal(false);
 
-  constructor(public auth: AuthService, public permissions: PermissionService) {
+  constructor(
+    public auth: AuthService,
+    public permissions: PermissionService,
+    private clinicService: ClinicService,
+    private sanitizer: DomSanitizer,
+  ) {
     this.syncCollapsedForViewport();
   }
+
+  ngOnInit(): void {
+    // Populates the shared main-logo signal used by the sidebar brand; a 404
+    // (no logo yet) leaves it null so the default tooth icon shows instead.
+    this.clinicService.refreshMainLogo();
+  }
+
+  /** Main logo for the sidebar brand (blob object URL → SafeUrl), or null. */
+  mainLogo = computed<SafeUrl | null>(() => {
+    const url = this.clinicService.mainLogoUrl();
+    return url ? this.sanitizer.bypassSecurityTrustUrl(url) : null;
+  });
 
   @HostListener('window:resize')
   onResize(): void {
@@ -48,14 +67,20 @@ export class LayoutComponent {
     this.mobileMenuOpen.set(false);
   }
 
-  visibleNavItems = computed(() => {
+  visibleNavItems = computed<NavItem[]>(() => {
     const pages = this.permissions.accessiblePages();
-    // Dashboard is always first; fall back to static order by sort_order
-    return pages.map(p => ({
-      label: p.label,
-      route: p.route,
-      icon: p.icon ?? '',
-    }));
+    // Dashboard is always first; fall back to static order by sort_order.
+    // The icon is resolved in the template by page key (see the @switch in
+    // layout.component.html) — the DB icon string can't be innerHTML-bound.
+    // clinic_profile is a real Page (for roleGuard) but is reached only via the
+    // sidebar brand (FCLI-23), so it must not also appear as a nav row.
+    return pages
+      .filter(p => p.key !== 'clinic_profile')
+      .map(p => ({
+        key: p.key,
+        label: p.label,
+        route: p.route,
+      }));
   });
 
   userInitials = computed(() => {

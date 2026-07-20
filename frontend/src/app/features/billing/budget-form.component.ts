@@ -2,9 +2,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormArray, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
-import { BillingService, PatientService, TreatmentService } from '../../core/services/api.service';
-import { Patient, TreatmentPlan } from '../../core/models';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DestroyRef, inject } from '@angular/core';
+import { BillingService, PatientService, TreatmentService, UserService } from '../../core/services/api.service';
+import { Patient, TreatmentPlan, User } from '../../core/models';
 import { BillingConditionsFieldsComponent } from '../../shared/components/billing-conditions-fields/billing-conditions-fields.component';
+import { TREATMENT_TYPES, DEFAULT_TREATMENT_TYPE, treatmentTypeLabel } from '../treatments/treatment-type-data';
 
 @Component({
   selector: 'app-budget-form',
@@ -21,8 +24,18 @@ export class BudgetFormComponent implements OnInit {
   selectedPatient = signal<Patient | null>(null);
   patientResults = signal<Patient[]>([]);
   treatmentPlans = signal<TreatmentPlan[]>([]);
+  doctors = signal<User[]>([]);
   patientSearch = '';
   private searchTimeout: any;
+  private destroyRef = inject(DestroyRef);
+
+  readonly treatmentTypes = TREATMENT_TYPES;
+  treatmentTypeLabel = treatmentTypeLabel;
+
+  /** Drives the financing card's body. `use_payment_plan` is a TOP-LEVEL control,
+   * not part of `conditions` — the conditions group must keep exactly the shape
+   * billing-conditions-fields expects. */
+  usePaymentPlan = signal(false);
 
   isEditMode = signal(false);
   private budgetId: number | null = null;
@@ -34,10 +47,15 @@ export class BudgetFormComponent implements OnInit {
     private billingService: BillingService,
     private patientService: PatientService,
     private treatmentService: TreatmentService,
+    private userService: UserService,
   ) {
     this.form = this.fb.group({
       name: ['', Validators.required],
+      doctor_id: ['', Validators.required],
+      treatment_type: [DEFAULT_TREATMENT_TYPE, Validators.required],
+      tooth_number: [''],
       treatment_plan_id: [''],
+      use_payment_plan: [false],
       conditions: this.fb.group({
         calc_mode: ['total'],
         num_citas: [3, Validators.required],
@@ -89,7 +107,19 @@ export class BudgetFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.itemsArray.valueChanges.subscribe(() => this.syncTotalFromItems());
+    this.itemsArray.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.syncTotalFromItems());
+    this.form.get('use_payment_plan')!.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.usePaymentPlan.set(!!v);
+        // The shared component derives in ngOnInit + a takeUntilDestroyed
+        // subscription, so destroying and recreating it under the @if re-derives
+        // cleanly — but only from a total that's already in sync.
+        if (v) this.syncTotalFromItems();
+      });
+    // Solo médicos (rol DOCTOR): el médico responsable es una figura clínica, no un
+    // admin. El backend valida el mismo conjunto — ver RESPONSIBLE_DOCTOR_ROLES.
+    this.userService.getDoctors().subscribe(res => this.doctors.set(res.doctors));
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
@@ -103,15 +133,22 @@ export class BudgetFormComponent implements OnInit {
           return;
         }
         this.patientService.getById(budget.patient_id).subscribe(pres => this.selectPatient(pres.patient, budget.treatment_plan_id));
-        budget.items.forEach(item => this.itemsArray.push(this.newItemGroup(item)));
+        // getBudget (the detail endpoint) always sends items; only the list omits them.
+        (budget.items ?? []).forEach(item => this.itemsArray.push(this.newItemGroup(item)));
         this.form.patchValue({
           name: budget.name,
+          doctor_id: budget.doctor_id ?? '',
+          treatment_type: budget.treatment_type || DEFAULT_TREATMENT_TYPE,
+          tooth_number: budget.tooth_number || '',
           treatment_plan_id: budget.treatment_plan_id || '',
+          use_payment_plan: budget.use_payment_plan,
           notes: budget.notes,
           conditions: {
             calc_mode: 'total',
-            num_citas: budget.num_citas,
-            down_payment: budget.down_payment,
+            // An unfinanced budget stores NULL for the whole ladder; keep the
+            // form's own defaults rather than pushing nulls into the controls.
+            num_citas: budget.num_citas ?? 3,
+            down_payment: budget.down_payment ?? 0,
             start_date: budget.start_date || '',
             end_date: budget.end_date || '',
           },
@@ -173,20 +210,32 @@ export class BudgetFormComponent implements OnInit {
 
     const payload: any = {
       patient_id: this.selectedPatient()!.id,
-      treatment_plan_id: val.treatment_plan_id ? +val.treatment_plan_id : undefined,
+      doctor_id: +val.doctor_id,
+      treatment_type: val.treatment_type,
+      // null, not undefined: undefined is dropped by JSON.stringify, so the PUT
+      // would never see the key and clearing the field on edit wouldn't persist.
+      tooth_number: val.tooth_number || null,
+      treatment_plan_id: val.treatment_plan_id ? +val.treatment_plan_id : null,
       name: val.name,
-      calc_mode: cond.calc_mode,
-      num_citas: +cond.num_citas,
-      down_payment: parseFloat(cond.down_payment) || 0,
-      start_date: cond.start_date || undefined,
-      end_date: cond.end_date || undefined,
+      use_payment_plan: !!val.use_payment_plan,
+      // Always sent: total_amount is NOT NULL server-side and is the items subtotal.
+      total_amount: this.itemsSubtotal(),
       notes: val.notes || undefined,
       items,
     };
-    if (cond.calc_mode === 'per_cita') {
-      payload.cost_per_cita = parseFloat(cond.cost_per_cita) || 0;
-    } else {
-      payload.total_amount = parseFloat(cond.total_amount) || 0;
+
+    // conditions.num_citas keeps its required-with-default-3 validator, so the
+    // form is valid with financing off — the fields just must not be SENT. The
+    // backend NULLs them anyway; this keeps the request honest about intent.
+    if (payload.use_payment_plan) {
+      payload.calc_mode = cond.calc_mode;
+      payload.num_citas = +cond.num_citas;
+      payload.down_payment = parseFloat(cond.down_payment) || 0;
+      payload.start_date = cond.start_date || undefined;
+      payload.end_date = cond.end_date || undefined;
+      if (cond.calc_mode === 'per_cita') {
+        payload.cost_per_cita = parseFloat(cond.cost_per_cita) || 0;
+      }
     }
 
     const request = this.isEditMode()

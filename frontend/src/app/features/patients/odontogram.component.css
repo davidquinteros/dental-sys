@@ -20,25 +20,49 @@
 .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #4a5568; }
 .legend-swatch { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid; flex-shrink: 0; }
 
+/* Show/hide-pediatric toggle */
+.primary-toggle { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.pt-label { font-size: 13px; font-weight: 600; color: #4a5568; }
+.pt-switch {
+  display: inline-flex; gap: 4px; padding: 4px;
+  background: #f1f5f9; border-radius: 10px; border: 1px solid #e2e8f0;
+}
+.pt-btn {
+  border: none; background: transparent; cursor: pointer;
+  padding: 6px 18px; border-radius: 7px; font-size: 13px; font-weight: 600;
+  color: #64748b; transition: all 0.15s;
+}
+.pt-btn:hover { color: #334155; }
+.pt-btn.active { background: white; color: #2b6cb0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.pt-saving { font-size: 12px; color: #a0aec0; }
+
 /* Outer layout */
 .chart-outer { display: flex; gap: 20px; align-items: flex-start; }
 .chart-scroll { flex: 1; min-width: 0; overflow-x: auto; }
 
-/* Chart */
-.chart { display: flex; flex-direction: column; gap: 0; min-width: 680px; }
+/* Chart — width tracks the teeth content (not the scroll area) and is centered,
+   so the quadrant labels line up over their quadrants instead of stretching wide. */
+.chart { display: flex; flex-direction: column; gap: 0; width: max-content; margin: 0 auto; }
 
 /* Quadrant labels */
 .quad-labels { display: flex; align-items: center; padding: 6px 0; }
 .quad-label { flex: 1; font-size: 11px; font-weight: 600; color: #718096; text-align: center; line-height: 1.4; }
 .quad-label small { font-weight: 400; }
-.quad-label.q1, .quad-label.q4 { text-align: right; padding-right: 8px; }
-.quad-label.q2, .quad-label.q3 { text-align: left; padding-left: 8px; }
+.quad-label.q-right { text-align: right; padding-right: 8px; }
+.quad-label.q-left  { text-align: left; padding-left: 8px; }
 .quad-sep { width: 24px; flex-shrink: 0; }
 
-/* Jaw rows */
+/* Jaw rows — each row is two fixed-width halves flanking the midline, so the
+   8-tooth permanent rows and the shorter 5-tooth primary rows share one midline. */
 .jaw { display: flex; flex-direction: column; }
-.upper-jaw { }
-.lower-jaw { }
+.jaw-half { width: 352px; display: flex; align-items: center; flex-shrink: 0; }
+.jaw-half.right { justify-content: flex-end; }
+.jaw-half.left  { justify-content: flex-start; }
+
+/* Primary (child) rows: same 44px cells (so midlines align) but drawn slightly
+   smaller and lighter, to read as deciduous teeth. */
+.primary-row .tooth-svg { transform: scale(0.82); }
+.primary-row .num-cell { font-size: 10px; }
 
 /* Number row */
 .num-row { display: flex; align-items: center; }
@@ -69,6 +93,16 @@
 }
 .jaw-label-side { font-size: 10px; color: #a0aec0; white-space: nowrap; font-weight: 500; }
 .divider-line { flex: 1; height: 1px; background: #e2e8f0; }
+
+/* Supernumeraries */
+.supernum-section { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e2e8f0; }
+.supernum-title {
+  font-size: 10px; font-weight: 700; color: #a0aec0; text-transform: uppercase;
+  letter-spacing: 0.4px; text-align: center; margin-bottom: 8px;
+}
+.supernum-row { display: flex; justify-content: center; gap: 20px; }
+.supernum-slot { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.supernum-label { font-size: 9px; color: #a0aec0; text-align: center; line-height: 1.2; max-width: 60px; }
 
 /* Edit panel */
 .edit-panel {

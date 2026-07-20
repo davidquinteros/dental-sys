@@ -28,6 +28,13 @@ export const routes: Routes = [
     data: { pageKey: 'patients' },
   },
   {
+    path: 'billing/invoices/:id/imprimir',
+    loadComponent: () =>
+      import('./features/billing/invoice-print.component').then(m => m.InvoicePrintComponent),
+    canActivate: [roleGuard],
+    data: { pageKey: 'billing' },
+  },
+  {
     path: 'billing/payment-plans/:id/imprimir',
     loadComponent: () =>
       import('./features/billing/payment-plan-print.component').then(m => m.PaymentPlanPrintComponent),
@@ -64,14 +71,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/users/users.component').then(m => m.UsersComponent),
         canActivate: [roleGuard],
-        data: { pageKey: 'users', roles: ['admin'] },
+        data: { pageKey: 'users' },
       },
       {
         path: 'permissions',
         loadComponent: () =>
           import('./features/permissions/permissions.component').then(m => m.PermissionsComponent),
         canActivate: [roleGuard],
-        data: { pageKey: 'permissions', roles: ['admin'] },
+        data: { pageKey: 'permissions' },
       },
       {
         path: 'patients',
@@ -106,21 +113,28 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/appointment-types/appointment-types.component').then(m => m.AppointmentTypesComponent),
         canActivate: [roleGuard],
-        data: { pageKey: 'appointment_types', roles: ['admin'] },
+        data: { pageKey: 'appointment_types' },
       },
       {
         path: 'consultorios',
         loadComponent: () =>
           import('./features/consultorios/consultorios.component').then(m => m.ConsultoriosComponent),
         canActivate: [roleGuard],
-        data: { pageKey: 'consultorios', roles: ['admin'] },
+        data: { pageKey: 'consultorios' },
       },
       {
         path: 'billing',
         loadChildren: () =>
           import('./features/billing/billing.routes').then(m => m.BILLING_ROUTES),
         canActivate: [roleGuard],
-        data: { pageKey: 'billing', roles: ['admin', 'receptionist'] },
+        data: { pageKey: 'billing' },
+      },
+      {
+        path: 'clinic-profile',
+        loadComponent: () =>
+          import('./features/clinic-profile/clinic-profile.component').then(m => m.ClinicProfileComponent),
+        canActivate: [roleGuard],
+        data: { pageKey: 'clinic_profile' },
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],

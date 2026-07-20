@@ -44,7 +44,8 @@ export interface Clinic {
   address: string | null;
   phone: string | null;
   email?: string | null;
-  logo_url: string | null;
+  logo_main_url: string | null;
+  logo_print_url: string | null;
   subscription_tier_id: number | null;
   subscription_tier_name: string | null;
   subscription_status: SubscriptionStatus;

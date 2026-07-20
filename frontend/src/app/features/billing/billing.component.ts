@@ -66,6 +66,10 @@ export class BillingComponent implements OnInit {
 
   filteredInvoices() { return this.invoices(); }
 
+  printInvoice(id: number): void {
+    window.open(`/billing/invoices/${id}/imprimir`, '_blank');
+  }
+
   activePlans(): number { return this.paymentPlans().filter(p => p.status === 'active').length; }
 
   formatMoney(val?: number | null): string {

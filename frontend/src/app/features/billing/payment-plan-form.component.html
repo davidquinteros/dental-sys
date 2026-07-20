@@ -58,7 +58,7 @@
                 <select formControlName="treatment_plan_id" [class.error]="hasError('treatment_plan_id')">
                   <option value="">Seleccionar plan...</option>
                   @for (plan of treatmentPlans(); track plan.id) {
-                    <option [value]="plan.id">{{ plan.name }} ({{ plan.treatment_type }})</option>
+                    <option [value]="plan.id">{{ plan.name }} ({{ treatmentTypeLabel(plan.treatment_type) }})</option>
                   }
                 </select>
                 <button type="button" class="btn-new-plan" (click)="openPlanModal()">+ Nuevo plan</button>

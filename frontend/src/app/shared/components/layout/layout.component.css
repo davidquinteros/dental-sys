@@ -1,8 +1,11 @@
-:host { display: block; height: 100vh; --accent: #63b3ed; }
+/* 100dvh tracks the *visible* viewport on tablets (iPad Safari collapses its
+   toolbar while scrolling; 100vh would overflow by that toolbar height). */
+:host { display: block; height: 100vh; height: 100dvh; --accent: #63b3ed; }
 
 .layout {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   background: #f0f4f8;
 }
 
@@ -57,6 +60,9 @@
   align-items: center;
   gap: 8px;
   flex: 1;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 .mobile-brand-name { font-size: 15px; font-weight: 600; }
 
@@ -101,6 +107,17 @@
   min-height: 72px;
 }
 
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
 .brand-icon {
   width: 36px;
   height: 36px;
@@ -110,6 +127,12 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .brand-text { overflow: hidden; }
@@ -263,6 +286,7 @@
     top: 0;
     left: 0;
     height: 100vh;
+    height: 100dvh;
     width: 260px;
     min-width: 260px;
     max-width: 80vw;
@@ -285,4 +309,27 @@
   }
 
   .layout { flex-direction: column; }
+
+  /* Keep the fixed topbar and drawer footer clear of tablet safe areas
+     (home indicator / rounded corners); no-ops on devices without insets. */
+  .mobile-topbar {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .sidebar-footer {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Touch devices: nav rows and header controls reach the 44px minimum. */
+@media (pointer: coarse) {
+  .nav-item { min-height: 44px; }
+  .hamburger-btn, .close-drawer-btn, .logout-btn { min-height: 44px; min-width: 44px; }
+  /* Sidebar collapse toggle: keep it round and reachable (global 44px
+     min-height would deform this 24px circle into an oval). */
+  .toggle-btn {
+    width: 40px; height: 40px;
+    min-width: 40px; min-height: 40px;
+    right: -20px;
+  }
 }

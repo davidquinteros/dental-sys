@@ -38,13 +38,26 @@
               @if (budget()!.treatment_plan_id) {
                 <a [routerLink]="['/treatments/plans', budget()!.treatment_plan_id]" class="link">{{ budget()!.treatment_plan_name || ('#' + budget()!.treatment_plan_id) }}</a>
               } @else {
-                <span class="text-muted">Sin asignar todavía</span>
+                <span class="text-muted">Se creará al aceptar</span>
               }
             </div>
             <div class="m-row">
-              <span class="ml">Período</span>
-              <span>{{ formatDateOnly(budget()!.start_date) }} – {{ formatDateOnly(budget()!.end_date) }}</span>
+              <span class="ml">Médico</span>
+              <span>{{ budget()!.doctor_name || '—' }}</span>
             </div>
+            <div class="m-row">
+              <span class="ml">Tratamiento</span>
+              <span>
+                {{ treatmentTypeLabel(budget()!.treatment_type) }}
+                @if (budget()!.tooth_number) { <span class="text-muted">· Pieza {{ budget()!.tooth_number }}</span> }
+              </span>
+            </div>
+            @if (budget()!.use_payment_plan) {
+              <div class="m-row">
+                <span class="ml">Período</span>
+                <span>{{ formatDateOnly(budget()!.start_date) }} – {{ formatDateOnly(budget()!.end_date) }}</span>
+              </div>
+            }
             @if (budget()!.notes) {
               <div class="m-row col">
                 <span class="ml">Notas</span>
@@ -53,19 +66,36 @@
             }
           </div>
 
+          <!-- Financed: the cita ladder, as always. Unfinanced: the billing board
+               (item value by state — NOT money received, see the model). -->
           <div class="amounts-row">
-            <div class="amount-item">
-              <span class="a-label">Cantidad de Citas</span>
-              <span class="a-val">{{ budget()!.num_citas }}</span>
-            </div>
-            <div class="amount-item">
-              <span class="a-label">Costo por Cita</span>
-              <span class="a-val">Bs {{ formatMoney(budget()!.cost_per_cita) }}</span>
-            </div>
-            <div class="amount-item">
-              <span class="a-label">Cuota Inicial</span>
-              <span class="a-val">Bs {{ formatMoney(budget()!.down_payment) }}</span>
-            </div>
+            @if (budget()!.use_payment_plan) {
+              <div class="amount-item">
+                <span class="a-label">Cantidad de Citas</span>
+                <span class="a-val">{{ budget()!.num_citas }}</span>
+              </div>
+              <div class="amount-item">
+                <span class="a-label">Costo por Cita</span>
+                <span class="a-val">Bs {{ formatMoney(budget()!.cost_per_cita) }}</span>
+              </div>
+              <div class="amount-item">
+                <span class="a-label">Cuota Inicial</span>
+                <span class="a-val">Bs {{ formatMoney(budget()!.down_payment) }}</span>
+              </div>
+            } @else if (budget()!.status !== 'draft') {
+              <div class="amount-item">
+                <span class="a-label">En ítems pagados</span>
+                <span class="a-val paid">Bs {{ formatMoney(budget()!.amount_paid) }}</span>
+              </div>
+              <div class="amount-item">
+                <span class="a-label">En cobro</span>
+                <span class="a-val billing">Bs {{ formatMoney(budget()!.amount_billed) }}</span>
+              </div>
+              <div class="amount-item">
+                <span class="a-label">Pendiente</span>
+                <span class="a-val">Bs {{ formatMoney(budget()!.amount_pending) }}</span>
+              </div>
+            }
             <div class="amount-item total">
               <span class="a-label">Total</span>
               <span class="a-val">Bs {{ formatMoney(budget()!.total_amount) }}</span>
@@ -74,14 +104,22 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h3>Ítems Propuestos</h3></div>
-          @if (budget()!.items.length === 0) {
+          <div class="card-header">
+            <h3>Ítems Propuestos</h3>
+            @if (!budget()!.use_payment_plan && budget()!.status !== 'draft') {
+              <span class="text-muted hdr-hint">El estado sale del comprobante, no se guarda aparte</span>
+            }
+          </div>
+          @if (budget()!.items!.length === 0) {
             <div class="empty-history">Sin ítems detallados — presupuesto por costo de citas.</div>
           } @else {
             <div class="table-wrapper">
               <table class="table">
                 <thead>
-                  <tr><th>Descripción</th><th>Cant.</th><th>P. Unit.</th><th>Total</th></tr>
+                  <tr>
+                    <th>Descripción</th><th>Cant.</th><th>P. Unit.</th><th>Total</th>
+                    @if (!budget()!.use_payment_plan && budget()!.status !== 'draft') { <th>Estado</th> }
+                  </tr>
                 </thead>
                 <tbody>
                   @for (item of budget()!.items; track item.id) {
@@ -90,6 +128,16 @@
                       <td>{{ item.quantity }}</td>
                       <td class="money">Bs {{ formatMoney(item.unit_price) }}</td>
                       <td class="money">Bs {{ formatMoney(item.total) }}</td>
+                      @if (!budget()!.use_payment_plan && budget()!.status !== 'draft') {
+                        <td>
+                          <span class="pill" [class]="'pill-' + item.billing_state">{{ itemStateLabel(item.billing_state) }}</span>
+                          @if (item.invoice_id) {
+                            <a [routerLink]="['/billing/invoices', item.invoice_id]" class="pill-sub link">
+                              comprobante {{ item.invoice_number }} →
+                            </a>
+                          }
+                        </td>
+                      }
                     </tr>
                   }
                 </tbody>
@@ -100,24 +148,105 @@
             </div>
           }
         </div>
+
+        @if (invoices().length > 0) {
+          <div class="card">
+            <div class="card-header"><h3>Comprobantes Generados</h3></div>
+            <div class="table-wrapper">
+              <table class="table">
+                <thead>
+                  <tr><th>N°</th><th>Fecha</th><th>Ítems</th><th>Total</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                  @for (inv of invoices(); track inv.id) {
+                    <tr>
+                      <td><a [routerLink]="['/billing/invoices', inv.id]" class="link">{{ inv.invoice_number }}</a></td>
+                      <td>{{ formatDate(inv.created_at) }}</td>
+                      <td>{{ invoiceItemsLabel(inv) }}</td>
+                      <td class="money">Bs {{ formatMoney(inv.total) }}</td>
+                      <td><span class="status-badge" [class]="'inv-' + inv.status">{{ invStatusLabel(inv.status) }}</span></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
       </div>
 
       <div class="side-col">
+        @if (!budget()!.use_payment_plan && budget()!.status === 'accepted' && budget()!.items_subtotal > 0) {
+          <div class="card progress-card">
+            <h4>Avance del Cobro</h4>
+            <div class="pc-pct">{{ paidPct() }}%<small>en ítems pagados</small></div>
+            <div class="seg-bar">
+              <i class="seg-paid" [style.width.%]="segmentPct('paid')"></i>
+              <i class="seg-billing" [style.width.%]="segmentPct('billing')"></i>
+            </div>
+            <div class="legend-row">
+              <span class="lg-key"><i class="swatch sw-paid"></i> En ítems pagados</span>
+              <span class="lg-val">{{ formatMoney(budget()!.amount_paid) }}</span>
+            </div>
+            <div class="legend-row">
+              <span class="lg-key"><i class="swatch sw-billing"></i> En cobro</span>
+              <span class="lg-val">{{ formatMoney(budget()!.amount_billed) }}</span>
+            </div>
+            <div class="legend-row">
+              <span class="lg-key"><i class="swatch sw-pending"></i> Pendiente</span>
+              <span class="lg-val">{{ formatMoney(budget()!.amount_pending) }}</span>
+            </div>
+            <div class="pc-total"><span>Total</span><span>Bs {{ formatMoney(budget()!.items_subtotal) }}</span></div>
+          </div>
+        }
+
         @if (budget()!.status === 'draft') {
           <div class="action-panel">
             <h4>Acciones</h4>
             <button type="button" class="btn-accept" (click)="accept()" [disabled]="acting()">Aceptar Presupuesto</button>
             <button type="button" class="btn-reject" (click)="reject()" [disabled]="acting()">Rechazar Presupuesto</button>
+            <p class="panel-hint">
+              Al aceptar se creará el plan de tratamiento «{{ budget()!.name }}»@if (budget()!.doctor_name) { a nombre de {{ budget()!.doctor_name }}}.
+            </p>
           </div>
         }
 
-        @if (budget()!.status === 'accepted' && !budget()!.converted_plan_id) {
+        @if (budget()!.status === 'accepted' && budget()!.is_completed) {
+          <div class="converted-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span>Presupuesto completado</span>
+            <span class="cb-sub">Todos los ítems fueron cobrados</span>
+          </div>
+        }
+
+        <!-- Financed budgets keep the old panel: they're collected by their plan. -->
+        @if (budget()!.status === 'accepted' && budget()!.use_payment_plan && !budget()!.converted_plan_id) {
           <div class="action-panel accepted">
             <h4>Presupuesto Aceptado</h4>
             <p class="panel-hint">Definí con el paciente qué tratamientos hacer y generá el plan de pago con estas condiciones precargadas.</p>
             <a [routerLink]="['/billing/payment-plans/new']" [queryParams]="{ budget_id: budget()!.id }" class="btn-convert">
               Crear Plan de Pago
             </a>
+          </div>
+        }
+
+        @if (canCharge()) {
+          <div class="action-panel accepted">
+            <h4>Acciones</h4>
+            <a [routerLink]="['/billing/invoices/new']" [queryParams]="{ budget_id: budget()!.id }" class="btn-convert">
+              Cobrar ítems
+            </a>
+            @if (canFinance()) {
+              <p class="panel-hint">¿El paciente quiere pagarlo en cuotas?</p>
+              <a [routerLink]="['/billing/payment-plans/new']" [queryParams]="{ budget_id: budget()!.id }" class="btn-secondary-link">
+                Financiar con plan de pago ›
+              </a>
+              <p class="panel-hint small">Desaparece al emitir el primer comprobante.</p>
+            } @else {
+              <p class="panel-hint">Ya hay comprobantes emitidos: este presupuesto se cobra por ítem y ya no puede financiarse.</p>
+            }
           </div>
         }
 

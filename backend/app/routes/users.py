@@ -456,7 +456,10 @@ def list_doctors():
       - Usuarios
     security:
       - BearerAuth: []
-    description: Endpoint rápido para listar médicos activos, usado al agendar citas o crear planes de tratamiento.
+    description: >
+      Endpoint rápido para listar médicos activos (rol DOCTOR), usado al agendar citas,
+      crear planes de tratamiento y elegir el "médico responsable" de presupuestos.
+      Los admins no se incluyen: son cuentas de gestión, no clínicas.
     responses:
       200:
         description: Lista de médicos activos
@@ -472,5 +475,9 @@ def list_doctors():
         schema:
           $ref: '#/definitions/Error'
     """
-    doctors = User.query.filter_by(role=UserRole.DOCTOR, is_active=True).order_by(User.first_name).all()
+    doctors = (
+        User.query.filter(User.role == UserRole.DOCTOR, User.is_active.is_(True))
+        .order_by(User.first_name)
+        .all()
+    )
     return jsonify({"doctors": [d.to_dict() for d in doctors]}), 200
